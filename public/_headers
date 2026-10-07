@@ -1,0 +1,13 @@
+# Файлы сборки с хешем в имени не меняются — браузер может хранить их долго
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Сервис-воркер и страница должны всегда проверяться на обновления
+/sw.js
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+
+/manifest.webmanifest
+  Content-Type: application/manifest+json; charset=utf-8
+  Cache-Control: public, max-age=3600

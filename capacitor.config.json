@@ -1,0 +1,8 @@
+{
+  "appId": "com.ritm.app",
+  "appName": "RITM",
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "automatic"
+  }
+}

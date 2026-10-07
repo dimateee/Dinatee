@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+html, body {
+  background: #08090B;
+  color: #fff;
+  overscroll-behavior: none;
+  touch-action: pan-x pan-y;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Лёгкая «пружинная» анимация нажатия — сразу на все кнопки приложения,
+   чтобы не расставлять её вручную по каждому отдельному компоненту. */
+button {
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .15s cubic-bezier(.34, 1.56, .64, 1), opacity .15s ease;
+}
+button:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition: none;
+  }
+  button:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* Стаканчик воды: лёгкий «пружинный» подскок при заполнении/опустошении */
+@keyframes waterPop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}

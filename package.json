@@ -1,0 +1,58 @@
+{
+  "name": "ascend-miniapp",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && vite build --ssr src/prerender.jsx --outDir dist-ssr && node scripts/prerender.mjs",
+    "preview": "vite preview",
+    "electron": "electron .",
+    "dist:win": "npm run build && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.ritm.app",
+    "productName": "RITM",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "dist/**/*",
+      "!dist/**/*.map",
+      "!node_modules/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "build/icon.ico"
+    }
+  },
+  "dependencies": {
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/browser": "^8.0.4",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@netlify/blobs": "^11.1.0",
+    "capacitor-health": "^8.4.0",
+    "html5-qrcode": "^2.3.8",
+    "lucide-react": "0.383.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
+    "@tailwindcss/vite": "^4.1.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3",
+    "tailwindcss": "^4.1.0",
+    "vite": "^6.3.0"
+  }
+}

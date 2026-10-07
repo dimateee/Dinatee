@@ -1,0 +1,10 @@
+# Приложение на сайте живёт по адресу /app — это та же страница index.html, что и главная
+# (main.jsx сам решает, показать лендинг или приложение). Функции /api/* сюда не попадают.
+/app      /index.html   200
+/app/*    /index.html   200
+
+# Юридические документы: короткие адреса на страницы из public/legal
+/offer    /legal/offer.html    200
+/terms    /legal/terms.html    200
+/privacy  /legal/privacy.html  200
+/consent  /legal/consent.html  200

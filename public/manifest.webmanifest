@@ -1,0 +1,24 @@
+{
+  "id": "/app",
+  "name": "RITM — тренировки, питание и привычки",
+  "short_name": "RITM",
+  "description": "Программа силовых и бега, калории по фото, задачи, привычки и прогресс. Тот же аккаунт и Pro, что в Telegram.",
+  "lang": "ru",
+  "dir": "ltr",
+  "start_url": "/app?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#08090B",
+  "theme_color": "#08090B",
+  "categories": ["health", "fitness", "lifestyle"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Питание", "short_name": "Питание", "description": "Добавить еду: фото, штрихкод или текст", "url": "/app?tab=food&source=shortcut", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Силовые", "short_name": "Силовые", "description": "Тренировка на сегодня", "url": "/app?tab=train&source=shortcut", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Календарь", "short_name": "Календарь", "description": "Задачи и привычки", "url": "/app?tab=cal&source=shortcut", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

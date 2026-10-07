@@ -1,0 +1,21 @@
+/* Общий стиль юридических страниц RITM: простой и читаемый, в цветах сайта */
+:root { --bg: #08090B; --text: #EDEEF0; --muted: rgba(255,255,255,.62); --line: rgba(255,255,255,.1); --accent: #C6FF3D }
+* { box-sizing: border-box }
+html { background: var(--bg) }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 'Onest', system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased }
+.wrap { max-width: 760px; margin: 0 auto; padding: 28px 16px 64px }
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 20px; border-bottom: 1px solid var(--line); margin-bottom: 28px }
+header a { color: var(--text); text-decoration: none; font-weight: 800; letter-spacing: .16em }
+nav { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px }
+nav a { color: var(--muted); text-decoration: none; letter-spacing: 0; font-weight: 500 }
+nav a[aria-current="page"], nav a:hover { color: var(--accent) }
+h1 { font-size: clamp(26px, 5vw, 34px); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 6px }
+h2 { font-size: 19px; margin: 32px 0 8px; letter-spacing: -.01em }
+p, li { color: var(--text) }
+.muted { color: var(--muted); font-size: 14px }
+ul, ol { padding-left: 22px }
+li { margin: 4px 0 }
+a { color: var(--accent) }
+.card { border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; background: rgba(255,255,255,.03); margin: 18px 0 }
+footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted) }
+@media print { body { background: #fff; color: #000 } header nav, footer { display: none } p, li { color: #000 } a { color: #000 } }
