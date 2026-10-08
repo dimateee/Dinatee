@@ -2,6 +2,22 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
+# Шрифты не меняются никогда (при обновлении шрифта меняется имя файла)
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+# Фото техники упражнений и иконки меняются редко — месяц в кеше браузера
+/exercises/*
+  Cache-Control: public, max-age=2592000
+/icons/*
+  Cache-Control: public, max-age=2592000
+# Фоновые видео и их постеры лендинга — месяц (при замене видео лучше менять и имя файла)
+/video/*
+  Cache-Control: public, max-age=2592000
+/og-image.png
+  Cache-Control: public, max-age=604800
+
 # Сервис-воркер и страница должны всегда проверяться на обновления
 /sw.js
   Cache-Control: no-cache
@@ -11,3 +27,9 @@
 /manifest.webmanifest
   Content-Type: application/manifest+json; charset=utf-8
   Cache-Control: public, max-age=3600
+
+# Базовая защита для всех страниц
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), payment=(), usb=()

@@ -4,10 +4,19 @@ html, body {
   background: #08090B;
   color: #fff;
   overscroll-behavior: none;
-  touch-action: pan-x pan-y;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+/* В приложении (не на лендинге) — без масштабирования пальцами, как в обычном приложении */
+html.app-mode, html.app-mode body {
+  touch-action: pan-x pan-y;
+}
+
+/* Только для экранных дикторов: текст есть в разметке, но не виден (числа-счётчики и т.п.) */
+.sr-only {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }
 
 /* Лёгкая «пружинная» анимация нажатия — сразу на все кнопки приложения,

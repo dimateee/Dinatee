@@ -1,6 +1,9 @@
 // Общие «живые» эффекты для лендинга и приложения: счётчики, появление при прокрутке,
 // прогресс прокрутки блока. Без сторонних библиотек — только IntersectionObserver и requestAnimationFrame.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+
+// useLayoutEffect в браузере (до отрисовки кадра), useEffect при отрисовке на сервере — без предупреждений React
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 export const reducedMotion = () => {
   try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
@@ -31,9 +34,21 @@ export function CountUp({ value, duration = 1400, scramble = true, start = true,
   const decimals = m && /[.,](\d+)/.test(m[2]) ? m[2].split(/[.,]/)[1].length : 0;
   const ref = useRef(null);
   const inView = useInView(ref, { threshold: 0.3 });
+  // null — показываем итоговое число. Так первая отрисовка в браузере совпадает с готовым HTML
+  // лендинга (scripts/prerender.mjs), и React «оживляет» страницу, а не перерисовывает её заново.
   const [shown, setShown] = useState(null);
   const done = useRef(false);
   const cur = useRef(0);
+
+  // До первого кадра решаем, анимировать ли: число, которое уже было видно в готовом HTML, не трогаем
+  // (иначе оно мигнуло бы в 0), а то, что ниже экрана, обнуляем — оно «пробежит», когда до него долистают.
+  useIsoLayoutEffect(() => {
+    if (!m || !Number.isFinite(target) || reducedMotion()) return;
+    const r = ref.current?.getBoundingClientRect();
+    const visible = r && r.top < window.innerHeight && r.bottom > 0;
+    if (visible && window.__ritmHydrating) { done.current = true; cur.current = target; return; }
+    setShown(0);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Первый показ — «табло» от нуля; дальше, если значение меняется (например, +2,5 кг), цифры
   // коротко доезжают от старого числа к новому
@@ -61,12 +76,14 @@ export function CountUp({ value, duration = 1400, scramble = true, start = true,
   }, [inView, start, target]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!m || !Number.isFinite(target)) return <span ref={ref}>{str}</span>;
-  // При отрисовке на сервере (готовый HTML для поисковиков) — сразу итоговое число, а не «0»
-  const num = shown === null ? (typeof window === "undefined" ? target : 0) : shown;
+  const num = shown === null ? target : shown;
   const fixed = decimals ? num.toFixed(decimals).replace(".", m[2].includes(",") ? "," : ".") : Math.round(num);
   const text = format ? format(num) : (Math.abs(target) >= 10000 ? Number(fixed).toLocaleString("ru-RU") : fixed);
+  // Экранным дикторам — сразу итоговое значение (скрытым текстом), а мелькающие цифры от них спрятаны.
+  // Раньше здесь был aria-label на <span> — для обычного span это запрещённый атрибут (Lighthouse).
   return (
-    <span ref={ref} style={{ fontVariantNumeric: "tabular-nums" }} aria-label={str}>
+    <span ref={ref} style={{ fontVariantNumeric: "tabular-nums" }}>
+      <span className="sr-only">{str}</span>
       <span aria-hidden="true">{m[1]}{text}{m[3]}</span>
     </span>
   );

@@ -2,7 +2,9 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- Лендинг можно увеличивать (доступность). В приложении скрипт ниже добавляет maximum-scale=1 —
+         иначе iPhone приближает экран при нажатии на каждое поле ввода. -->
+    <meta name="viewport" id="vp" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#08090B" />
     <meta name="color-scheme" content="dark" />
     <title>RITM — тренировки, питание и привычки</title>
@@ -29,10 +31,14 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="ru_RU" />
     <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href="%SITE_URL%/" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@500;600;700;800&family=Onest:wght@400;500;600;700&display=swap" />
+    <!-- Шрифты — с самого сайта (src/fonts.css, public/fonts). Заранее грузим то, что видно на первом
+         экране: заголовки (Geologica) и текст (Onest) с кириллицей, плюс латиницу заголовков (RITM, цифры). -->
+    <link rel="preload" href="/fonts/geologica-cyrillic.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/noto-serif-display-italic-cyrillic.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/geologica-latin.woff2" as="font" type="font/woff2" crossorigin />
 
     <!-- Telegram Mini Apps SDK: даёт window.Telegram.WebApp. На сайте тоже подключён — по пустым
          initData приложение понимает, что открыто не в Telegram (см. src/web.js). -->
@@ -52,7 +58,16 @@
             || navigator.standalone === true || !!(window.matchMedia && matchMedia("(display-mode: standalone)").matches);
           if (!app) { try { var s = JSON.parse(localStorage.getItem("ritm-web-session") || "null"); app = !!(s && s.token && s.user && s.user.id); } catch (e) {} }
           if (!app) { try { app = !!sessionStorage.getItem("__telegram__initParams"); } catch (e) {} }
-          if (app) document.documentElement.className += " app-mode";
+          if (app) {
+            document.documentElement.className += " app-mode";
+            document.getElementById("vp").setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover");
+            // Код приложения качаем сразу, параллельно с основным скриптом, а не после него —
+            // так Mini App и /app открываются быстрее. Список файлов подставляет scripts/prerender.mjs.
+            var chunks = "__APP_CHUNKS__";
+            if (chunks.indexOf("__") !== 0) chunks.split(",").forEach(function (href) {
+              var l = document.createElement("link"); l.rel = "modulepreload"; l.crossOrigin = ""; l.href = href; document.head.appendChild(l);
+            });
+          }
         } catch (e) {}
       })();
     </script>

@@ -2893,10 +2893,12 @@ function Onboarding({ T, onDone }) {
             <ChevronLeft size={18} />
           </button>
         ) : <span style={{ fontFamily: DISPLAY, fontWeight: 700, letterSpacing: "0.2em", fontSize: 14 }}>RITM</span>}
-        <span style={{ color: MUTED, fontSize: 13 }}>{pos + 1} из {applicable(a).length}</span>
+        {/* Пока цель не выбрана, считаем и вопрос о темпе — иначе счётчик прыгал «1 из 6» → «2 из 7».
+            Если цель без темпа, шагов просто станет меньше — это приятный сюрприз, а не разочарование. */}
+        <span style={{ color: MUTED, fontSize: 13 }}>{pos + 1} из {(a.goal ? applicable(a) : QUESTIONS).length}</span>
       </div>
       <div className="flex gap-1 mb-8">
-        {applicable(a).map((qq, idx) => (
+        {(a.goal ? applicable(a) : QUESTIONS).map((qq, idx) => (
           <div key={idx} className="flex-1 rounded-full" style={{ height: 3, background: idx <= pos ? T.grad : "rgba(255,255,255,0.1)", boxShadow: idx === pos ? T.glow : "none" }} />
         ))}
       </div>
@@ -3220,7 +3222,33 @@ function AppTour({ T, st, onDone, onSkip, canSkip }) {
 }
 
 /* ============ Сегодня ============ */
-function Today({ T, st, up, program, run, week, go, name, streak, norm, onPhoto }) {
+// Карточка «Первая тренировка» — для тех, кто ещё ни разу не тренировался. Раньше после анкеты новичок
+// попадал на «Сегодня», где в день отдыха было написано «Силовой нет», а кнопка «Начать тренировку»
+// появлялась только в день по расписанию — пик мотивации проходил впустую. Теперь первую тренировку
+// можно начать сразу, в одно нажатие: сегодняшнюю по плану или первую тренировку программы.
+function FirstWorkoutCard({ T, program, dayIdx, go, openSession }) {
+  const day = program.days[dayIdx ?? 0];
+  if (!day || !openSession) return null;
+  const restDay = dayIdx === undefined;
+  return (
+    <div className="relative overflow-hidden rounded-[24px] p-5 mb-4" style={{ background: `linear-gradient(135deg, ${T.a}24, ${T.b}14)`, border: `1px solid ${T.a}55`, animation: "rise .45s ease-out" }}>
+      <div className="flex items-center gap-2 mb-2" style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: T.a }}>
+        <Sparkles size={14} /> Программа готова
+      </div>
+      <div style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.15 }}>Первая тренировка — {day.title}</div>
+      <Muted size={13} className="mt-1 mb-4">
+        {day.list.length} {exWord(day.list.length)} · около {program.durationMin} мин. Гид проведёт по каждому подходу: разминка, вес и повторы, таймер отдыха, фото техники.
+        {restDay ? " По расписанию сегодня отдых, но первую можно сделать прямо сейчас." : ""}
+      </Muted>
+      <Primary T={T} onClick={() => { goal("first_workout_start", { from: "today", restDay }); openSession(day.title, day.list, program.range); }}>
+        <PlayCircle size={18} /> Начать первую тренировку
+      </Primary>
+      <button onClick={() => go("train")} className="w-full mt-2 py-2 text-center" style={{ color: MUTED, fontSize: 13 }}>Сначала посмотреть программу</button>
+    </div>
+  );
+}
+
+function Today({ T, st, up, program, run, week, go, name, streak, norm, onPhoto, openSession }) {
   const now = new Date();
   const k = keyOf(now);
   const w = wdOf(now);
@@ -3274,6 +3302,10 @@ function Today({ T, st, up, program, run, week, go, name, streak, norm, onPhoto 
       </div>
 
       <Orb T={T} value={value} />
+
+      {!ownWorkout && !Object.keys(st.done || {}).length && !(st.trainHistory || []).length && (
+        <FirstWorkoutCard T={T} program={program} dayIdx={dayIdx} go={go} openSession={openSession} />
+      )}
 
       {(() => {
         const layout = effectiveTodayLayout(st);
@@ -4182,8 +4214,12 @@ function Train({ T, st, up, program, openEx, openNewWorkout, openWorkout, openSc
 
           <Card T={T} className="mb-4" style={{ borderRadius: 20 }}><MuscleMap groups={groupsOfItems(day.list)} /></Card>
 
-          {todayIdx === sel && !st.done[k] && (
-            <Primary T={T} onClick={() => openSession(day.title, day.list, program.range)}><PlayCircle size={18} /> Начать тренировку</Primary>
+          {/* Начать можно любую тренировку программы, а не только запланированную на сегодня:
+              раньше в «день отдыха» кнопки не было вовсе, и новичок после анкеты ждал своего дня */}
+          {!st.done[k] && (
+            <Primary T={T} onClick={() => openSession(day.title, day.list, program.range)}>
+              <PlayCircle size={18} /> {todayIdx === sel ? "Начать тренировку" : "Сделать эту тренировку сегодня"}
+            </Primary>
           )}
 
           <div className="inline-flex items-center rounded-full px-3 py-1 mb-2 mt-4" style={{ background: T.card, border: `1px solid ${T.line}` }}>
@@ -4897,7 +4933,7 @@ function Run({ T, st, up, run, week, openPay, openSchedule, isCustom }) {
           <Lock size={22} className="mx-auto mb-2" style={{ display: "block" }} />
           <div className="font-semibold mb-1">Недели 2–4 открываются в Pro</div>
           <Muted size={13} className="mb-4">Объём растёт постепенно, чтобы суставы успевали адаптироваться</Muted>
-          <Primary T={T} onClick={openPay}>Открыть Pro</Primary>
+          <Primary T={T} onClick={() => openPay("run_plan")}>Открыть Pro</Primary>
         </Card>
       ) : runDays.length === 0 ? (
         <Card T={T}>
@@ -4979,7 +5015,7 @@ function CalendarScreen({ T, st, up, program, run, week, openPay, openSchedule }
   const addHabit = () => {
     const n = habitName.trim();
     if (!n) return;
-    if (!canAddHabit) return openPay();
+    if (!canAddHabit) return openPay("habits");
     up((s) => ({ habits: [...s.habits, { id: "h" + Date.now(), name: n, log: {} }] }));
     setHabitName("");
   };
@@ -5127,7 +5163,7 @@ function CalendarScreen({ T, st, up, program, run, week, openPay, openSchedule }
           <input value={habitName} onChange={(e) => setHabitName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addHabit()}
             placeholder={canAddHabit ? "Новая привычка" : `Больше ${FREE_HABITS} привычек в Pro`} className="flex-1 rounded-xl px-4 py-3 bg-transparent outline-none"
             style={{ border: `1px solid ${T.line}`, color: "#fff", fontSize: 15 }} />
-          <button onClick={canAddHabit ? addHabit : openPay} aria-label="Добавить привычку" className="rounded-xl px-4" style={{ background: T.grad, color: T.on }}>
+          <button onClick={canAddHabit ? addHabit : () => openPay("habits")} aria-label="Добавить привычку" className="rounded-xl px-4" style={{ background: T.grad, color: T.on }}>
             {canAddHabit ? <Plus size={20} /> : <Lock size={18} />}
           </button>
         </div>
@@ -6587,7 +6623,7 @@ function AddFoodSheet({ T, meal, aiLeft, recent, mine, onPhoto, onBarcode, onTex
       <div className="flex flex-col gap-2 mt-2">
         <button onClick={onBarcode} className={option} style={row}><ScanBarcode size={18} /> Штрихкод с упаковки</button>
         {aiBlocked ? (
-          <button onClick={onPay} className={option} style={row}><Lock size={18} /> Фото и описание — лимит на сегодня, открыть Pro</button>
+          <button onClick={() => onPay("scans")} className={option} style={row}><Lock size={18} /> Фото и описание — лимит на сегодня, открыть Pro</button>
         ) : (
           <>
             <label className={`${option} cursor-pointer`} style={row}>
@@ -6880,7 +6916,7 @@ function ManualFoodSheet({ T, init, allergies, aiLeft, onUsedAi, onAdd, onSavePr
       {init.barcode && <Muted size={12} className="mb-2">Штрихкод {init.barcode}</Muted>}
       <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={readLabel} className="hidden" />
       {aiLeft === 0 ? (
-        <Ghost T={T} onClick={onPay}><Lock size={16} /> Чтение этикетки по фото — лимит на сегодня</Ghost>
+        <Ghost T={T} onClick={() => onPay("scans")}><Lock size={16} /> Чтение этикетки по фото — лимит на сегодня</Ghost>
       ) : (
         <Ghost T={T} onClick={() => fileRef.current?.click()}><Camera size={16} /> {reading ? "Читаю этикетку…" : "Заполнить по фото этикетки"}</Ghost>
       )}
@@ -7039,7 +7075,7 @@ function Nutrition({ T, st, up, norm, program, run, openScan, openRecipe, openPa
       <div className="mt-4">
         {scansLeft === 0 ? (
           <>
-            <Primary T={T} onClick={openPay}><Crown size={18} /> Безлимитное распознавание в Pro</Primary>
+            <Primary T={T} onClick={() => openPay("scans")}><Crown size={18} /> Безлимитное распознавание в Pro</Primary>
             <Muted size={12} className="mt-2 text-center">Бесплатные распознавания на сегодня закончились, завтра снова будет {FREE_SCANS}</Muted>
           </>
         ) : (
@@ -7121,7 +7157,7 @@ function Nutrition({ T, st, up, norm, program, run, openScan, openRecipe, openPa
         <Ghost T={T} onClick={openShopping}><ShoppingCart size={16} /> Список покупок</Ghost>
       </div>
 
-      <Card T={T} onClick={st.pro ? () => openRecipe({ ai: true }) : openPay} className="flex items-center gap-3 mb-2" style={{ border: `1px solid ${T.a}88`, boxShadow: st.pro ? T.glow : "none" }}>
+      <Card T={T} onClick={st.pro ? () => openRecipe({ ai: true }) : () => openPay("recipes")} className="flex items-center gap-3 mb-2" style={{ border: `1px solid ${T.a}88`, boxShadow: st.pro ? T.glow : "none" }}>
         <Sparkles size={20} color={T.a} />
         <div className="flex-1">
           <div className="font-semibold">Придумать рецепт под остаток дня</div>
@@ -8035,6 +8071,110 @@ function AdminProSheet({ T, onClose }) {
   );
 }
 
+/* ============ Перенос со старого сайта Netlify (админ) ============
+   При переезде на новый аккаунт/сайт Netlify серверные данные (Pro, данные аккаунтов сайта, промокоды,
+   друзья, чат, статистика) остаются на старом сайте — см. netlify/functions/admin-migrate.mjs. */
+const MIGRATE_LABELS = {
+  "ritm-pro": "Подписки Pro и платежи", "ritm-data": "Данные аккаунтов (сайт)", "ritm-users": "Пользователи и статистика",
+  "ritm-promo": "Промокоды", "ritm-friends": "Друзья", "ritm-chat": "Чат", "ritm-plans": "Совместные тренировки",
+  "ritm-goals": "Общие цели", "ritm-products": "База товаров по штрихкоду", "ritm-reminders": "Напоминания",
+};
+const MIGRATE_ERRORS = {
+  migrate_not_configured: "На этом (новом) сайте не заданы переменные MIGRATE_FROM_SITE_ID и MIGRATE_FROM_TOKEN — см. инструкцию выше.",
+  migrate_no_access: "Нет доступа к старому сайту: проверь MIGRATE_FROM_SITE_ID (ID старого сайта) и MIGRATE_FROM_TOKEN (токен старого аккаунта), потом сделай новый деплой.",
+  not_admin: "Этот экран недоступен: Telegram ID не в списке ADMIN_TG_IDS на Netlify.",
+  admin_not_configured: "На Netlify не задана переменная ADMIN_TG_IDS.",
+};
+async function adminMigrateApi(payload) {
+  const r = await fetch(apiUrl("/api/admin-migrate"), payload
+    ? { method: "POST", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(payload) }
+    : { headers: authHeaders(), cache: "no-store" });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(data.error || "migrate_error"), { detail: data.detail });
+  return data;
+}
+
+function AdminMigrateSheet({ T, onClose, onDone }) {
+  const [check, setCheck] = useState(null); // { stores, counts } | { error }
+  const [progress, setProgress] = useState({}); // store → { done, total, copied, merged }
+  const [state, setState] = useState("idle"); // idle | running | done | error
+  const [error, setError] = useState("");
+  const load = () => adminMigrateApi().then(setCheck).catch((e) => setCheck({ error: MIGRATE_ERRORS[e.message] || `Не получилось: ${e.detail || e.message}` }));
+  useEffect(() => { load(); }, []);
+
+  const run = async () => {
+    setState("running"); setError("");
+    try {
+      for (const store of check.stores) {
+        let offset = 0, copied = 0, merged = 0;
+        for (let guard = 0; guard < 2000; guard++) {
+          const r = await adminMigrateApi({ store, offset });
+          copied += r.copied; merged += r.merged; offset = r.nextOffset;
+          setProgress((p) => ({ ...p, [store]: { done: r.nextOffset, total: r.total, copied, merged } }));
+          if (r.done) break;
+        }
+      }
+      setState("done");
+      onDone?.();
+    } catch (e) {
+      setState("error");
+      setError(MIGRATE_ERRORS[e.message] || `Перенос остановился: ${e.detail || e.message}. Нажми ещё раз — уже перенесённое не задвоится.`);
+    }
+  };
+  const totals = Object.values(progress).reduce((a, p) => ({ copied: a.copied + p.copied, merged: a.merged + p.merged }), { copied: 0, merged: 0 });
+
+  return (
+    <Sheet T={T} title="Перенос со старого сайта" sub="Netlify хранит данные внутри сайта: при переезде на новый аккаунт Pro, данные аккаунтов, промокоды, друзья и чат остались на старом сайте. Здесь они копируются сюда. Повторный запуск безопасен — ничего не задваивается и не затирается." onClose={onClose}>
+      <Card T={T} className="mb-4">
+        <div className="font-semibold mb-2" style={{ fontSize: 14 }}>Один раз на новом сайте Netlify</div>
+        <ol style={{ fontSize: 13, color: "rgba(255,255,255,.78)", paddingLeft: 18, listStyle: "decimal", lineHeight: 1.55 }}>
+          <li>В <b>старом</b> аккаунте: сайт → Site configuration → Site details → скопируй <b>Site ID</b>.</li>
+          <li>Там же: аватар → User settings → Applications → Personal access tokens → <b>New access token</b>.</li>
+          <li>В <b>новом</b> сайте: Environment variables → <code>MIGRATE_FROM_SITE_ID</code> и <code>MIGRATE_FROM_TOKEN</code> → деплой.</li>
+        </ol>
+      </Card>
+      {!check ? <Loader T={T} text="Проверяю доступ к старому сайту…" /> : check.error ? (
+        <>
+          <Muted size={13} className="mb-3" style={{ color: T.a }}>{check.error}</Muted>
+          <Ghost T={T} onClick={() => { setCheck(null); load(); }}><RefreshCcw size={16} /> Проверить ещё раз</Ghost>
+        </>
+      ) : (
+        <>
+          <div className="flex flex-col gap-2 mb-4">
+            {check.stores.map((s) => {
+              const p = progress[s];
+              const total = p?.total ?? check.counts[s] ?? 0;
+              const pct = total ? Math.round(((p?.done || 0) / total) * 100) : p ? 100 : 0;
+              return (
+                <div key={s}>
+                  <div className="flex items-center justify-between" style={{ fontSize: 13 }}>
+                    <span>{MIGRATE_LABELS[s] || s}</span>
+                    <span style={{ color: MUTED }}>{p ? `${p.done} из ${total}` : `${total} зап.`}</span>
+                  </div>
+                  <div className="rounded-full mt-1 overflow-hidden" style={{ height: 4, background: "rgba(255,255,255,0.08)" }}>
+                    <div style={{ width: `${pct}%`, height: "100%", background: T.grad, transition: "width .3s ease" }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {state === "done" ? (
+            <Card T={T} style={{ border: `1px solid ${T.a}55` }}>
+              <div className="font-semibold" style={{ color: T.a }}>Перенос завершён</div>
+              <Muted size={13} className="mt-1">Скопировано записей: {totals.copied}, объединено с уже существующими: {totals.merged}. Теперь переменные MIGRATE_FROM_* можно удалить, а токен — отозвать в старом аккаунте. Старый сайт пока не удаляй — пусть побудет запасной копией.</Muted>
+            </Card>
+          ) : (
+            <Primary T={T} onClick={run} disabled={state === "running"}>
+              {state === "running" ? <><RefreshCcw size={16} className="ritm-spin" /> Переношу…</> : "Перенести данные"}
+            </Primary>
+          )}
+          {error && <Muted size={13} className="mt-3" style={{ color: T.a }}>{error}</Muted>}
+        </>
+      )}
+    </Sheet>
+  );
+}
+
 /* ============ Друзья ============
    Добавление — по Telegram-username, с заявкой и подтверждением в обе стороны: пока вторая
    сторона не примет заявку, профили друг другу не видны. Что именно видно в профиле друга —
@@ -8811,7 +8951,35 @@ function FriendsScreen({ T, st, up }) {
   );
 }
 
-function PaySheet({ T, onClose, onPaid, pro }) {
+// Почему открылось окно оплаты — первая строка окна говорит о том, во что человек только что упёрся,
+// а не начинает с общего списка. Ключи передаются в openPay(...) из мест, где срабатывает лимит.
+const PAYWALL_REASONS = {
+  scans: [Camera, "Бесплатные фото еды на сегодня закончились", `Бесплатно — ${FREE_SCANS} распознавания в день. В Pro — без лимита: фото тарелки, описание текстом и фото этикетки.`],
+  assistant: [Mic, "Бесплатные вопросы помощнику на сегодня закончились", `Бесплатно — ${FREE_ASSISTANT} вопросов в день. В Pro спрашивай сколько угодно — помощник видит твои тренировки, питание и вес.`],
+  habits: [Repeat, `Бесплатно — до ${FREE_HABITS} привычек`, "В Pro — сколько угодно привычек с сериями дней."],
+  workouts: [Dumbbell, `Бесплатно — ${FREE_WORKOUTS} своя тренировка`, "В Pro — сколько угодно своих тренировок и библиотека готовых программ."],
+  templates: [Library, "Готовые программы — в Pro", "6 программ под зал, дом и гирю: фулбоди, верх/низ, push/pull/legs — расставятся по дням сами."],
+  recipes: [Sparkles, "Рецепты от ИИ — в Pro", "Рецепты под остаток калорий и белка на сегодня, с учётом аллергий."],
+  run_plan: [Footprints, "Беговой план дальше первой недели — в Pro", "Все недели плана: кроссы, длительные и интервалы, с пульсовыми зонами."],
+  history: [TrendingUp, "Полная история — в Pro", `Бесплатно видно ${FREE_HISTORY} последние записи упражнения. В Pro — вся история и рекорды.`],
+  insight: [Sparkles, "ИИ-разбор недели — в Pro", "Каждую неделю — короткий разбор: что идёт хорошо и что поправить."],
+};
+function PaywallReason({ T, reason }) {
+  const r = PAYWALL_REASONS[reason];
+  if (!r) return null;
+  const [Icon, title, text] = r;
+  return (
+    <div className="flex items-start gap-3 rounded-2xl p-3.5 mb-4" style={{ background: `${T.a}14`, border: `1px solid ${T.a}40`, animation: "rise .3s ease-out" }}>
+      <span className="rounded-xl flex items-center justify-center flex-shrink-0" style={{ width: 36, height: 36, background: T.grad, color: T.on }}><Icon size={18} /></span>
+      <div>
+        <div className="font-semibold" style={{ fontSize: 14.5, lineHeight: 1.3 }}>{title}</div>
+        <Muted size={12.5} className="mt-0.5">{text}</Muted>
+      </div>
+    </div>
+  );
+}
+
+function PaySheet({ T, onClose, onPaid, pro, reason }) {
   const [plan, setPlan] = useState(0);
   const [status, setStatus] = useState("idle"); // idle | creating | waiting | done | error
   const [error, setError] = useState("");
@@ -8912,6 +9080,7 @@ function PaySheet({ T, onClose, onPaid, pro }) {
   if (needsLogin()) {
     return (
       <Sheet T={T} title="Оплата RITM Pro" sub="Pro привязывается к твоему Telegram-аккаунту — так она работает на сайте, в приложении на телефоне и в Mini App. Войди, и окно оплаты откроется снова." onClose={onClose}>
+        <PaywallReason T={T} reason={reason} />
         <div className="flex items-baseline gap-2 mb-4">
           <span style={{ fontFamily: DISPLAY, fontSize: 30, fontWeight: 700, letterSpacing: "-0.03em" }}>{RUB_PRICE.month} ₽</span>
           <Muted size={13}>в месяц · или {RUB_PRICE.year} ₽ за год (−{YEAR_SAVINGS_PCT}%)</Muted>
@@ -8953,6 +9122,7 @@ function PaySheet({ T, onClose, onPaid, pro }) {
 
   return (
     <Sheet T={T} title="Оплата RITM Pro" onClose={onClose}>
+      {!pro?.active && <PaywallReason T={T} reason={reason} />}
       {pro?.active && <Muted size={13} className="mb-3" style={{ color: T.a }}>Pro уже активна до {proUntilText(pro.until)}. Оплата продлит её — новые дни добавятся к оставшимся.</Muted>}
       <Card T={T} className="mb-4">
         <div className="font-semibold mb-3">Бесплатно vs Pro</div>
@@ -9174,7 +9344,7 @@ function VoiceAssistant({ T, st, up, norm, program, run, onPay }) {
   const ask = async (q) => {
     const text = q.trim();
     if (!text) return;
-    if (left === 0) { onPay(); return; }
+    if (left === 0) { onPay("assistant"); return; }
     setQuestion(text);
     setAnswer("");
     setError("");
@@ -9223,7 +9393,7 @@ function VoiceAssistant({ T, st, up, norm, program, run, onPay }) {
   return (
     <Sheet T={T} title="Помощник" sub="Спроси голосом или текстом о тренировках, питании и приложении." onClose={close}>
       {left === 0 && (
-        <Card T={T} className="mb-4" onClick={onPay}>
+        <Card T={T} className="mb-4" onClick={() => onPay("assistant")}>
           <div className="font-semibold mb-1">Бесплатные вопросы на сегодня закончились</div>
           <Muted size={13}>В Pro — без ограничений. Нажми, чтобы открыть.</Muted>
         </Card>
@@ -9812,7 +9982,7 @@ function AIWeeklyInsight({ T, st, up, norm }) {
 }
 
 /* ============ Настройки ============ */
-function SettingsScreen({ T, st, up, openPay, go, norm, lifetimePro, openLegal, sync, onSyncNow, proUntil, openRecalc, openTabs, openTodayLayout, openTour, promoAdmin, openRedeemPromo, openPromoAdmin, openAbout, openAdminStats, openLogin, openInstall, openAdminPro, onProRestored }) {
+function SettingsScreen({ T, st, up, openPay, go, norm, lifetimePro, openLegal, sync, onSyncNow, proUntil, openRecalc, openTabs, openTodayLayout, openTour, promoAdmin, openRedeemPromo, openPromoAdmin, openAbout, openAdminStats, openLogin, openInstall, openAdminPro, onProRestored, openAdminMigrate }) {
   const p = st.profile;
   const al = p.allergies || [];
   const toggleAllergy = (id) => up((s) => {
@@ -9868,6 +10038,7 @@ function SettingsScreen({ T, st, up, openPay, go, norm, lifetimePro, openLegal, 
       {promoAdmin && <div className="mt-2"><Ghost T={T} onClick={openPromoAdmin}><Crown size={16} /> Промокоды (админ)</Ghost></div>}
       {promoAdmin && <div className="mt-2"><Ghost T={T} onClick={openAdminStats}><BarChart3 size={16} /> Статистика (админ)</Ghost></div>}
       {promoAdmin && <div className="mt-2"><Ghost T={T} onClick={openAdminPro}><UserRound size={16} /> Pro пользователя (поддержка)</Ghost></div>}
+      {promoAdmin && <div className="mt-2"><Ghost T={T} onClick={openAdminMigrate}><Download size={16} /> Перенос со старого сайта Netlify</Ghost></div>}
       {st.pro && <ProStats T={T} st={st} norm={norm} />}
 
       <H2>Тема</H2>
@@ -10113,6 +10284,7 @@ function TelegramLoginPanel({ T, after }) {
         if (r.status === "ok") {
           stopped = true;
           saveSession(r.session, r.user);
+          goal("login_done", { after: after || "welcome" });
           setStatus("done");
           finishLogin(after);
         } else if (r.status === "expired") {
@@ -10188,21 +10360,26 @@ function LoginSheet({ T, onClose, after }) {
   );
 }
 
-// Первый экран сайта для тех, кто ещё не входил и не выбрал «без входа»
+// Первый экран сайта для тех, кто ещё не входил и не начал без входа.
+// Главное действие — начать (анкета без регистрации): раньше первой кнопкой был вход через Telegram,
+// а старт без входа шёл вторым, с предупреждением — новый посетитель упирался в выбор раньше,
+// чем видел пользу. Вход — для тех, кто уже пользуется Mini App; он раскрывается по кнопке
+// (и только тогда создаётся ссылка для входа).
 function WebWelcome({ T, onGuest }) {
+  const [showLogin, setShowLogin] = useState(false);
   const points = [
-    [Cloud, "Твои данные на всех устройствах", "Сайт, приложение на телефоне и Mini App в Telegram — одно и то же."],
-    [Crown, "Pro и оплата — те же", "Купил Pro в Telegram — она уже работает здесь, и наоборот."],
-    [Smartphone, "Ставится как приложение", "Android — кнопкой «Установить», iPhone — через «На экран „Домой“»."],
+    [Dumbbell, "Программа силовых под цель", "Зал, дом или гиря — вес и повторы растут сами"],
+    [Apple, "Норма калорий и БЖУ", "Калории по фото еды, штрихкоду или тексту"],
+    [PlayCircle, "Гид по каждой тренировке", "Разминка, подходы с таймером отдыха и фото техники"],
   ];
   return (
     <div className="min-h-screen flex items-center justify-center px-5 py-10">
       <div className="w-full max-w-md" style={{ animation: "rise .4s ease-out" }}>
-        <a href="/" className="inline-flex mb-10" style={{ color: "#fff", textDecoration: "none" }} aria-label="На главную"><Wordmark T={T} size={22} /></a>
+        <a href="/" className="inline-flex mb-10" style={{ color: "#fff", textDecoration: "none" }} aria-label="RITM — на главную"><Wordmark T={T} size={22} /></a>
         <h1 style={{ fontFamily: DISPLAY, fontSize: 34, fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 1.05 }}>
-          Тренировки, питание и привычки — <span style={{ background: T.grad, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>в одном ритме</span>
+          Твоя программа — <span style={{ background: T.grad, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>через минуту</span>
         </h1>
-        <Muted className="mt-3 mb-7" size={15}>Войди через Telegram, чтобы продолжить с того же места, где остановился в Mini App.</Muted>
+        <Muted className="mt-3 mb-7" size={15}>Ответь на несколько вопросов — RITM соберёт тренировки, беговой план и норму калорий. Бесплатно, без регистрации.</Muted>
         <div className="flex flex-col gap-3 mb-7">
           {points.map(([Icon, title, sub]) => (
             <div key={title} className="flex items-start gap-3">
@@ -10214,10 +10391,17 @@ function WebWelcome({ T, onGuest }) {
             </div>
           ))}
         </div>
-        <TelegramLoginPanel T={T} />
-        <div className="flex items-center gap-3 my-5"><span className="flex-1" style={{ height: 1, background: T.line }} /><Muted size={12}>или</Muted><span className="flex-1" style={{ height: 1, background: T.line }} /></div>
-        <Ghost T={T} onClick={onGuest}>Попробовать без входа</Ghost>
-        <Muted size={12} className="mt-2 text-center">Без входа данные хранятся только в этом браузере, а распознавание еды, помощник и оплата будут доступны после входа.</Muted>
+        <Primary T={T} onClick={onGuest}>Начать — анкета на минуту <ChevronRight size={18} /></Primary>
+        <Muted size={12} className="mt-2 text-center">Прогресс сохранится в этом браузере. Войти через Telegram можно в любой момент — он перенесётся в аккаунт.</Muted>
+        <div className="flex items-center gap-3 my-6"><span className="flex-1" style={{ height: 1, background: T.line }} /><Muted size={12}>уже пользуешься RITM в Telegram?</Muted><span className="flex-1" style={{ height: 1, background: T.line }} /></div>
+        {showLogin ? (
+          <div style={{ animation: "rise .3s ease-out" }}><TelegramLoginPanel T={T} /></div>
+        ) : (
+          <>
+            <Ghost T={T} onClick={() => setShowLogin(true)}><Send size={16} /> Войти через Telegram</Ghost>
+            <Muted size={12} className="mt-2 text-center">Тот же аккаунт, что в Mini App: Pro, друзья и все данные.</Muted>
+          </>
+        )}
       </div>
     </div>
   );
@@ -10359,6 +10543,63 @@ function AccountCard({ T, sync, onSyncNow, openLogin, openInstall }) {
       {u && <SyncCard T={T} sync={sync} onSyncNow={onSyncNow} />}
       {!inst.installed && <Ghost T={T} onClick={openInstall}><Smartphone size={16} /> Установить приложение на телефон</Ghost>}
     </div>
+  );
+}
+
+// После самой первой тренировки: поздравление и «что дальше». Это лучший момент, чтобы гость сайта
+// сохранил прогресс (вошёл через Telegram — тогда и бот напомнит о следующей тренировке), а не на старте.
+const WD_ACC = ["в понедельник", "во вторник", "в среду", "в четверг", "в пятницу", "в субботу", "в воскресенье"];
+function nextStrengthDay(program) {
+  const w = wdOf(new Date());
+  for (let d = 1; d <= 7; d++) {
+    const wd = (w + d) % 7;
+    const idx = program.schedule[wd];
+    const own = program.customDays?.[wd];
+    if (idx !== undefined || own) return { when: d === 1 ? "завтра" : WD_ACC[wd], title: idx !== undefined ? program.days[idx]?.title : null };
+  }
+  return null;
+}
+function FirstWorkoutDoneSheet({ T, program, st, web, session, openInstall, onClose }) {
+  const next = nextStrengthDay(program);
+  const inst = useInstall();
+  const guest = web && !session;
+  const remindAt = st.reminders?.trainingTime || "18:00";
+  useEffect(() => { goal("first_workout_done_screen", { guest }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <Sheet T={T} title="" onClose={onClose}>
+      <div className="relative text-center pt-2 pb-2">
+        <Confetti T={T} count={44} />
+        <div className="relative mx-auto rounded-full flex items-center justify-center mb-4 ritm-pop" style={{ width: 84, height: 84, background: T.grad, boxShadow: T.glow, color: T.on }}>
+          <Trophy size={36} />
+        </div>
+        <H1>Первая тренировка позади!</H1>
+        <Muted className="mt-2">Самое сложное — начать. Вес и повторы в следующий раз RITM подберёт сам по сегодняшним подходам.</Muted>
+      </div>
+      {next && (
+        <Card T={T} className="mt-4 flex items-center gap-3">
+          <CalendarDays size={20} color={T.a} className="flex-shrink-0" />
+          <div>
+            <div className="font-semibold" style={{ fontSize: 15 }}>Следующая — {next.when}</div>
+            {next.title && <Muted size={12}>{next.title}{!guest ? ` · напомню в ${remindAt}` : ""}</Muted>}
+          </div>
+        </Card>
+      )}
+      {guest ? (
+        <div className="mt-4">
+          <Card T={T} style={{ border: `1px solid ${T.a}55` }}>
+            <div className="font-semibold mb-1">Сохрани прогресс</div>
+            <Muted size={13}>Сейчас он хранится только в этом браузере. Войди через Telegram — и тренировки будут в аккаунте: на телефоне, компьютере и в Mini App, а бот напомнит о следующей.</Muted>
+          </Card>
+          <div className="mt-3"><TelegramLoginPanel T={T} /></div>
+          <button onClick={onClose} className="w-full mt-3 py-2 text-center" style={{ color: MUTED, fontSize: 13 }}>Позже</button>
+        </div>
+      ) : (
+        <div className="mt-4 flex flex-col gap-2">
+          {web && !inst.installed && <Ghost T={T} onClick={openInstall}><Smartphone size={16} /> Поставить RITM на телефон</Ghost>}
+          <Primary T={T} onClick={onClose}>Отлично!</Primary>
+        </div>
+      )}
+    </Sheet>
   );
 }
 
@@ -10602,7 +10843,14 @@ export default function App() {
   const web = isWeb();
   const [session] = useState(() => (web ? readSession() : null));
   // Сайт без входа: сначала экран приветствия, пока человек не войдёт или не выберет «без входа»
-  const [webGate, setWebGate] = useState(() => web && !session && !isGuest());
+  // ?start=1 — кнопка «Начать бесплатно» на лендинге: сразу анкета, без экрана выбора «войти или нет»
+  const [webGate, setWebGate] = useState(() => {
+    if (!web || session || isGuest()) return false;
+    try {
+      if (new URLSearchParams(window.location.search).get("start") === "1") { setGuest(true); goal("start_guest", { from: "landing" }); return false; }
+    } catch (e) { /* ок */ }
+    return true;
+  });
   const name = user?.first_name || "атлет";
   const lifetimePro = hasLifetimePro(user);
   const promoAdmin = canSeePromoAdmin(user);
@@ -10921,7 +11169,13 @@ export default function App() {
   }, [st.done, st.runDone, st.habits, st.dailyTasks, st.tasks]);
 
   const go = (t) => { haptic(); setTab(t); window.scrollTo?.(0, 0); };
-  const openPay = () => setSheet({ type: "pay" });
+  // reason — что именно упёрлось в бесплатный лимит («scans», «assistant»…): окно оплаты начинает
+  // с этого, а не с общего списка. Вызов прямо из onClick передаёт событие — тогда причина «direct».
+  const openPay = (reason) => {
+    const r = typeof reason === "string" ? reason : "direct";
+    goal("paywall_open", { reason: r });
+    setSheet({ type: "pay", reason: r });
+  };
   const openSchedule = () => setSheet({ type: "schedule" });
   // effectiveTabs — чистая функция от st.tabsConfig, но раньше пересчитывалась по три раза за рендер
   // (тут, внутри VoiceAssistant и внутри IIFE у <nav>) — считаем один раз и передаём дальше.
@@ -10936,7 +11190,7 @@ export default function App() {
     <div className="min-h-screen w-full text-white" style={{ background: T.bg, backgroundAttachment: "fixed", fontFamily: BODY, transition: "background .4s", "--ritm-accent": T.a }}>
       <GlobalStyle />
       {webGate ? (
-        <WebWelcome T={T} onGuest={() => { setGuest(true); setWebGate(false); }} />
+        <WebWelcome T={T} onGuest={() => { setGuest(true); setWebGate(false); goal("start_guest", { from: "welcome" }); }} />
       ) : !loaded ? (
         <div className="min-h-screen flex flex-col items-center justify-center gap-5">
           <RitmMark T={T} size={44} animated />
@@ -10958,20 +11212,22 @@ export default function App() {
             user={user} web={web} openInstall={() => setSheet({ type: "install" })} openLogin={() => setSheet({ type: "login" })} />
           <div className="lg:pl-[264px]">
           <main key={tab} className="ritm-stagger max-w-md md:max-w-xl lg:max-w-2xl mx-auto px-4 sm:px-5 md:px-8 lg:px-10 pt-6 md:pt-8 lg:pt-12 pb-[140px] lg:pb-16" style={{ animation: "fade .25s ease-out" }}>
-            {tab === "today" && web && <div className="lg:hidden"><InstallBanner T={T} onOpen={() => setSheet({ type: "install" })} /></div>}
-            {tab === "today" && <Today T={T} st={view} up={up} program={program} run={run} week={week} go={go} name={name} streak={myStreak} norm={norm} onPhoto={startPhotoScan} />}
+            {/* Установку предлагаем после первой тренировки, а не сразу после анкеты — сначала польза */}
+            {tab === "today" && web && Object.keys(st.done || {}).length > 0 && <div className="lg:hidden"><InstallBanner T={T} onOpen={() => setSheet({ type: "install" })} /></div>}
+            {tab === "today" && <Today T={T} st={view} up={up} program={program} run={run} week={week} go={go} name={name} streak={myStreak} norm={norm} onPhoto={startPhotoScan}
+              openSession={(dayTitle, items, range) => setSheet({ type: "session", dayTitle, items, range })} />}
             {tab === "train" && (
               <Train T={T} st={view} up={up} program={program} openSchedule={openSchedule}
                 openEx={(item) => setSheet({ type: "ex", item, range: program.range })}
                 openNewWorkout={() => {
                   const current = view.workouts || [];
-                  if (!view.pro && current.length >= FREE_WORKOUTS) { openPay(); return; }
+                  if (!view.pro && current.length >= FREE_WORKOUTS) { openPay("workouts"); return; }
                   const w = { id: "w" + Date.now(), name: "Новая тренировка", items: [] };
                   up((s) => ({ workouts: [...(s.workouts || []), w] }));
                   setSheet({ type: "workout", id: w.id });
                 }}
                 openWorkout={(id) => setSheet({ type: "workout", id })}
-                openTemplates={() => { if (!view.pro) { openPay(); return; } setSheet({ type: "templates" }); }}
+                openTemplates={() => { if (!view.pro) { openPay("templates"); return; } setSheet({ type: "templates" }); }}
                 openSession={(dayTitle, items, range) => setSheet({ type: "session", dayTitle, items, range })} />
             )}
             {tab === "run" && <Run T={T} st={view} up={up} run={run} week={week} openPay={openPay} openSchedule={openSchedule} isCustom={!!st.schedule} />}
@@ -11000,6 +11256,7 @@ export default function App() {
             {tab === "settings" && <SettingsScreen T={T} st={view} up={up} openPay={openPay} go={go} norm={norm} lifetimePro={lifetimePro} openLegal={(type) => setSheet({ type })} sync={sync} onSyncNow={() => syncRef.current?.run()} proUntil={serverPro.active ? serverPro.until : 0} openRecalc={() => setSheet({ type: "recalc" })} openTabs={() => setSheet({ type: "tabs" })} openTodayLayout={() => setSheet({ type: "todayLayout" })} openTour={() => setReplayTour(true)} promoAdmin={promoAdmin} openRedeemPromo={() => setSheet({ type: "redeemPromo" })} openPromoAdmin={() => setSheet({ type: "promoAdmin" })} openAbout={() => setSheet({ type: "about" })} openAdminStats={() => setSheet({ type: "adminStats" })}
               openLogin={() => setSheet({ type: "login" })} openInstall={() => setSheet({ type: "install" })}
               openAdminPro={() => setSheet({ type: "adminPro" })}
+              openAdminMigrate={() => setSheet({ type: "adminMigrate" })}
               onProRestored={(r) => setServerPro({ active: !!r.active, until: r.until || 0, plan: r.plan })} />}
           </main>
           </div>
@@ -11044,12 +11301,23 @@ export default function App() {
           {sheet?.type === "session" && (
             <SessionRunner T={T} dayTitle={sheet.dayTitle} items={sheet.items} range={sheet.range}
               onSaveExercise={saveTraining}
-              onFinish={() => { goalOnce("first_workout"); goal("workout_done"); const k2 = keyOf(new Date()); up((s) => ({ done: { ...s.done, [k2]: true } })); setSheet({ type: "wellbeing", afterWorkout: true }); }}
+              onFinish={() => {
+                // Первая тренировка в жизни — после опроса самочувствия покажем «что дальше» (FirstWorkoutDoneSheet)
+                const first = !Object.keys(st.done || {}).length;
+                goalOnce("first_workout"); goal("workout_done");
+                const k2 = keyOf(new Date()); up((s) => ({ done: { ...s.done, [k2]: true } }));
+                setSheet({ type: "wellbeing", afterWorkout: true, first });
+              }}
               onClose={() => setSheet(null)} />
           )}
           {sheet?.type === "wellbeing" && (
             <WellbeingSheet T={T} afterWorkout={!!sheet.afterWorkout} existing={st.wellbeing?.[keyOf(new Date())]}
-              onSave={(w) => { const k2 = keyOf(new Date()); up((s) => ({ wellbeing: { ...s.wellbeing, [k2]: w } })); setSheet(null); haptic(); }}
+              onSave={(w) => { const k2 = keyOf(new Date()); up((s) => ({ wellbeing: { ...s.wellbeing, [k2]: w } })); setSheet(sheet.first ? { type: "firstDone" } : null); haptic(); }}
+              onClose={() => setSheet(sheet.first ? { type: "firstDone" } : null)} />
+          )}
+          {sheet?.type === "firstDone" && (
+            <FirstWorkoutDoneSheet T={T} program={program} st={st} web={web} session={session}
+              openLogin={() => setSheet({ type: "login" })} openInstall={() => setSheet({ type: "install" })}
               onClose={() => setSheet(null)} />
           )}
           {sheet?.type === "recalc" && <RecalcSheet T={T} st={st} up={up} onClose={() => setSheet(null)} />}
@@ -11083,7 +11351,7 @@ export default function App() {
               onApply={(tpl) => { applyProgramTemplate(up, st, tpl); setSheet(null); haptic(); }}
               onClose={() => setSheet(null)} />
           )}
-          {sheet?.type === "pay" && <PaySheet T={T} pro={serverPro} onClose={() => setSheet(null)} onPaid={(r) => setServerPro({ active: true, until: r.until, plan: r.plan })} />}
+          {sheet?.type === "pay" && <PaySheet T={T} pro={serverPro} reason={sheet.reason} onClose={() => setSheet(null)} onPaid={(r) => setServerPro({ active: true, until: r.until, plan: r.plan })} />}
           {sheet?.type === "paid" && <PaidSheet T={T} until={sheet.until} onClose={() => setSheet(null)} />}
           {sheet?.type === "login" && <LoginSheet T={T} onClose={() => setSheet(null)} />}
           {sheet?.type === "install" && <InstallSheet T={T} onClose={() => setSheet(null)} />}
@@ -11093,6 +11361,10 @@ export default function App() {
           {sheet?.type === "promoAdmin" && <PromoAdminSheet T={T} onClose={() => setSheet(null)} />}
           {sheet?.type === "adminStats" && <AdminStatsSheet T={T} onClose={() => setSheet(null)} />}
           {sheet?.type === "adminPro" && <AdminProSheet T={T} onClose={() => setSheet(null)} />}
+          {sheet?.type === "adminMigrate" && (
+            <AdminMigrateSheet T={T} onClose={() => setSheet(null)}
+              onDone={() => { refreshPro(); syncRef.current?.run(); }} />
+          )}
           {LEGAL_DOCS[sheet?.type] && <LegalSheet T={T} type={sheet.type} onClose={() => setSheet(null)} />}
           {sheet?.type === "addfood" && (
             <AddFoodSheet T={T} meal={sheet.meal} aiLeft={aiLeft} onClose={() => setSheet(null)} onPay={openPay}

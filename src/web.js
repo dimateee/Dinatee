@@ -1,7 +1,7 @@
 // Веб-версия RITM: сайт и приложение, установленное с сайта (PWA) — Android через «Установить»,
 // iPhone через «На экран „Домой“». Здесь всё, что нужно только вне Telegram:
 // вход через бота, сессия, установка приложения, сервис-воркер и ожидающий платёж.
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 
 /* ============ Где запущено ============ */
 // Внутри Telegram скрипт telegram-web-app.js отдаёт подписанные initData. На обычном сайте
@@ -94,21 +94,27 @@ if (typeof window !== "undefined") {
   window.addEventListener("appinstalled", () => { installed = true; deferredPrompt = null; notify(); });
 }
 
+// До первого кадра в браузере возвращает нейтральные значения — такие же, как при отрисовке
+// лендинга на сервере, чтобы готовый HTML совпал и React «оживил» страницу без перерисовки.
+// Сразу после этого (ещё до показа кадра) подставляются настоящие значения устройства.
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 export function useInstall() {
   const [, force] = useState(0);
+  const [mounted, setMounted] = useState(false);
+  useIsoLayoutEffect(() => { setMounted(true); }, []);
   useEffect(() => {
     const fn = () => force((x) => x + 1);
     listeners.add(fn);
     return () => listeners.delete(fn);
   }, []);
-  const standalone = isStandaloneDisplay();
+  const standalone = mounted && isStandaloneDisplay();
   return {
     standalone,
-    installed: installed || standalone,
-    canPrompt: !!deferredPrompt && !standalone,
-    ios: isIOS(),
-    android: isAndroid(),
-    inApp: isInAppBrowser(),
+    installed: mounted && (installed || standalone),
+    canPrompt: mounted && !!deferredPrompt && !standalone,
+    ios: mounted && isIOS(),
+    android: mounted && isAndroid(),
+    inApp: mounted && isInAppBrowser(),
     async prompt() {
       if (!deferredPrompt) return "unavailable";
       const e = deferredPrompt;

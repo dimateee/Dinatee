@@ -6,9 +6,9 @@
 // - /assets/*: у файлов хеш в имени, они не меняются — берём из кеша, при промахе качаем и кладём.
 // - Шрифты и иконки: из кеша, в фоне обновляем. Фото упражнений: из кеша после первого показа.
 // - /api/* не трогаем вообще: оплата, вход, ИИ и синхронизация всегда идут в сеть.
-const SHELL = "ritm-shell-v3";
-const ASSETS = "ritm-assets-v3";
-const STATIC = "ritm-static-v3";
+const SHELL = "ritm-shell-v4";
+const ASSETS = "ritm-assets-v4";
+const STATIC = "ritm-static-v4";
 // Страницу храним под ключом "/": /, /app и /index.html — одна и та же index.html
 const PAGE = "/";
 const KEEP = [SHELL, ASSETS, STATIC];
@@ -92,16 +92,13 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(cacheFirst(req, ASSETS, MAX_ASSETS));
     return;
   }
-  // Фото техники упражнений (public/exercises) не меняются — после первого показа доступны и без сети
-  if (sameOrigin && url.pathname.startsWith("/exercises/")) {
+  // Фото техники упражнений (public/exercises) и шрифты (public/fonts) не меняются —
+  // после первого показа доступны и без сети
+  if (sameOrigin && (url.pathname.startsWith("/exercises/") || url.pathname.startsWith("/fonts/"))) {
     event.respondWith(cacheFirst(req, STATIC, 0));
     return;
   }
   if (sameOrigin && (url.pathname.startsWith("/icons/") || url.pathname === "/manifest.webmanifest")) {
-    event.respondWith(staleWhileRevalidate(req, STATIC));
-    return;
-  }
-  if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") {
     event.respondWith(staleWhileRevalidate(req, STATIC));
   }
 });
