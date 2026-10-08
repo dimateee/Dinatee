@@ -50,21 +50,22 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* Заголовки лендинга — курсив с засечками Noto Serif Display (SIL Open Font License). Близок к Instrument
-   Serif из макета, но, в отличие от него, умеет кириллицу. Одно начертание: 400 italic. */
+/* Заголовки лендинга — Sofia Sans Extra Condensed (SIL Open Font License): узкий спортивный шрифт с кириллицей,
+   выбран по подсказке скилла ui-ux-pro-max (пара Sports/Fitness; Barlow Condensed из неё не умеет кириллицу).
+   Переменный шрифт: один файл на набор символов для всех толщин 100–1000. */
 @font-face {
-  font-family: 'Noto Serif Display';
-  font-style: italic;
-  font-weight: 400;
+  font-family: 'Sofia Sans Extra Condensed';
+  font-style: normal;
+  font-weight: 100 1000;
   font-display: swap;
-  src: url('/fonts/noto-serif-display-italic-cyrillic.woff2') format('woff2');
+  src: url('/fonts/sofia-sans-extra-condensed-cyrillic.woff2') format('woff2');
   unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
 }
 @font-face {
-  font-family: 'Noto Serif Display';
-  font-style: italic;
-  font-weight: 400;
+  font-family: 'Sofia Sans Extra Condensed';
+  font-style: normal;
+  font-weight: 100 1000;
   font-display: swap;
-  src: url('/fonts/noto-serif-display-italic-latin.woff2') format('woff2');
+  src: url('/fonts/sofia-sans-extra-condensed-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
