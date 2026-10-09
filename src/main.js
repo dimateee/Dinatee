@@ -77,7 +77,6 @@ class Game {
     this.lastDay = w.day;
     w.on((type, d) => this.onWorldEvent(type, d));
     this.ui.enterGame();
-    TG.closingConfirmation(true);
     if (fresh) {
       this.autosave(true);
       const l = w.letters[w.letters.length - 1];
@@ -122,7 +121,6 @@ class Game {
 
   toMenu() {
     this.autosave(true);
-    TG.closingConfirmation(false);
     this.showDemo();
   }
 
@@ -138,7 +136,6 @@ class Game {
     } else if (type === "gameover") {
       TG.haptic("error");
       deleteSave();
-      TG.closingConfirmation(false);
       this.ui.showGameOver();
     }
   }

@@ -505,7 +505,7 @@ export class UI {
     const w = this.g.w;
     if (p.dead) return gx(p, "Погиб", "Погибла");
     if (p.downed) return p.inBed ? "Лежит в кровати, лечится" : "Без сознания";
-    if (p.carriedBy) return "Его несут";
+    if (p.carriedBy) return "Несут на руках";
     if (p.drafted) return p.forceTarget ? "В бою: атакует" : p.path ? "В бою: идёт" : "В бою: держит позицию";
     if (p.mental) return "Срыв: " + BREAKS[p.mental.type];
     const j = p.job;
@@ -570,9 +570,9 @@ export class UI {
         <div class="btns"><button class="primary" data-a="trade" ${here ? "" : "disabled"}>💰 Торговать</button></div>${here ? "" : '<div class="sub">Караван ещё не дошёл до колонии.</div>'}`;
     }
     if (p.kind === "prisoner") {
-      return html + `<div class="sub">Пленник · ${p.dead ? gx(p, "мёртв", "мертва") : p.downed ? "ранен" : "в кровати"}</div>
+      return html + `<div class="sub">${gx(p, "Пленник", "Пленница")} · ${p.dead ? gx(p, "мёртв", "мертва") : p.downed ? gx(p, "ранен", "ранена") : "в кровати"}</div>
         <div class="kv">${this.kv("Сытость", p.food, "#e8a040", pct(p.food))}${this.kv("Здоровье", p.hp / p.maxHp, "#6fcf6a", Math.round(p.hp))}${this.kv("Упрямство", (p.resistance || 0) / 12, "#9a8ae8", (p.resistance || 0).toFixed(1))}</div>
-        <div class="sub" style="margin-top:6px">Надзиратели (работа «Надзор») кормят пленника и уговаривают. Когда упрямство дойдёт до нуля — может присоединиться.</div>
+        <div class="sub" style="margin-top:6px">Надзиратели (работа «Надзор») приносят еду и уговаривают. Когда упрямство дойдёт до нуля — может присоединиться.</div>
         ${p.dead ? "" : `<div class="btns"><button data-a="release">🕊 Отпустить</button></div>`}`;
     }
     // колонист

@@ -188,7 +188,7 @@ export function kill(w, t, killer) {
     w.letter("death", "Потеря", `${t.name} больше нет с нами.`, t.x, t.y);
     for (const c of w.colonists()) addThought(w, c, "friendDied");
   } else if (t.kind === "prisoner") {
-    w.letter("bad", "Смерть пленника", `Пленник ${displayName(t)} умер.`, t.x, t.y);
+    w.letter("bad", "Смерть в плену", `${displayName(t)}: ${gx(t, "пленник умер", "пленница умерла")}.`, t.x, t.y);
   }
   if (t.faction === "hostile" && killer && killer.faction === "player") w.stats.kills++;
   w.emit("pawns");

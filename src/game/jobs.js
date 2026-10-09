@@ -3,7 +3,7 @@ import {
   TPH, TPD, ITEMS, BUILDINGS, PLANTS, PLANT, ROCKS, RECIPES, WORK, CARRY_CAP, WEAPONS, TR, DESIG,
 } from "./defs.js";
 import {
-  workSpeed, gainXp, addThought, goTo, startPath, clearJob, skillLvl, cheb, dist, displayName,
+  workSpeed, gainXp, addThought, goTo, startPath, clearJob, skillLvl, cheb, dist, displayName, gx,
 } from "./pawnutil.js";
 import { attack, canSee, isEnemy } from "./combat.js";
 import { defaultWork } from "./pawn.js";
@@ -640,7 +640,7 @@ function wardenGiver(w, p) {
     return { type: "rescue", patient: q.id, bed: bed.id, capture: true, step: 0 };
   }
   for (const q of w.pawns) {
-    if (q.kind !== "prisoner" || q.dead || q.carriedBy) continue;
+    if (q.kind !== "prisoner" || q.dead || q.carriedBy || q.release) continue;
     if (!w.reachFrom(rs, q.x, q.y, "touch")) continue;
     if (q.food < 0.35 && !w.isRes("feed" + q.id, p.id)) {
       const food = nearestItem(w, p, rs, (it) => !!ITEMS[it.def].nut);
@@ -1231,7 +1231,7 @@ export function makePrisoner(w, q, bed) {
   bed.forPrisoner = true;
   bed.owner = q.id;
   q.bed = bed.id;
-  w.letter("neutral", "Пленник", `${displayName(q)} теперь в плену. Надзиратели будут кормить и уговаривать присоединиться.`, q.x, q.y);
+  w.letter("neutral", gx(q, "Пленник", "Пленница"), `${displayName(q)} теперь в плену. Надзиратели будут кормить и уговаривать присоединиться.`, q.x, q.y);
   w.emit("pawns");
 }
 
