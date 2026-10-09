@@ -10,6 +10,37 @@ import { useEffect, useLayoutEffect, useState } from "react";
 export const inTelegram = () => typeof window !== "undefined" && !!window.Telegram?.WebApp?.initData;
 export const tgApp = () => (inTelegram() ? window.Telegram.WebApp : null);
 
+// Полноэкранный режим Telegram (Bot API 8.0): поверх приложения сверху лежат статус-бар телефона
+// и кнопки Telegram «Закрыть» / «⌄ •••», снизу — полоска «домой». Их размеры Telegram присылает
+// событиями — кладём в CSS-переменные, а сами отступы считаются в GlobalStyle (--ritm-top,
+// --ritm-safe-bottom). Класс tg-fullscreen включает затемнение под кнопками, ritm-scrolled — когда
+// страницу прокрутили и текст уходит под них.
+export function watchTelegramInsets() {
+  const tg = tgApp();
+  if (!tg || typeof document === "undefined") return;
+  const root = document.documentElement;
+  const px = (v) => `${Math.max(0, Math.round(Number(v) || 0))}px`;
+  const apply = () => {
+    const safe = tg.safeAreaInset || {};
+    const content = tg.contentSafeAreaInset || {};
+    root.style.setProperty("--ritm-tg-safe-top", px(safe.top));
+    root.style.setProperty("--ritm-tg-safe-bottom", px(safe.bottom));
+    root.style.setProperty("--ritm-tg-content-top", px(content.top));
+    root.classList.toggle("tg-fullscreen", !!tg.isFullscreen || Number(content.top) > 0);
+  };
+  apply();
+  ["safeAreaChanged", "contentSafeAreaChanged", "fullscreenChanged", "viewportChanged"].forEach((name) => {
+    try { tg.onEvent(name, apply); } catch (e) { /* старая версия Telegram — событий нет */ }
+  });
+  let scrolled = false;
+  const onScroll = () => {
+    const next = window.scrollY > 6;
+    if (next !== scrolled) { scrolled = next; root.classList.toggle("ritm-scrolled", next); }
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+}
+
 export const isStandaloneDisplay = () => {
   if (typeof window === "undefined") return false;
   try { if (window.matchMedia("(display-mode: standalone)").matches) return true; } catch (e) { /* старый браузер */ }

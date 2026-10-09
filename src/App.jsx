@@ -2019,6 +2019,24 @@ const DEFAULT = {
 function GlobalStyle() {
   return (
     <style>{`
+      /* Отступы от краёв экрана. В полноэкранном режиме Telegram сверху поверх приложения лежат
+         статус-бар телефона и кнопки «Закрыть» / «⌄ •••» — их высоту Telegram сообщает сам
+         (watchTelegramInsets в src/web.js). На сайте и в установленном приложении — системные env(). */
+      :root {
+        --ritm-safe-top: max(env(safe-area-inset-top, 0px), var(--ritm-tg-safe-top, 0px));
+        --ritm-top: calc(var(--ritm-safe-top) + var(--ritm-tg-content-top, 0px));
+        --ritm-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--ritm-tg-safe-bottom, 0px));
+      }
+      /* Экран на всю высоту за вычетом верхнего отступа (анкета, знакомство, загрузка) */
+      .ritm-screen { min-height: calc(100vh - var(--ritm-top)) }
+      /* Затемнение под кнопками Telegram: при прокрутке текст уходит под него, а не лезет под «Закрыть» */
+      .ritm-topfade { display: none }
+      html.tg-fullscreen .ritm-topfade {
+        display: block; position: fixed; top: 0; left: 0; right: 0; z-index: 35; pointer-events: none;
+        height: calc(var(--ritm-top) + 14px); opacity: 0; transition: opacity .25s ease;
+        background: linear-gradient(to bottom, rgba(0,0,0,.94) 0%, rgba(0,0,0,.86) calc(100% - 14px), rgba(0,0,0,0) 100%);
+      }
+      html.tg-fullscreen.ritm-scrolled .ritm-topfade { opacity: 1 }
       @keyframes breathe { 0%,100% { opacity:.45; transform:scale(1);} 50% { opacity:.9; transform:scale(1.06);} }
       @keyframes rise { from { opacity:0; transform:translateY(14px);} to { opacity:1; transform:none;} }
       @keyframes fade { from { opacity:0 } to { opacity:1 } }
@@ -2202,7 +2220,7 @@ function Sheet({ T, title, sub, onClose, children }) {
       style={{ background: "rgba(2,3,5,0.72)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", animation: "fade .2s ease-out" }} onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title || undefined}
         className="w-full max-w-md md:max-w-lg overflow-y-auto no-scrollbar rounded-t-[30px] md:rounded-[30px]"
-        style={{ maxHeight: "92vh", background: T.surface || "#0F1013", border: `1px solid ${T.line}`, boxShadow: `0 -24px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,0.05)`, padding: "10px 20px calc(30px + env(safe-area-inset-bottom))", animation: "sheetUp .3s cubic-bezier(.2,.8,.2,1)" }}>
+        style={{ maxHeight: "min(92%, calc(100% - var(--ritm-top) - 12px))", background: T.surface || "#0F1013", border: `1px solid ${T.line}`, boxShadow: `0 -24px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,0.05)`, padding: "10px 20px calc(30px + var(--ritm-safe-bottom))", animation: "sheetUp .3s cubic-bezier(.2,.8,.2,1)" }}>
         <div className="mx-auto mb-3 rounded-full md:hidden" style={{ width: 38, height: 4, background: "rgba(255,255,255,0.16)" }} />
         <div className="flex items-start justify-between gap-3 mb-1 md:pt-3">
           <h2 style={{ fontFamily: DISPLAY, fontSize: 21, fontWeight: 700, lineHeight: 1.2, letterSpacing: "-0.02em" }}>{title}</h2>
@@ -2231,7 +2249,7 @@ function FullScreen({ T, children, center = false, label }) {
     <div className="fixed inset-0 z-50 flex items-stretch md:items-center justify-center md:p-6" role="dialog" aria-modal="true" aria-label={label}
       style={{ background: "rgba(2,3,5,0.84)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", animation: "fade .2s ease-out" }}>
       <div className={`relative w-full md:max-w-lg h-full md:h-[min(880px,94vh)] md:rounded-[32px] md:border overflow-hidden flex flex-col ${center ? "items-center justify-center px-6 text-center" : ""}`}
-        style={{ background: T.bg, borderColor: T.line, boxShadow: "0 40px 120px rgba(0,0,0,.6)", paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)", animation: "sheetUp .34s cubic-bezier(.2,.8,.2,1)" }}>
+        style={{ background: T.bg, borderColor: T.line, boxShadow: "0 40px 120px rgba(0,0,0,.6)", paddingTop: "var(--ritm-top)", paddingBottom: "var(--ritm-safe-bottom)", animation: "sheetUp .34s cubic-bezier(.2,.8,.2,1)" }}>
         {children}
       </div>
     </div>
@@ -2839,7 +2857,7 @@ function Onboarding({ T, onDone }) {
     const kgWeek = hasRate ? (a.rate || 0) / 100 * a.weight : 0;
     const etaWeeks = hasRate && kgWeek > 0 ? Math.round((a.targetKg || 0) / kgWeek) : 0;
     return (
-      <div className="max-w-md mx-auto px-5 pt-8 pb-10 min-h-screen flex flex-col" style={{ animation: "rise .4s ease-out" }}>
+      <div className="max-w-md mx-auto px-5 pt-8 pb-10 ritm-screen flex flex-col" style={{ animation: "rise .4s ease-out" }}>
         <H1>Анкета готова</H1>
         <Muted className="mt-2 mb-6">Вот что я учёл, когда собирал твою программу</Muted>
         <div className="flex flex-col gap-3">
@@ -2886,7 +2904,7 @@ function Onboarding({ T, onDone }) {
   const hint = resolve(q, a, "hint");
 
   return (
-    <div className="max-w-md mx-auto px-5 pt-6 pb-10 min-h-screen flex flex-col">
+    <div className="max-w-md mx-auto px-5 pt-6 pb-10 ritm-screen flex flex-col">
       <div className="flex items-center justify-between mb-6" style={{ height: 36 }}>
         {i > 0 ? (
           <button onClick={goBack} aria-label="Назад" className="rounded-full p-2" style={{ background: "rgba(255,255,255,0.06)", color: "#fff" }}>
@@ -3138,7 +3156,7 @@ function AppTour({ T, st, onDone, onSkip, canSkip }) {
   const finish = () => { goal("tour_done", { visible: TABS_ALL.length - hidden.size }); onDone([...hidden]); };
 
   return (
-    <div className="max-w-md mx-auto px-5 pt-6 pb-10 min-h-screen flex flex-col">
+    <div className="max-w-md mx-auto px-5 pt-6 pb-10 ritm-screen flex flex-col">
       <div className="flex items-center justify-between mb-4" style={{ height: 36 }}>
         <span style={{ fontFamily: DISPLAY, fontWeight: 700, letterSpacing: "0.2em", fontSize: 14 }}>RITM</span>
         {canSkip ? (
@@ -5991,7 +6009,7 @@ function BreathingSession({ T, technique, rounds, onFinish, onClose }) {
 
   return (
     <FullScreen T={T} center label="Дыхание">
-      <button onClick={onClose} aria-label="Закрыть" className="absolute top-6 right-6 rounded-full p-2 ritm-hover" style={{ background: "rgba(255,255,255,0.08)", color: "#fff" }}><X size={18} /></button>
+      <button onClick={onClose} aria-label="Закрыть" className="absolute right-6 rounded-full p-2 ritm-hover" style={{ top: "calc(24px + var(--ritm-top))", background: "rgba(255,255,255,0.08)", color: "#fff" }}><X size={18} /></button>
       <Muted size={13} className="mb-2">Раунд {info.round} из {rounds}</Muted>
       <div className="rounded-full flex items-center justify-center" style={{
         width: 200, height: 200, background: T.grad, boxShadow: T.glow,
@@ -8533,7 +8551,7 @@ function ChatConversation({ T, friend, onBack }) {
   };
 
   return (
-    <div className="mt-4 flex flex-col" style={{ height: "calc(100vh - 280px)", minHeight: 320 }}>
+    <div className="mt-4 flex flex-col" style={{ height: "calc(100vh - 280px - var(--ritm-top))", minHeight: 320 }}>
       <button onClick={onBack} className="flex items-center gap-1 mb-3 flex-shrink-0" style={{ color: MUTED, fontSize: 13, background: "none" }}>
         <ChevronLeft size={16} /> Все чаты
       </button>
@@ -9383,7 +9401,7 @@ function VoiceAssistant({ T, st, up, norm, program, run, onPay }) {
   if (!open) {
     return (
       <button onClick={() => setOpen(true)} aria-label="Голосовой помощник" title="Помощник"
-        className="fixed rounded-full flex items-center justify-center z-30 ritm-press right-4 lg:right-8 bottom-[calc(98px+env(safe-area-inset-bottom))] lg:bottom-8"
+        className="fixed rounded-full flex items-center justify-center z-30 ritm-press right-4 lg:right-8 bottom-[calc(98px+var(--ritm-safe-bottom))] lg:bottom-8"
         style={{ width: 54, height: 54, background: T.grad, color: T.on, boxShadow: T.glow }}>
         <Mic size={22} />
       </button>
@@ -10373,7 +10391,7 @@ function WebWelcome({ T, onGuest }) {
     [PlayCircle, "Гид по каждой тренировке", "Разминка, подходы с таймером отдыха и фото техники"],
   ];
   return (
-    <div className="min-h-screen flex items-center justify-center px-5 py-10">
+    <div className="ritm-screen flex items-center justify-center px-5 py-10">
       <div className="w-full max-w-md" style={{ animation: "rise .4s ease-out" }}>
         <a href="/" className="inline-flex mb-10" style={{ color: "#fff", textDecoration: "none" }} aria-label="RITM — на главную"><Wordmark T={T} size={22} /></a>
         <h1 style={{ fontFamily: DISPLAY, fontSize: 34, fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 1.05 }}>
@@ -10885,7 +10903,10 @@ export default function App() {
   const haptic = tapFeedback;
 
   useEffect(() => {
-    try { tg?.ready(); tg?.expand(); tg?.setHeaderColor?.("#000000"); tg?.setBackgroundColor?.("#000000"); } catch (e) {}
+    try { tg?.ready(); tg?.expand(); tg?.setHeaderColor?.("#000000"); tg?.setBackgroundColor?.("#000000"); tg?.setBottomBarColor?.("#000000"); } catch (e) {}
+    // Свайп вниз в Telegram сворачивает приложение — в длинных списках это срабатывало при обычной
+    // прокрутке вверх. Закрыть по-прежнему можно кнопкой «Закрыть». (Bot API 7.7+, на старых — без изменений)
+    try { tg?.disableVerticalSwipes?.(); } catch (e) {}
     // В Windows-приложении напоминания идут через обычный Notification API (см. sendRitmReminder) —
     // на него, в отличие от iOS, нужно один раз явно запросить разрешение при запуске.
     if (isElectron() && typeof Notification !== "undefined" && Notification.permission === "default") {
@@ -11187,12 +11208,12 @@ export default function App() {
   const navPrimary = navOverflow.length ? navTabs.slice(0, NAV_PRIMARY_LIMIT - 1) : navTabs;
 
   return (
-    <div className="min-h-screen w-full text-white" style={{ background: T.bg, backgroundAttachment: "fixed", fontFamily: BODY, transition: "background .4s", "--ritm-accent": T.a }}>
+    <div className="min-h-screen w-full text-white" style={{ background: T.bg, backgroundAttachment: "fixed", fontFamily: BODY, transition: "background .4s", "--ritm-accent": T.a, paddingTop: "var(--ritm-top)" }}>
       <GlobalStyle />
       {webGate ? (
         <WebWelcome T={T} onGuest={() => { setGuest(true); setWebGate(false); goal("start_guest", { from: "welcome" }); }} />
       ) : !loaded ? (
-        <div className="min-h-screen flex flex-col items-center justify-center gap-5">
+        <div className="ritm-screen flex flex-col items-center justify-center gap-5">
           <RitmMark T={T} size={44} animated />
           <div style={{ fontFamily: DISPLAY, fontWeight: 800, letterSpacing: "0.3em", fontSize: 18 }}>RITM</div>
           {sync.mode !== "local" && <Muted size={12}>Загружаю твои данные…</Muted>}
@@ -11261,8 +11282,10 @@ export default function App() {
           </main>
           </div>
 
+          <div className="ritm-topfade" aria-hidden="true" />
+
           {/* Телефон: плавающая панель снизу. Компьютер: боковое меню (Sidebar), панель скрыта. */}
-          <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden" style={{ padding: "0 12px calc(10px + env(safe-area-inset-bottom))", pointerEvents: "none" }}>
+          <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden" style={{ padding: "0 12px calc(10px + var(--ritm-safe-bottom))", pointerEvents: "none" }}>
             {(() => {
               // «Минимум + Ещё»: столько разделов, сколько видно в один ряд (NAV_PRIMARY_LIMIT), плюс
               // кнопка «Ещё», открывающая сетку с остальными — вместо прежнего переноса на вторую строку.

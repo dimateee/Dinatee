@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
 import "./fonts.css";
 import "./index.css";
-import { inTelegram, isStandaloneDisplay, readSession, registerServiceWorker } from "./web.js";
+import { inTelegram, isStandaloneDisplay, readSession, registerServiceWorker, watchTelegramInsets } from "./web.js";
 import { initAnalytics } from "./analytics.js";
 
 // Что показать по этому адресу:
@@ -31,6 +31,8 @@ function Hydrated({ children }) {
 }
 
 if (showApp) {
+  // Отступы под кнопки Telegram в полноэкранном режиме — до первой отрисовки, чтобы шапка не прыгала
+  watchTelegramInsets();
   const root = createRoot(document.getElementById("root"));
   import("./App.jsx").then(({ default: App, ErrorBoundary, installGlobalErrorLogging }) => {
     // Ловит ошибки вне React (необработанные исключения, отклонённые промисы без catch) —
