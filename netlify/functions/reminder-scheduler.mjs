@@ -76,7 +76,20 @@ async function cleanupOldLocks(store, today) {
   );
 }
 
-export default async () => {
+// Напоминания шлёт только основной сайт. Блокировки от дублей (claim) работают внутри одного сайта:
+// у каждого сайта Netlify своё хранилище Blobs. После переезда на новый сайт старый продолжал жить
+// со своим BOT_TOKEN и своей копией ritm-reminders — и каждое утро человек получал одно и то же
+// сообщение по разу с каждого сайта. Основной адрес — REMINDERS_SITE_URL, по умолчанию ritmru.ru;
+// «www.» не учитывается. Если адрес сайта неизвестен (локальный запуск, тесты) — работаем как раньше.
+const hostOf = (u) => { try { return new URL(u).hostname.toLowerCase().replace(/^www\./, ""); } catch (e) { return ""; } };
+const primaryHost = () => hostOf(String(env("REMINDERS_SITE_URL") || "https://ritmru.ru").trim());
+
+export default async (req, context) => {
+  const self = hostOf(context?.site?.url || env("URL") || "");
+  const primary = primaryHost();
+  if (self && primary && self !== primary) {
+    return new Response(`skip: reminders are sent by ${primary}, this site is ${self}`, { status: 200 });
+  }
   const store = remStore();
   const { blobs = [] } = await store.list();
   const now = new Date();
