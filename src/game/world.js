@@ -272,13 +272,22 @@ export class World {
     if (this.rock[i]) return false;
     if (TERRAIN[this.terrain[i]].water) return false;
     if (d.floor) return !this.fgrid[i] && this.floor[i] !== d.floor;
-    if (this.bgrid[i]) return false;
+    const old = this.bAt(i);
+    if (old) return this.canReplace(old, defId);
     return true;
+  }
+  // Чертёж можно заменить другим, а готовую стену — дверью (как в RimWorld)
+  canReplace(old, defId) {
+    if (old.def === defId) return false;
+    if (!old.complete) return true;
+    return !!(BUILDINGS[defId].door && BUILDINGS[old.def].wall);
   }
   placeBlueprint(defId, x, y) {
     if (!this.canPlace(defId, x, y)) return null;
     const d = BUILDINGS[defId];
     const i = this.idx(x, y);
+    const old = d.floor ? null : this.bAt(i);
+    if (old) this.removeBuilding(old, 1);
     const b = { id: this.nextId++, kind: "building", def: defId, x, y, complete: false, work: 0, delivered: {}, hp: d.hp || 50 };
     for (const k in d.cost) b.delivered[k] = 0;
     this.buildings.set(b.id, b);
