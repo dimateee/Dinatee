@@ -16,7 +16,7 @@ const yesterday = () => {
 };
 
 const EMPTY = {
-  v: 1, profile: null, xp: 0,
+  v: 1, profile: null, xp: 0, subject: "math",
   days: { last: "", streak: 0, best: 0 },
   today: { d: "", xp: 0 },
   topics: {}, warm: {}, blitzBest: 0, bestCombo: 0,
@@ -50,7 +50,8 @@ export const ACHIEVEMENTS = [
   { id: "combo10", emoji: "⚡", title: "Комбо ×10", text: "10 правильных подряд", test: (s) => s.bestCombo >= 10 },
   { id: "blitz20", emoji: "⏱️", title: "Молния", text: "20 ответов в блице", test: (s) => s.blitzBest >= 20 },
   { id: "star3", emoji: "🌟", title: "Мастер темы", text: "3 звезды в любой теме", test: (s) => Object.values(s.topics).some((x) => starsOf(x) === 3) },
-  { id: "explorer", emoji: "🧭", title: "Исследователь", text: "Попробовал все 15 тем", test: (s) => Object.keys(s.topics).length >= 15 },
+  { id: "explorer", emoji: "🧭", title: "Исследователь", text: "Попробовал 15 тем", test: (s) => Object.keys(s.topics).length >= 15 },
+  { id: "polyglot", emoji: "🎒", title: "Многоборец", text: "Занимался тремя предметами", test: (s) => new Set(Object.keys(s.topics).map((id) => (id.includes("-") ? id.split("-")[0] : "math"))).size >= 3 },
   { id: "variant", emoji: "📝", title: "Как на экзамене", text: "Решил пробный вариант", test: (s) => s.variants.length > 0 },
   { id: "grade5", emoji: "🏆", title: "Отличник", text: "«5» за пробный вариант", test: (s) => s.variants.some((v) => v[2] === 5) },
   { id: "xp1000", emoji: "💎", title: "Тысячник", text: "1000 опыта", test: (s) => s.xp >= 1000 },
@@ -141,7 +142,9 @@ export function ProgressProvider({ children }) {
     },
     bonus: (amount) => apply((s) => addXp(touchDay(s), amount)),
     blitz: (score) => apply((s) => ({ ...s, blitzBest: Math.max(s.blitzBest, score) })),
-    variant: (score, grade) => apply((s) => ({ ...s, variants: [[today(), score, grade], ...s.variants].slice(0, 12) })),
+    setSubject: (subject) => apply((s) => ({ ...s, subject })),
+    // Запись истории: [дата, баллы, оценка, предмет, всего заданий]
+    variant: (score, grade, subject = "math", total = 19) => apply((s) => ({ ...s, variants: [[today(), score, grade, subject, total], ...s.variants].slice(0, 20) })),
     part2: (id, pts) => apply((s) => addXp(touchDay({ ...s, p2: { ...s.p2, [id]: pts } }), 15 + pts * 10)),
     reset: () => setState(EMPTY),
   };

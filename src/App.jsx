@@ -5,7 +5,7 @@ import { Map as MapIcon, Zap, FileText, User, ChevronLeft } from "lucide-react";
 import { ProgressProvider, useProgress } from "./lib/progress.jsx";
 import { PremiumProvider } from "./lib/premium.jsx";
 import { setBackButton, haptic, inTelegram } from "./lib/telegram.js";
-import { topicById } from "./data/oge.js";
+import { topicById, topicLabel, subjectById } from "./data/subjects/index.js";
 import { WARMUPS, blitzTask } from "./data/warmup.js";
 import { Toasts } from "./components/Toasts.jsx";
 import { Home } from "./screens/Home.jsx";
@@ -18,6 +18,7 @@ import { Part2Task } from "./screens/Part2Task.jsx";
 import { Paywall } from "./screens/Paywall.jsx";
 import { Profile } from "./screens/Profile.jsx";
 import { Onboarding } from "./screens/Onboarding.jsx";
+import { Subjects } from "./screens/Subjects.jsx";
 
 const TABS = [
   { id: "home", label: "Путь", Icon: MapIcon },
@@ -49,15 +50,16 @@ function Shell() {
     if (name === "topic") screen = <Topic id={params.id} go={go} />;
     else if (name === "practice") {
       const t = topicById(params.id);
-      screen = <Practice title={`№${t.num} · ${t.title}`} gen={t.gen} topicId={t.id} onExit={back} />;
+      screen = <Practice title={`${topicLabel(t)} · ${t.title}`} gen={t.gen} topicId={t.id} onExit={back} />;
     } else if (name === "drill") {
       const w = WARMUPS.find((x) => x.id === params.id);
       screen = <Practice title={w.title} gen={w.gen} warmId={w.id} onExit={back} />;
     } else if (name === "blitz") screen = <Practice title="Блиц" gen={blitzTask} warmId="blitz" blitz count={999} onExit={back} />;
-    else if (name === "variant") screen = <VariantRun onExit={back} />;
+    else if (name === "variant") screen = <VariantRun subject={subjectById(params.subject)} onExit={back} />;
     else if (name === "part2") screen = <Part2Task id={params.id} onExit={back} />;
     else if (name === "paywall") screen = <Paywall onExit={back} />;
     else if (name === "onboarding") screen = <Onboarding onDone={back} />;
+    else if (name === "subjects") screen = <Subjects onExit={back} />;
   } else {
     screen = tab === "home" ? <Home go={go} />
       : tab === "warmup" ? <Warmup go={go} />
@@ -70,7 +72,7 @@ function Shell() {
       <AnimatePresence mode="wait">
         <motion.div key={top ? top.key : tab} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
           {/* Вне Telegram нет системной кнопки «Назад» — показываем свою */}
-          {top && !inTelegram && ["topic", "paywall", "part2", "onboarding"].includes(top.name) && (
+          {top && !inTelegram && ["topic", "paywall", "part2", "onboarding", "subjects"].includes(top.name) && (
             <button className="chip" style={{ margin: "12px 16px 0" }} onClick={back}><ChevronLeft size={16} /> Назад</button>
           )}
           {screen}

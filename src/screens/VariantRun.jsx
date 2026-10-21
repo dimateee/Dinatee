@@ -1,9 +1,8 @@
-/* Пробный вариант: 19 заданий, свободный переход между ними, таймер как на экзамене.
+/* Пробный вариант по математике (19 заданий) или мини-тест по предмету: свободный переход между заданиями, таймер.
    Ответы проверяются только в конце — как на настоящем ОГЭ. */
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Flag, X } from "lucide-react";
-import { makeVariant, gradeOf } from "../data/oge.js";
 import { TaskView, Steps } from "../components/TaskView.jsx";
 import { MathText } from "../components/MathText.jsx";
 import { Mascot } from "../components/Mascot.jsx";
@@ -12,16 +11,16 @@ import { useProgress } from "../lib/progress.jsx";
 import { celebrate } from "../lib/confetti.js";
 import { haptic } from "../lib/telegram.js";
 
-// На всю работу даётся 3 ч 55 мин; на первую часть рекомендуем около 1 ч 30 мин
-const PART1_SECONDS = 90 * 60;
 const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
-export function VariantRun({ onExit }) {
+export function VariantRun({ subject, onExit }) {
   const progress = useProgress();
-  const tasks = useMemo(makeVariant, []);
+  const tasks = useMemo(() => subject.makeTest(), [subject]);
+  const total = tasks.length;
+  const isMath = subject.id === "math";
   const [answers, setAnswers] = useState(() => tasks.map(() => ""));
   const [cur, setCur] = useState(0);
-  const [left, setLeft] = useState(PART1_SECONDS);
+  const [left, setLeft] = useState(subject.testSeconds);
   const [result, setResult] = useState(null);
   const [review, setReview] = useState(null);
 
@@ -34,11 +33,9 @@ export function VariantRun({ onExit }) {
 
   function finish() {
     const marks = tasks.map((t, i) => checkAnswer(t, answers[i]));
-    const score = marks.filter(Boolean).length;
-    const geometry = tasks.filter((t, i) => t.geometry && marks[i]).length;
-    const grade = gradeOf(score, geometry);
+    const { score, geometry = 0, grade } = subject.grade(marks, tasks);
     setResult({ marks, score, geometry, grade });
-    progress.variant(score, grade);
+    progress.variant(score, grade, subject.id, total);
     progress.bonus(score * 5);
     if (grade >= 4) setTimeout(() => celebrate(grade === 5 ? 2 : 1), 300);
   }
@@ -66,18 +63,18 @@ export function VariantRun({ onExit }) {
 
   if (result) {
     const { marks, score, geometry, grade } = result;
-    const say = grade === 5 ? "Это уровень пятёрки! Для максимума добавь вторую часть 🚀"
-      : grade === 4 ? "Твёрдая четвёрка по первой части. Ещё чуть-чуть до пятёрки!"
+    const say = grade === 5 ? (isMath ? "Это уровень пятёрки! Для максимума добавь вторую часть 🚀" : "Отличный результат — так держать! 🚀")
+      : grade === 4 ? (isMath ? "Твёрдая четвёрка по первой части. Ещё чуть-чуть до пятёрки!" : "Хорошо! Разбери ошибки — и будет пятёрка")
       : grade === 3 ? "Порог пройден! Разбери ошибки ниже — каждая даёт +1 балл"
-      : geometry < 2 && score >= 8 ? "Баллов хватает, но нужно минимум 2 задания по геометрии (15–19)"
+      : isMath && geometry < 2 && score >= 8 ? "Баллов хватает, но нужно минимум 2 задания по геометрии (15–19)"
       : "Не страшно! Нажми на красные номера и посмотри решения";
     return (
       <div className="screen no-tabs">
         <motion.div className="center mt" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring" }}>
-          <div className="muted">Результат первой части</div>
+          <div className="muted">{isMath ? "Результат первой части" : `${subject.title} · мини-тест`}</div>
           <div style={{ fontSize: 72, fontWeight: 900, lineHeight: 1.1 }}>«{grade}»</div>
-          <div className="h2">{score} из 19 баллов</div>
-          <div className="muted small">из них по геометрии: {geometry}</div>
+          <div className="h2">{score} из {total} баллов</div>
+          {isMath && <div className="muted small">из них по геометрии: {geometry}</div>}
         </motion.div>
         <div className="mt"><Mascot mood={grade >= 4 ? "party" : grade === 3 ? "wow" : "think"} say={say} /></div>
         <div className="card mt">
@@ -89,7 +86,7 @@ export function VariantRun({ onExit }) {
             ))}
           </div>
         </div>
-        <div className="muted small mt">Оценка — по рекомендованной шкале ФИПИ только за первую часть. На экзамене вторая часть даёт ещё до 12 баллов.</div>
+        <div className="muted small mt">{isMath ? "Оценка — по рекомендованной шкале ФИПИ только за первую часть. На экзамене вторая часть даёт ещё до 12 баллов." : "Оценка ориентировочная: по доле верных ответов. На экзамене у предмета своя шкала и задания с развёрнутым ответом."}</div>
         <button className="btn mt" onClick={onExit}>Готово</button>
       </div>
     );
@@ -126,8 +123,8 @@ export function VariantRun({ onExit }) {
           ? <button className="btn" onClick={() => setCur((c) => c + 1)}>Дальше <ChevronRight size={18} /></button>
           : <button className="btn good" onClick={finish}><Flag size={18} /> Завершить</button>}
       </div>
-      {cur < tasks.length - 1 && answered >= 10 && (
-        <button className="btn ghost mt-s" onClick={finish}><Flag size={18} /> Завершить ({answered}/19)</button>
+      {cur < tasks.length - 1 && answered >= Math.ceil(total / 2) && (
+        <button className="btn ghost mt-s" onClick={finish}><Flag size={18} /> Завершить ({answered}/{total})</button>
       )}
     </div>
   );

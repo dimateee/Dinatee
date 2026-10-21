@@ -3,8 +3,9 @@ import { motion } from "framer-motion";
 import { Crown, ExternalLink, ChevronRight } from "lucide-react";
 import { useProgress, levelProgress, ACHIEVEMENTS, currentStreak, starsOf } from "../lib/progress.jsx";
 import { usePremium } from "../lib/premium.jsx";
-import { TOPICS } from "../data/oge.js";
-import { SOURCES, SCALE_NOTE } from "../data/sources.js";
+import { allTopics, subjectById, topicLabel } from "../data/subjects/index.js";
+import { SOURCES, SCALE_NOTE, subjectSources } from "../data/sources.js";
+import { SubjectBar, useSubject } from "../components/SubjectBar.jsx";
 import { openLink, tgUser, confirmDialog } from "../lib/telegram.js";
 
 export function Profile({ go }) {
@@ -15,7 +16,8 @@ export function Profile({ go }) {
   const user = tgUser();
 
   // Слабые темы — где точность ниже 60% при хотя бы 5 попытках
-  const weak = TOPICS.filter((t) => {
+  const subject = useSubject();
+  const weak = allTopics().filter((t) => {
     const [c = 0, n = 0] = state.topics[t.id] || [];
     return n >= 5 && c / n < 0.6;
   });
@@ -42,7 +44,7 @@ export function Profile({ go }) {
         <Crown color="var(--gold)" />
         <div className="grow">
           <div className="h3">{premium ? "PRO активна" : "ОГЭ Квест PRO — 150 ₽/мес"}</div>
-          <div className="muted small">{premium ? `до ${new Date(until).toLocaleDateString("ru-RU")}` : "Все темы, варианты и вторая часть"}</div>
+          <div className="muted small">{premium ? `до ${new Date(until).toLocaleDateString("ru-RU")}` : "Все 8 предметов, темы и варианты"}</div>
         </div>
         <ChevronRight color="var(--muted)" />
       </button>
@@ -53,21 +55,22 @@ export function Profile({ go }) {
           <div className="col gap-s mt-s">
             {weak.map((t) => (
               <button key={t.id} className="row" onClick={() => go("topic", { id: t.id })}>
-                <span>{t.emoji}</span><span className="grow" style={{ textAlign: "left", fontWeight: 700 }}>№{t.num} {t.title}</span><ChevronRight size={16} color="var(--muted)" />
+                <span>{t.emoji}</span><span className="grow" style={{ textAlign: "left", fontWeight: 700 }}>{subjectById(t.subject).short}: {t.title}</span><ChevronRight size={16} color="var(--muted)" />
               </button>
             ))}
           </div>
         </div>
       )}
 
-      <div className="card mt">
-        <div className="h3">Прогресс по темам</div>
+      <SubjectBar go={go} />
+      <div className="card mt-s">
+        <div className="h3">{subject.emoji} Прогресс: {subject.title}</div>
         <div className="col gap-s mt-s">
-          {TOPICS.map((t) => {
+          {subject.topics.map((t) => {
             const [c = 0, n = 0] = state.topics[t.id] || [];
             return (
               <div key={t.id} className="row small">
-                <span style={{ width: 34, fontWeight: 900 }}>{t.num}</span>
+                <span style={{ width: 84, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.num ? topicLabel(t) : t.title}</span>
                 <div className="bar grow" style={{ height: 8 }}><div style={{ width: `${Math.min(100, (c / 30) * 100)}%`, background: t.color }} /></div>
                 <span style={{ width: 48, textAlign: "right" }}>{"⭐".repeat(starsOf(state.topics[t.id])) || (n ? `${Math.round((c / n) * 100)}%` : "—")}</span>
               </div>
@@ -92,7 +95,7 @@ export function Profile({ go }) {
 
       <div className="h2 mt-l">Проверенные источники</div>
       <div className="col mt-s">
-        {SOURCES.map((s) => (
+        {[...subjectSources(subject), ...SOURCES.filter((s) => ["fipi-demo", "fipi-navigator", "resh"].includes(s.id))].map((s) => (
           <button key={s.id} className="card tap link-card" onClick={() => openLink(s.url)}>
             <span className="link-emoji">{s.emoji}</span>
             <span className="grow">
@@ -103,10 +106,11 @@ export function Profile({ go }) {
           </button>
         ))}
       </div>
-      <div className="muted small mt">{SCALE_NOTE}</div>
+      {subject.id === "math" && <div className="muted small mt">{SCALE_NOTE}</div>}
       <div className="muted small mt">Задания в приложении составлены по образцу открытого банка ФИПИ и генерируются автоматически. Задания с сайтов ФИПИ и РешуОГЭ открываются по ссылкам.</div>
 
-      <button className="btn ghost mt-l" onClick={() => go("onboarding")}>Изменить цель и имя</button>
+      <button className="btn ghost mt-l" onClick={() => go("subjects")}>Мои предметы</button>
+      <button className="btn ghost mt-s" onClick={() => go("onboarding")}>Изменить цель и имя</button>
       <button className="btn ghost mt-s" style={{ color: "var(--bad)", background: "var(--bad-soft)" }} onClick={async () => { if (await confirmDialog("Сбросить весь прогресс? Подписка останется.")) reset(); }}>Сбросить прогресс</button>
     </div>
   );

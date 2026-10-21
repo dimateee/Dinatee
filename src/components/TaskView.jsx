@@ -13,6 +13,7 @@ export function TaskView({ task, input, setInput, status, big = false }) {
   return (
     <div className="col">
       <MathText as="div" className={`task-q ${big ? "big" : ""}`} text={task.q} />
+      {task.code && <pre className="code">{task.code}</pre>}
       {task.hint && <MathText as="div" className="muted small center" text={task.hint} />}
       <Figure fig={task.fig} />
       {task.legend && (

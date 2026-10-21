@@ -29,9 +29,19 @@ export const SOURCES = [
   },
   {
     id: "resh", title: "Российская электронная школа", emoji: "🎓",
-    text: "Бесплатные видеоуроки по алгебре и геометрии за 7–9 классы — если тема совсем забылась.",
+    text: "Бесплатные видеоуроки по всем школьным предметам — если тема совсем забылась.",
     url: "https://resh.edu.ru/",
   },
 ];
 
 export const SCALE_NOTE = "Шкала по рекомендации ФИПИ: максимум 31 балл. «3» — от 8 баллов, «4» — от 15, «5» — от 22, причём не меньше 2 баллов должно быть за геометрию (задания 15–19 и 23–25). Регион может немного изменить шкалу.";
+
+// Источники для конкретного предмета: банк ФИПИ и РешуОГЭ по этому предмету
+export function subjectSources(subject) {
+  if (subject.id === "math") return SOURCES.filter((s) => ["fipi-bank", "reshu", "reshu-variants"].includes(s.id));
+  return [
+    { id: "fipi-bank", title: "Открытый банк заданий ФИПИ", emoji: "🏛️", text: `Официальные задания ОГЭ. Выбери предмет «${subject.title}» в списке.`, url: "https://oge.fipi.ru/bank/" },
+    { id: "reshu", title: `РешуОГЭ — ${subject.title.toLowerCase()}`, emoji: "📚", text: "Задания по темам с решениями и тренировочные варианты.", url: `${subject.reshu}prob_catalog` },
+    { id: "reshu-variants", title: "РешуОГЭ — варианты", emoji: "📝", text: "Полные варианты с проверкой.", url: subject.reshu },
+  ];
+}

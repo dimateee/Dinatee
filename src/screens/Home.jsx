@@ -1,7 +1,8 @@
 /* Главная: шапка с уровнем, серией и дневной целью + карта пути по заданиям ОГЭ */
 import { motion } from "framer-motion";
 import { Flame, Gem, Lock, Crown, Zap } from "lucide-react";
-import { TOPICS } from "../data/oge.js";
+import { topicLabel } from "../data/subjects/index.js";
+import { SubjectBar, useSubject } from "../components/SubjectBar.jsx";
 import { useProgress, levelProgress, starsOf, currentStreak, todayKey } from "../lib/progress.jsx";
 import { usePremium } from "../lib/premium.jsx";
 import { Mascot } from "../components/Mascot.jsx";
@@ -16,6 +17,8 @@ export function Home({ go }) {
   const streak = currentStreak(state);
   const goal = state.profile?.daily || 50;
   const todayXp = state.today.d === todayKey() ? state.today.xp : 0;
+  const subject = useSubject();
+  const TOPICS = subject.topics;
 
   // Следующая тема — первая доступная, где ещё нет звёзд
   const nextId = (TOPICS.find((t) => (premium || t.free) && starsOf(state.topics[t.id]) < 1) || TOPICS[0]).id;
@@ -35,6 +38,8 @@ export function Home({ go }) {
           ? <span className="premium-badge"><Crown size={13} /> PRO</span>
           : <button className="premium-badge" onClick={() => go("paywall")}><Crown size={13} /> Открыть всё</button>}
       </div>
+
+      <SubjectBar go={go} />
 
       <motion.div className="card hero mt" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <div className="row" style={{ justifyContent: "space-between" }}>
@@ -63,13 +68,13 @@ export function Home({ go }) {
         <Zap color="var(--gold)" />
       </motion.button>
 
-      <div className="section-title mt-l">Путь к ОГЭ · Часть 1</div>
-      <div className="path">
+      <div className="section-title mt-l">{subject.emoji} {subject.title}</div>
+      <div className="path" key={subject.id}>
         {TOPICS.map((t, idx) => {
           const locked = !premium && !t.free;
           const stars = starsOf(state.topics[t.id]);
           const isNext = t.id === nextId;
-          if (idx === 10) {
+          if (subject.id === "math" && idx === 10) {
             return (
               <div key={t.id}>
                 <div className="section-title">Геометрия</div>
@@ -81,15 +86,24 @@ export function Home({ go }) {
         })}
       </div>
 
-      <div className="section-title">Часть 2</div>
-      <motion.button className="card tap row" style={{ width: "100%", textAlign: "left" }} whileTap={{ scale: 0.98 }} onClick={() => go("variants")}>
+      {subject.hasPart2 && <div className="section-title">Часть 2</div>}
+      {subject.hasPart2 && <motion.button className="card tap row" style={{ width: "100%", textAlign: "left" }} whileTap={{ scale: 0.98 }} onClick={() => go("variants")}>
         <div className="link-emoji">🧠</div>
         <div className="grow">
           <div className="h3">Задания 20–25 с разбором</div>
           <div className="muted small">Уравнения, текстовые задачи, доказательства</div>
         </div>
         {!premium && <Lock size={18} color="var(--muted)" />}
-      </motion.button>
+      </motion.button>}
+      {!subject.hasPart2 && (
+        <motion.button className="card tap row" style={{ width: "100%", textAlign: "left" }} whileTap={{ scale: 0.98 }} onClick={() => go("variants")}>
+          <div className="link-emoji">📝</div>
+          <div className="grow">
+            <div className="h3">Мини-тест по предмету</div>
+            <div className="muted small">{subject.testInfo}</div>
+          </div>
+        </motion.button>
+      )}
     </div>
   );
 }
@@ -104,10 +118,10 @@ function Node({ t, idx, locked, stars, isNext, go }) {
       viewport={{ once: true, margin: "-40px" }}
       transition={{ type: "spring", stiffness: 300, damping: 20, delay: (idx % 4) * 0.04 }}
     >
-      <button className={`node ${locked ? "locked" : ""}`} style={{ background: t.color }} onClick={() => { haptic.tap(); go(locked ? "paywall" : "topic", { id: t.id }); }} aria-label={`Задание ${t.num}: ${t.title}`}>
+      <button className={`node ${locked ? "locked" : ""}`} style={{ background: t.color }} onClick={() => { haptic.tap(); go(locked ? "paywall" : "topic", { id: t.id }); }} aria-label={`${t.num ? `Задание ${t.num}` : t.tag}: ${t.title}`}>
         {isNext && !locked && <span className="ring-pulse" style={{ borderColor: t.color }} />}
         <span>{t.emoji}</span>
-        <span className="node-num">№{t.num}</span>
+        <span className="node-num">{topicLabel(t)}</span>
         {locked && <span className="node-lock"><Lock size={14} /></span>}
       </button>
       <div className="node-label">{t.title}</div>

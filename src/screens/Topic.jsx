@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Play, RefreshCw, ChevronRight, ExternalLink } from "lucide-react";
-import { topicById } from "../data/oge.js";
-import { SOURCES } from "../data/sources.js";
+import { topicById, subjectById } from "../data/subjects/index.js";
+import { subjectSources } from "../data/sources.js";
 import { MathText } from "../components/MathText.jsx";
 import { Figure } from "../components/Figure.jsx";
 import { useProgress, starsOf } from "../lib/progress.jsx";
@@ -11,6 +11,7 @@ import { openLink, haptic } from "../lib/telegram.js";
 
 export function Topic({ id, go }) {
   const t = topicById(id);
+  const subject = subjectById(t.subject);
   const { state } = useProgress();
   const [tab, setTab] = useState("theory");
   const [c = 0, total = 0] = state.topics[id] || [];
@@ -22,7 +23,7 @@ export function Topic({ id, go }) {
         <div className="row">
           <motion.div style={{ fontSize: 54 }} animate={{ rotate: [0, -8, 8, 0] }} transition={{ duration: 1.2, delay: 0.3 }}>{t.emoji}</motion.div>
           <div className="grow">
-            <div style={{ fontWeight: 800, opacity: 0.85 }}>Задание №{t.num}</div>
+            <div style={{ fontWeight: 800, opacity: 0.85 }}>{t.num ? `${subject.title} · задание №${t.num}` : `${subject.title} · ${t.tag}`}</div>
             <div className="h1">{t.title}</div>
             <div className="stars mt-s">{[1, 2, 3].map((s) => <span key={s} style={{ opacity: s <= stars ? 1 : 0.35 }}>⭐</span>)}</div>
           </div>
@@ -50,7 +51,7 @@ export function Topic({ id, go }) {
             </div>
           )}
           {tab === "example" && <Example gen={t.gen} />}
-          {tab === "sources" && <TopicSources num={t.num} />}
+          {tab === "sources" && <TopicSources subject={subject} />}
         </motion.div>
       </AnimatePresence>
 
@@ -79,6 +80,7 @@ function Example({ gen }) {
         <button className="chip" onClick={() => { setTask(gen()); setShown(0); }}><RefreshCw size={14} /> Другое</button>
       </div>
       <MathText as="div" className="task-q mt-s" text={task.q} />
+      {task.code && <pre className="code mt-s">{task.code}</pre>}
       <Figure fig={task.fig} />
       {task.legend && <div className="legend">{task.legend.map((l, i) => <MathText key={i} as="div" text={l} />)}</div>}
       {task.options && <div className="legend">{task.options.map((o, i) => <MathText key={i} as="div" text={`${i + 1}) ${o}`} />)}</div>}
@@ -104,11 +106,11 @@ function Example({ gen }) {
   );
 }
 
-function TopicSources({ num }) {
-  const list = SOURCES.filter((s) => ["fipi-bank", "reshu"].includes(s.id));
+function TopicSources({ subject }) {
+  const list = subjectSources(subject).slice(0, 2);
   return (
     <div className="col">
-      <div className="muted small">Настоящие задания №{num} из экзаменов прошлых лет — в открытом банке ФИПИ и в каталоге РешуОГЭ. Решай там, а если что-то непонятно, возвращайся к разбору здесь.</div>
+      <div className="muted small">Настоящие задания по теме — в открытом банке ФИПИ и в каталоге РешуОГЭ ({subject.title.toLowerCase()}). Решай там, а если что-то непонятно, возвращайся к разбору здесь.</div>
       {list.map((s) => (
         <button key={s.id} className="card tap link-card" onClick={() => openLink(s.url)}>
           <span className="link-emoji">{s.emoji}</span>

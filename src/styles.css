@@ -306,3 +306,24 @@ input { font: inherit; }
 /* Формулы не разрываются посреди строки */
 .katex { white-space: nowrap; display: inline-block; max-width: 100%; }
 .katex-display > .katex { overflow-x: auto; }
+
+/* ===== Предметы ===== */
+.subject-bar { display: flex; gap: 8px; overflow-x: auto; margin: 14px -16px 0; padding: 2px 16px 6px; scrollbar-width: none; }
+.subject-bar::-webkit-scrollbar { display: none; }
+.subject-chip {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px;
+  border-radius: 14px; background: var(--card); border: 2px solid var(--line); font-weight: 800; font-size: 14px;
+  box-shadow: 0 2px 0 var(--line); transition: background 0.2s, color 0.2s;
+}
+.subject-chip.on { color: #fff; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.18); }
+.subject-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.subject-card { padding: 14px; border-radius: 20px; background: var(--card); border: 2.5px solid var(--line); text-align: left; box-shadow: 0 3px 0 var(--line); position: relative; }
+.subject-card.on { border-color: var(--primary); background: var(--primary-soft); }
+.subject-card .emoji { font-size: 30px; }
+.subject-card .check { position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 8px; background: var(--primary); color: #fff; display: grid; place-items: center; }
+
+.task-q { white-space: pre-line; }
+.code {
+  background: #1b2238; color: #e6ecff; border-radius: 16px; padding: 14px 16px; margin: 0;
+  font: 600 15px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; overflow-x: auto; white-space: pre;
+}
