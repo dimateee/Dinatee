@@ -50,14 +50,20 @@ export async function getSubscription(userId) {
 
 // Продлеваем подписку. paymentId защищает от двойного зачисления, если вебхук пришёл повторно
 export async function grantPremium({ userId, paymentId, source, until }) {
-  const seen = await payments().get(paymentId);
-  if (seen) return false;
-  const current = await subs().get(String(userId), { type: "json" });
-  const base = current?.until && new Date(current.until) > new Date() ? new Date(current.until) : new Date();
-  const next = until ? new Date(Math.max(until.getTime(), base.getTime())) : new Date(base.getTime() + PERIOD_DAYS * 864e5);
-  await subs().setJSON(String(userId), { until: next.toISOString(), source, updated: new Date().toISOString() });
-  await payments().set(paymentId, JSON.stringify({ userId, source, at: new Date().toISOString() }));
-  return true;
+  // Атомарно «занимаем» платёж: если два одинаковых вебхука придут одновременно, засчитается один
+  const { modified } = await payments().set(paymentId, JSON.stringify({ userId, source, at: new Date().toISOString() }), { onlyIfNew: true });
+  if (!modified) return false;
+  try {
+    const current = await subs().get(String(userId), { type: "json" });
+    const base = current?.until && new Date(current.until) > new Date() ? new Date(current.until) : new Date();
+    const next = until ? new Date(Math.max(until.getTime(), base.getTime())) : new Date(base.getTime() + PERIOD_DAYS * 864e5);
+    await subs().setJSON(String(userId), { until: next.toISOString(), source, updated: new Date().toISOString() });
+    return true;
+  } catch (err) {
+    // Подписку записать не удалось — снимаем отметку, чтобы повторный вебхук зачислил оплату
+    await payments().delete(paymentId).catch(() => {});
+    throw err;
+  }
 }
 
 /* ---------- Telegram Bot API ---------- */

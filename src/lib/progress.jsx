@@ -146,7 +146,8 @@ export function ProgressProvider({ children }) {
     // Запись истории: [дата, баллы, оценка, предмет, всего заданий]
     variant: (score, grade, subject = "math", total = 19) => apply((s) => ({ ...s, variants: [[today(), score, grade, subject, total], ...s.variants].slice(0, 20) })),
     part2: (id, pts) => apply((s) => addXp(touchDay({ ...s, p2: { ...s.p2, [id]: pts } }), 15 + pts * 10)),
-    reset: () => setState(EMPTY),
+    // История тестов сохраняется, иначе сброс давал бы новую бесплатную попытку
+    reset: () => setState((s) => ({ ...EMPTY, variants: s.variants })),
   };
 
   return <Ctx.Provider value={{ state, toasts, toast, ...actions }}>{children}</Ctx.Provider>;

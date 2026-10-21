@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Check, Crown, CreditCard, Star, RefreshCw } from "lucide-react";
 import { usePremium } from "../lib/premium.jsx";
 import { api } from "../lib/api.js";
-import { tg, openLink, haptic } from "../lib/telegram.js";
+import { tg, inTelegram, openLink, haptic } from "../lib/telegram.js";
 import { celebrate } from "../lib/confetti.js";
 import { Mascot } from "../components/Mascot.jsx";
 
@@ -28,7 +28,7 @@ export function Paywall({ onExit }) {
     haptic.tap();
     try {
       const { url, invoice } = await api.subscribe(method);
-      if (method === "stars" && tg?.openInvoice) {
+      if (method === "stars" && inTelegram && tg?.openInvoice) {
         tg.openInvoice(invoice, async (status) => {
           if (status === "paid") {
             setMsg("Оплата прошла! Включаем подписку…");
@@ -38,7 +38,8 @@ export function Paywall({ onExit }) {
         });
         return;
       }
-      openLink(url);
+      // Вне Telegram счёт в звёздах открываем ссылкой — она откроется в самом Telegram
+      openLink(url || invoice);
       setMsg("Оплати на открывшейся странице и вернись сюда — подписка включится сама. Если нет, нажми «Проверить оплату».");
     } catch (e) {
       setMsg(e.message);

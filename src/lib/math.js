@@ -82,3 +82,10 @@ export function checkAnswer(task, input) {
   if (Number.isFinite(na) && Number.isFinite(nb)) return Math.abs(na - nb) < 1e-9;
   return a.toLowerCase() === b.toLowerCase();
 }
+
+// Согласование с числом: plural(21, ["ряд", "ряда", "рядов"]) → «21 ряд»
+export function plural(n, [one, few, many]) {
+  const a = Math.abs(n) % 100, b = a % 10;
+  const word = a > 10 && a < 20 ? many : b === 1 ? one : b >= 2 && b <= 4 ? few : many;
+  return `${n} ${word}`;
+}

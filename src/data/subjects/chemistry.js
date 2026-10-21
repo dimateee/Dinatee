@@ -46,7 +46,9 @@ const calc = mix(
     };
   },
   () => {
-    const f = pick(["H2O", "CO2", "NaOH", "CaCO3", "NaCl", "H2SO4", "O2", "CH4", "MgO"]), M = molarMass(f), n = pick([0.25, 0.5, 2, 3, 4]);
+    const f = pick(["H2O", "CO2", "NaOH", "CaCO3", "NaCl", "H2SO4", "O2", "CH4", "MgO"]), M = molarMass(f);
+    // Масса в условии — не больше одного знака после запятой
+    const n = pick([0.25, 0.5, 2, 3, 4].filter((x) => Number.isInteger(Math.round(M * x * 1000) / 100)));
     return { q: `Какое количество вещества (в моль) содержится в ${fmt(M * n)} г ${chem(f)}?`, answer: fmt(n), steps: [`$M(${chem(f).slice(1, -1)}) = ${m(M)}$ г/моль`, `$n = \\frac{m}{M} = \\frac{${m(M * n)}}{${m(M)}} = ${m(n)}$ моль`] };
   },
   () => {

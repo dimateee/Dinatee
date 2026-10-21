@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Map as MapIcon, Zap, FileText, User, ChevronLeft } from "lucide-react";
 import { ProgressProvider, useProgress } from "./lib/progress.jsx";
-import { PremiumProvider } from "./lib/premium.jsx";
+import { PremiumProvider, usePremium } from "./lib/premium.jsx";
 import { setBackButton, haptic, inTelegram } from "./lib/telegram.js";
 import { topicById, topicLabel, subjectById } from "./data/subjects/index.js";
 import { WARMUPS, blitzTask } from "./data/warmup.js";
@@ -29,6 +29,7 @@ const TABS = [
 
 function Shell() {
   const { state } = useProgress();
+  const { premium } = usePremium();
   const [tab, setTab] = useState("home");
   const [stack, setStack] = useState([]);
 
@@ -47,7 +48,10 @@ function Shell() {
   let screen;
   if (top) {
     const { name, params } = top;
-    if (name === "topic") screen = <Topic id={params.id} go={go} />;
+    // Платную тему без подписки не открываем, даже если перешли не с карты (например, из профиля)
+    const locked = (name === "topic" || name === "practice") && !premium && !topicById(params.id)?.free;
+    if (locked) screen = <Paywall onExit={back} />;
+    else if (name === "topic") screen = <Topic id={params.id} go={go} />;
     else if (name === "practice") {
       const t = topicById(params.id);
       screen = <Practice title={`${topicLabel(t)} · ${t.title}`} gen={t.gen} topicId={t.id} onExit={back} />;

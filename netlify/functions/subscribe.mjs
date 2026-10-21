@@ -3,6 +3,13 @@
 import { json, telegramUser, env, appUrl, bot, yookassa, yookassaReady, PRICE_RUB, PRICE_STARS, PERIOD_DAYS } from "../lib/shared.mjs";
 
 const TITLE = "ОГЭ Квест PRO";
+
+// После оплаты возвращаем ученика в бота, а не на голый адрес сайта в браузере
+async function returnUrl() {
+  if (env("YOOKASSA_RETURN_URL")) return env("YOOKASSA_RETURN_URL");
+  const me = await bot("getMe", {});
+  return me.ok ? `https://t.me/${me.result.username}` : appUrl() || "https://t.me";
+}
 const DESCRIPTION = "Все темы ОГЭ по математике, безлимитные пробные варианты и разборы второй части на 30 дней";
 
 export default async (req) => {
@@ -32,7 +39,7 @@ export default async (req) => {
       body: {
         amount: { value, currency: "RUB" },
         capture: true,
-        confirmation: { type: "redirect", return_url: appUrl() || "https://t.me" },
+        confirmation: { type: "redirect", return_url: await returnUrl() },
         description: `${TITLE} — 30 дней`,
         metadata: { tg_user_id: String(user.id) },
         // Чек по 54-ФЗ — только если в ЮKassa подключены чеки

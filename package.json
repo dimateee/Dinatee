@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node scripts/check-generators.mjs"
+    "test": "node scripts/check-generators.mjs && node scripts/check-payments.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "11.1.5",
