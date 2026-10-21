@@ -1,0 +1,25 @@
+{
+  "name": "oge-quest-miniapp",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node scripts/check-generators.mjs"
+  },
+  "dependencies": {
+    "@netlify/blobs": "11.1.5",
+    "canvas-confetti": "1.9.4",
+    "framer-motion": "14.5.0",
+    "katex": "0.19.0",
+    "lucide-react": "1.61.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "6.1.2",
+    "vite": "8.3.5"
+  }
+}
