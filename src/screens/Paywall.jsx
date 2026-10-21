@@ -1,6 +1,5 @@
 /* Подписка 150 ₽ в месяц: карта или СБП через ЮKassa, либо Telegram Stars */
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { Check, Crown, CreditCard, Star, RefreshCw } from "lucide-react";
 import { usePremium } from "../lib/premium.jsx";
 import { api } from "../lib/api.js";
@@ -74,21 +73,21 @@ export function Paywall({ onExit }) {
 
   return (
     <div className="screen no-tabs">
-      <motion.div className="center mt" initial={{ scale: 0.6, rotate: -15 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 200 }}>
+      <div className="center mt anim-pop">
         <div style={{ fontSize: 72 }}>👑</div>
-      </motion.div>
+      </div>
       <div className="h1 center">ОГЭ Квест PRO</div>
       <div className="center mt-s">
         <span style={{ fontSize: 40, fontWeight: 900 }}>{p.priceRub} ₽</span>
         <span className="muted"> / месяц</span>
       </div>
 
-      <div className="card col mt">
-        {PERKS.map(([e, title, text], i) => (
-          <motion.div key={title} className="row" style={{ alignItems: "flex-start" }} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.08 }}>
+      <div className="card col mt stagger">
+        {PERKS.map(([e, title, text]) => (
+          <div key={title} className="row" style={{ alignItems: "flex-start" }}>
             <span style={{ fontSize: 26 }}>{e}</span>
             <div><div className="h3">{title}</div><div className="muted small">{text}</div></div>
-          </motion.div>
+          </div>
         ))}
         <div className="row small muted"><Check size={16} color="var(--good)" /> Бесплатно навсегда: разминка, первые темы каждого предмета, 1 тест по предмету</div>
       </div>

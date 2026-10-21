@@ -1,7 +1,6 @@
 /* Пробный вариант по математике (19 заданий) или мини-тест по предмету: свободный переход между заданиями, таймер.
    Ответы проверяются только в конце — как на настоящем ОГЭ. */
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Flag, X } from "lucide-react";
 import { TaskView, Steps } from "../components/TaskView.jsx";
 import { MathText } from "../components/MathText.jsx";
@@ -70,12 +69,12 @@ export function VariantRun({ subject, onExit }) {
       : "Не страшно! Нажми на красные номера и посмотри решения";
     return (
       <div className="screen no-tabs">
-        <motion.div className="center mt" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring" }}>
+        <div className="center mt anim-pop">
           <div className="muted">{isMath ? "Результат первой части" : `${subject.title} · мини-тест`}</div>
           <div style={{ fontSize: 72, fontWeight: 900, lineHeight: 1.1 }}>«{grade}»</div>
           <div className="h2">{score} из {total} баллов</div>
           {isMath && <div className="muted small">из них по геометрии: {geometry}</div>}
-        </motion.div>
+        </div>
         <div className="mt"><Mascot mood={grade >= 4 ? "party" : grade === 3 ? "wow" : "think"} say={say} /></div>
         <div className="card mt">
           <div className="h3">Разбор ответов</div>
@@ -110,12 +109,10 @@ export function VariantRun({ subject, onExit }) {
         ))}
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div key={cur} className="mt" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.2 }}>
-          <div className="chip mt-s">Задание {t.num}{t.geometry ? " · геометрия" : ""}</div>
-          <div className="mt-s"><TaskView task={t} input={answers[cur]} setInput={setAnswer} status="answer" /></div>
-        </motion.div>
-      </AnimatePresence>
+      <div key={cur} className="mt anim-right">
+        <div className="chip mt-s">Задание {t.num}{t.geometry ? " · геометрия" : ""}</div>
+        <div className="mt-s"><TaskView task={t} input={answers[cur]} setInput={setAnswer} status="answer" /></div>
+      </div>
 
       <div className="row mt">
         <button className="btn ghost" style={{ width: 64 }} disabled={cur === 0} onClick={() => setCur((c) => c - 1)}><ChevronLeft /></button>

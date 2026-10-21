@@ -1,5 +1,4 @@
 /* Переключатель предметов — горизонтальная лента, как список предметов в электронном дневнике */
-import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { SUBJECTS, subjectById, REQUIRED } from "../data/subjects/index.js";
 import { useProgress } from "../lib/progress.jsx";
@@ -25,10 +24,10 @@ export function SubjectBar({ go }) {
       {mySubjects(state).map((s) => {
         const on = s.id === current.id;
         return (
-          <motion.button key={s.id} className={`subject-chip ${on ? "on" : ""}`} style={on ? { background: s.color, borderColor: s.color } : undefined}
-            whileTap={{ scale: 0.94 }} onClick={() => { haptic.select(); setSubject(s.id); }}>
+          <button key={s.id} className={`subject-chip ${on ? "on" : ""}`} style={on ? { background: s.color, borderColor: s.color } : undefined}
+            onClick={() => { haptic.select(); setSubject(s.id); }}>
             <span>{s.emoji}</span>{s.short}
-          </motion.button>
+          </button>
         );
       })}
       <button className="subject-chip" onClick={() => go("subjects")} aria-label="Выбрать предметы"><Plus size={16} /></button>

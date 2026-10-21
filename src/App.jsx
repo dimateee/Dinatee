@@ -1,7 +1,6 @@
 /* Навигация: четыре вкладки внизу и стек экранов поверх них */
 import { useCallback, useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Map as MapIcon, Zap, FileText, User, ChevronLeft } from "lucide-react";
+import { Map as MapIcon, Zap, FileText, User, ChevronLeft, CalendarCheck } from "lucide-react";
 import { ProgressProvider, useProgress } from "./lib/progress.jsx";
 import { PremiumProvider, usePremium } from "./lib/premium.jsx";
 import { setBackButton, haptic, inTelegram } from "./lib/telegram.js";
@@ -19,9 +18,11 @@ import { Paywall } from "./screens/Paywall.jsx";
 import { Profile } from "./screens/Profile.jsx";
 import { Onboarding } from "./screens/Onboarding.jsx";
 import { Subjects } from "./screens/Subjects.jsx";
+import { Plan } from "./screens/Plan.jsx";
 
 const TABS = [
   { id: "home", label: "Путь", Icon: MapIcon },
+  { id: "plan", label: "План", Icon: CalendarCheck },
   { id: "warmup", label: "Разминка", Icon: Zap },
   { id: "variants", label: "Варианты", Icon: FileText },
   { id: "profile", label: "Профиль", Icon: User },
@@ -66,6 +67,7 @@ function Shell() {
     else if (name === "subjects") screen = <Subjects onExit={back} />;
   } else {
     screen = tab === "home" ? <Home go={go} />
+      : tab === "plan" ? <Plan go={go} />
       : tab === "warmup" ? <Warmup go={go} />
       : tab === "variants" ? <Variants go={go} />
       : <Profile go={go} />;
@@ -73,21 +75,20 @@ function Shell() {
 
   return (
     <div className="app">
-      <AnimatePresence mode="wait">
-        <motion.div key={top ? top.key : tab} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-          {/* Вне Telegram нет системной кнопки «Назад» — показываем свою */}
-          {top && !inTelegram && ["topic", "paywall", "part2", "onboarding", "subjects"].includes(top.name) && (
-            <button className="chip" style={{ margin: "12px 16px 0" }} onClick={back}><ChevronLeft size={16} /> Назад</button>
-          )}
-          {screen}
-        </motion.div>
-      </AnimatePresence>
+      {/* Новый экран появляется сразу, без ожидания анимации ухода старого — так переходы не «тормозят» */}
+      <div key={top ? top.key : tab} className="anim-in">
+        {/* Вне Telegram нет системной кнопки «Назад» — показываем свою */}
+        {top && !inTelegram && ["topic", "paywall", "part2", "onboarding", "subjects"].includes(top.name) && (
+          <button className="chip" style={{ margin: "12px 16px 0" }} onClick={back}><ChevronLeft size={16} /> Назад</button>
+        )}
+        {screen}
+      </div>
 
       {!top && (
         <nav className="tabs">
           {TABS.map(({ id, label, Icon }) => (
             <button key={id} className={`tab ${tab === id ? "on" : ""}`} onClick={() => { haptic.select(); setTab(id); }}>
-              {tab === id && <motion.span layoutId="tab-dot" className="tab-dot" transition={{ type: "spring", stiffness: 500, damping: 35 }} />}
+              {tab === id && <span className="tab-dot" />}
               <Icon size={22} strokeWidth={2.4} />
               {label}
             </button>

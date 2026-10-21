@@ -1,5 +1,4 @@
 /* Профиль: уровень, достижения, статистика, подписка, источники */
-import { motion } from "framer-motion";
 import { Crown, ExternalLink, ChevronRight } from "lucide-react";
 import { useProgress, levelProgress, ACHIEVEMENTS, currentStreak, starsOf } from "../lib/progress.jsx";
 import { usePremium } from "../lib/premium.jsx";
@@ -25,9 +24,9 @@ export function Profile({ go }) {
   return (
     <div className="screen">
       <div className="row">
-        <motion.div className="node" style={{ background: "var(--grad)", width: 72, height: 72, fontSize: 30 }} animate={{ rotate: [0, 6, -6, 0] }} transition={{ duration: 3, repeat: Infinity }}>
+        <div className="node" style={{ background: "var(--grad)", width: 72, height: 72, fontSize: 30 }}>
           {user?.photo_url ? <img src={user.photo_url} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%" }} /> : "🦉"}
-        </motion.div>
+        </div>
         <div className="grow">
           <div className="h1">{state.profile?.name || "Ученик"}</div>
           <div className="muted">Уровень {lp.level} · {lp.title}</div>
@@ -80,15 +79,15 @@ export function Profile({ go }) {
       </div>
 
       <div className="h2 mt-l">Достижения</div>
-      <div className="ach-grid mt-s">
-        {ACHIEVEMENTS.map((a, i) => {
+      <div className="ach-grid mt-s stagger">
+        {ACHIEVEMENTS.map((a) => {
           const on = state.ach.includes(a.id);
           return (
-            <motion.div key={a.id} className={`ach ${on ? "" : "off"}`} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: on ? 1 : 0.4, scale: 1 }} transition={{ delay: i * 0.03 }}>
+            <div key={a.id} className={`ach ${on ? "" : "off"}`}>
               <div className="ach-emoji">{a.emoji}</div>
               <div className="small" style={{ fontWeight: 900 }}>{a.title}</div>
               <div className="muted" style={{ fontSize: 11 }}>{a.text}</div>
-            </motion.div>
+            </div>
           );
         })}
       </div>

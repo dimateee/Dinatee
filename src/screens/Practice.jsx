@@ -1,7 +1,6 @@
 /* Игровая тренировка: 10 заданий подряд, комбо, опыт и разбор каждой ошибки.
    Режим «блиц» — 60 секунд лёгких примеров на скорость. */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { X, Flame, Check, Timer, BookOpen } from "lucide-react";
 import { TaskView, Steps } from "../components/TaskView.jsx";
 import { MathText } from "../components/MathText.jsx";
@@ -56,7 +55,9 @@ export function Practice({ title, gen, topicId, warmId, count = 10, blitz = fals
       setCorrect((c) => c + 1);
       setCombo((c) => c + 1);
       setXp((x) => x + gained);
-      setFloatXp({ v: gained, k: Math.random() });
+      const k = Math.random();
+      setFloatXp({ v: gained, k });
+      setTimeout(() => setFloatXp((f) => (f?.k === k ? null : f)), 800);
       phrase.current = pickOne(PRAISE);
     } else {
       haptic.error();
@@ -97,37 +98,27 @@ export function Practice({ title, gen, topicId, warmId, count = 10, blitz = fals
         <span>{blitz ? `Верно: ${correct}` : `${i + 1} / ${count}`}</span>
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div key={i} initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", stiffness: 380, damping: 32 }}>
-          <TaskView task={task} input={input} setInput={setInput} status={status} big={Boolean(warmId) || blitz} />
-          {status === "answer" && (
-            <button className="btn mt" disabled={!input} onClick={check}><Check size={20} /> Проверить</button>
+      <div key={i} className="anim-right">
+        <TaskView task={task} input={input} setInput={setInput} status={status} big={Boolean(warmId) || blitz} />
+        {status === "answer" && (
+          <button className="btn mt" disabled={!input} onClick={check}><Check size={20} /> Проверить</button>
+        )}
+      </div>
+
+      {floatXp && <div key={floatXp.k} className="float-xp">+{floatXp.v} XP</div>}
+
+      {!blitz && status !== "answer" && (
+        <div className={`feedback sheet ${status}`}>
+          <div className="feedback-title">{status === "ok" ? "🎉" : "💡"} {phrase.current}</div>
+          {status === "no" && <div className="mt-s">Правильный ответ: <b><MathText text={task.kind === "choice" ? `вариант ${task.answer}` : task.answer} /></b></div>}
+          {showSteps ? <Steps steps={task.steps} /> : (
+            <button className="chip mt-s" onClick={() => setShowSteps(true)}><BookOpen size={14} /> Показать решение</button>
           )}
-        </motion.div>
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {floatXp && (
-          <motion.div key={floatXp.k} className="float-xp" initial={{ opacity: 0, y: 10, scale: 0.6 }} animate={{ opacity: 1, y: -40, scale: 1.1 }} exit={{ opacity: 0 }} transition={{ duration: 0.7 }} onAnimationComplete={() => setFloatXp(null)}>
-            +{floatXp.v} XP
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {!blitz && status !== "answer" && (
-          <motion.div className={`feedback ${status}`} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 340, damping: 32 }}>
-            <div className="feedback-title">{status === "ok" ? "🎉" : "💡"} {phrase.current}</div>
-            {status === "no" && <div className="mt-s">Правильный ответ: <b><MathText text={task.kind === "choice" ? `вариант ${task.answer}` : task.answer} /></b></div>}
-            {showSteps ? <Steps steps={task.steps} /> : (
-              <button className="chip mt-s" onClick={() => setShowSteps(true)}><BookOpen size={14} /> Показать решение</button>
-            )}
-            <button className={`btn ${status === "ok" ? "good" : "bad"} mt-s`} onClick={() => next()}>
-              {i + 1 >= count ? "Завершить" : "Дальше"}
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          <button className={`btn ${status === "ok" ? "good" : "bad"} mt-s`} onClick={() => next()}>
+            {i + 1 >= count ? "Завершить" : "Дальше"}
+          </button>
+        </div>
+      )}
       {blitz && status === "no" && (
         <div className="center mt"><span className="chip" style={{ background: "var(--bad-soft)", color: "var(--bad)" }}>Ответ: {task.answer}</span></div>
       )}
@@ -149,24 +140,24 @@ function Results({ title, blitz, correct, total, xp, onExit }) {
 
   return (
     <div className="screen no-tabs">
-      <motion.div className="col" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 20 }}>
-        <div className="center mt-l">
-          <motion.div initial={{ rotate: -20, scale: 0 }} animate={{ rotate: 0, scale: 1 }} transition={{ type: "spring", delay: 0.1 }} style={{ fontSize: 84 }}>
+      <div className="col">
+        <div className="center mt-l anim-pop">
+          <div style={{ fontSize: 84 }}>
             {ratio >= 0.9 || (blitz && correct >= 15) ? "🏆" : ratio >= 0.6 ? "⭐" : "💪"}
-          </motion.div>
+          </div>
           <div className="h1 mt-s">{blitz ? "Блиц завершён" : "Тренировка пройдена"}</div>
           <div className="muted">{title}</div>
         </div>
-        <div className="card row mt">
-          {stats.map((s, k) => (
-            <motion.div key={s.label} className="stat" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 + k * 0.1 }}>
+        <div className="card row mt stagger">
+          {stats.map((s) => (
+            <div key={s.label} className="stat">
               <b>{s.value}</b><span className="muted small">{s.label}</span>
-            </motion.div>
+            </div>
           ))}
         </div>
         <Mascot mood={mood} say={say} />
         <button className="btn mt" onClick={onExit}>Продолжить</button>
-      </motion.div>
+      </div>
     </div>
   );
 }

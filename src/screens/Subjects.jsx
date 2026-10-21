@@ -1,6 +1,5 @@
 /* Выбор предметов: математика и русский обязательны, остальные — по выбору ученика */
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { SUBJECTS, REQUIRED } from "../data/subjects/index.js";
 import { useProgress } from "../lib/progress.jsx";
@@ -13,17 +12,16 @@ export function SubjectPicker({ value, onChange }) {
     onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
   };
   return (
-    <div className="subject-grid">
-      {SUBJECTS.map((s, i) => {
+    <div className="subject-grid stagger">
+      {SUBJECTS.map((s) => {
         const on = value.includes(s.id);
         return (
-          <motion.button key={s.id} className={`subject-card ${on ? "on" : ""}`} onClick={() => toggle(s.id)}
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} whileTap={{ scale: 0.96 }}>
+          <button key={s.id} className={`subject-card ${on ? "on" : ""}`} onClick={() => toggle(s.id)}>
             <div className="emoji">{s.emoji}</div>
             <div className="h3">{s.title}</div>
             <div className="muted small">{REQUIRED.includes(s.id) ? "обязательный" : `${s.topics.length} тем`}</div>
             {on && <span className="check"><Check size={16} /></span>}
-          </motion.button>
+          </button>
         );
       })}
     </div>

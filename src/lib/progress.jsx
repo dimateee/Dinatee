@@ -21,6 +21,8 @@ const EMPTY = {
   today: { d: "", xp: 0 },
   topics: {}, warm: {}, blitzBest: 0, bestCombo: 0,
   ach: [], variants: [], p2: {},
+  active: [], // дни, когда ученик занимался (последние 3 недели) — для плана на неделю
+  plan: {}, // ручные отметки в плане: { "понедельник недели": ["id задачи", ...] }
 };
 
 /* ---------- Уровни ---------- */
@@ -74,7 +76,8 @@ function touchDay(s) {
   const d = today();
   if (s.days.last === d) return s;
   const streak = s.days.last === yesterday() ? s.days.streak + 1 : 1;
-  return { ...s, days: { last: d, streak, best: Math.max(s.days.best, streak) } };
+  const active = [...(s.active || []).filter((x) => x !== d), d].slice(-21);
+  return { ...s, active, days: { last: d, streak, best: Math.max(s.days.best, streak) } };
 }
 function addXp(s, amount) {
   const d = today();
@@ -143,6 +146,11 @@ export function ProgressProvider({ children }) {
     bonus: (amount) => apply((s) => addXp(touchDay(s), amount)),
     blitz: (score) => apply((s) => ({ ...s, blitzBest: Math.max(s.blitzBest, score) })),
     setSubject: (subject) => apply((s) => ({ ...s, subject })),
+    // Ручная отметка в плане; храним только текущую неделю, чтобы не раздувать облачное хранилище
+    togglePlan: (week, id) => apply((s) => {
+      const list = s.plan?.[week] || [];
+      return { ...s, plan: { [week]: list.includes(id) ? list.filter((x) => x !== id) : [...list, id] } };
+    }),
     // Запись истории: [дата, баллы, оценка, предмет, всего заданий]
     variant: (score, grade, subject = "math", total = 19) => apply((s) => ({ ...s, variants: [[today(), score, grade, subject, total], ...s.variants].slice(0, 20) })),
     part2: (id, pts) => apply((s) => addXp(touchDay({ ...s, p2: { ...s.p2, [id]: pts } }), 15 + pts * 10)),

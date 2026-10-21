@@ -1,5 +1,4 @@
 /* Одно задание: условие, рисунок, варианты ответа или клавиатура */
-import { motion } from "framer-motion";
 import { MathText } from "./MathText.jsx";
 import { Figure } from "./Figure.jsx";
 import { Keypad } from "./Keypad.jsx";
@@ -30,28 +29,19 @@ export function TaskView({ task, input, setInput, status, big = false }) {
               ? n === task.answer ? "ok" : n === input ? "no" : ""
               : n === input ? "sel" : "";
             return (
-              <motion.button
-                key={i}
-                className={`option ${cls}`}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => { if (!locked) { haptic.select(); setInput(n); } }}
-              >
+              <button key={i} className={`option ${cls}`} onClick={() => { if (!locked) { haptic.select(); setInput(n); } }}>
                 <span className="option-num">{n}</span>
                 <MathText text={o} />
-              </motion.button>
+              </button>
             );
           })}
         </div>
       ) : (
         <>
-          <motion.div
-            className={`answer-box ${status === "ok" ? "ok" : status === "no" ? "no" : "focus"}`}
-            animate={status === "no" ? { x: [0, -10, 10, -6, 6, 0] } : status === "ok" ? { scale: [1, 1.06, 1] } : {}}
-            transition={{ duration: 0.4 }}
-          >
+          <div className={`answer-box ${status === "ok" ? "ok bump" : status === "no" ? "no shake" : "focus"}`}>
             {input || <span className="muted" style={{ fontSize: 18, fontWeight: 700 }}>Ответ</span>}
             {!locked && <span className="caret" />}
-          </motion.div>
+          </div>
           {!locked && <Keypad value={input} onChange={setInput} allowSign={!digitsOnly} allowComma={!digitsOnly} />}
         </>
       )}
@@ -61,12 +51,12 @@ export function TaskView({ task, input, setInput, status, big = false }) {
 
 export function Steps({ steps }) {
   return (
-    <div className="steps">
+    <div className="steps stagger">
       {steps.map((s, i) => (
-        <motion.div key={i} className="step" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.12 }}>
+        <div key={i} className="step">
           <span className="step-n">{i + 1}</span>
           <MathText as="div" className="grow" text={s} />
-        </motion.div>
+        </div>
       ))}
     </div>
   );

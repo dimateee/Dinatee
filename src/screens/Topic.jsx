@@ -1,6 +1,5 @@
 /* Тема (номер задания ОГЭ): шпаргалка, пошаговый разбор примера и тренировка */
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { Play, RefreshCw, ChevronRight, ExternalLink } from "lucide-react";
 import { topicById, subjectById } from "../data/subjects/index.js";
 import { subjectSources } from "../data/sources.js";
@@ -19,9 +18,9 @@ export function Topic({ id, go }) {
 
   return (
     <div className="screen no-tabs">
-      <motion.div className="card" style={{ background: t.color, color: "#fff", border: 0 }} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+      <div className="card" style={{ background: t.color, color: "#fff", border: 0 }}>
         <div className="row">
-          <motion.div style={{ fontSize: 54 }} animate={{ rotate: [0, -8, 8, 0] }} transition={{ duration: 1.2, delay: 0.3 }}>{t.emoji}</motion.div>
+          <div style={{ fontSize: 54 }}>{t.emoji}</div>
           <div className="grow">
             <div style={{ fontWeight: 800, opacity: 0.85 }}>{t.num ? `${subject.title} · задание №${t.num}` : `${subject.title} · ${t.tag}`}</div>
             <div className="h1">{t.title}</div>
@@ -32,7 +31,7 @@ export function Topic({ id, go }) {
           {total ? `Решено верно ${c} из ${total} (${Math.round((c / total) * 100)}%)` : "Ещё не решал — начни с теории"}
           {starHint(stars, c)}
         </div>
-      </motion.div>
+      </div>
 
       <div className="seg mt">
         {[["theory", "Теория"], ["example", "Разбор"], ["sources", "Банк ФИПИ"]].map(([k, l]) => (
@@ -40,20 +39,18 @@ export function Topic({ id, go }) {
         ))}
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }} className="mt">
-          {tab === "theory" && (
-            <div className="card">
-              <div className="h3">📌 Что нужно знать</div>
-              <ul className="theory">
-                {t.theory.map((s, i) => <MathText key={i} as="li" text={s} />)}
-              </ul>
-            </div>
-          )}
-          {tab === "example" && <Example gen={t.gen} />}
-          {tab === "sources" && <TopicSources subject={subject} />}
-        </motion.div>
-      </AnimatePresence>
+      <div key={tab} className="mt anim-in">
+        {tab === "theory" && (
+          <div className="card">
+            <div className="h3">📌 Что нужно знать</div>
+            <ul className="theory">
+              {t.theory.map((s, i) => <MathText key={i} as="li" text={s} />)}
+            </ul>
+          </div>
+        )}
+        {tab === "example" && <Example gen={t.gen} />}
+        {tab === "sources" && <TopicSources subject={subject} />}
+      </div>
 
       <button className="btn mt-l" onClick={() => go("practice", { id })}><Play size={20} fill="currentColor" /> Тренировка · 10 заданий</button>
     </div>
@@ -87,16 +84,16 @@ function Example({ gen }) {
 
       <div className="steps">
         {task.steps.slice(0, shown).map((s, i) => (
-          <motion.div key={`${i}-${s}`} className="step" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
+          <div key={`${i}-${s}`} className="step anim-in">
             <span className="step-n">{i + 1}</span>
             <MathText as="div" className="grow" text={s} />
-          </motion.div>
+          </div>
         ))}
       </div>
       {all ? (
-        <motion.div className="chip good" initial={{ scale: 0.8 }} animate={{ scale: 1 }} style={{ fontSize: 16, padding: "8px 14px" }}>
+        <div className="chip good" style={{ fontSize: 16, padding: "8px 14px" }}>
           ✅ Ответ: <MathText text={answerText} />
-        </motion.div>
+        </div>
       ) : (
         <button className="btn ghost" onClick={() => { haptic.tap(); setShown((s) => s + 1); }}>
           {shown === 0 ? "Показать первый шаг" : "Следующий шаг"} <ChevronRight size={18} />

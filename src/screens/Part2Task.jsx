@@ -1,7 +1,6 @@
 /* Задание второй части: ребёнок решает в тетради, потом открывает решение по шагам
    и сам ставит себе баллы по критериям ФИПИ */
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { ChevronRight, PenLine } from "lucide-react";
 import { PART2 } from "../data/part2.js";
 import { MathText } from "../components/MathText.jsx";
@@ -39,10 +38,10 @@ export function Part2Task({ id, onExit }) {
 
       <div className="steps">
         {t.steps.slice(0, shown).map((s, i) => (
-          <motion.div key={i} className="step" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+          <div key={i} className="step anim-in">
             <span className="step-n">{i + 1}</span>
             <MathText as="div" className="grow" text={s} />
-          </motion.div>
+          </div>
         ))}
       </div>
       {all && t.fig && <div className="card"><Figure fig={t.fig} /></div>}
@@ -52,7 +51,7 @@ export function Part2Task({ id, onExit }) {
           <PenLine size={18} /> {shown === 0 ? "Я решил — показать решение" : "Следующий шаг"} <ChevronRight size={18} />
         </button>
       ) : (
-        <motion.div className="col" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <div className="col anim-in">
           <div className="chip good" style={{ fontSize: 16, padding: "8px 14px", alignSelf: "flex-start" }}>Ответ: <MathText text={t.answer} /></div>
           <div className="card">
             <div className="h3">Критерии оценивания</div>
@@ -71,7 +70,7 @@ export function Part2Task({ id, onExit }) {
               <button className="btn" onClick={onExit}>Готово</button>
             </>
           )}
-        </motion.div>
+        </div>
       )}
     </div>
   );

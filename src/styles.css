@@ -61,8 +61,14 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 input { font: inherit; }
 
 .app { max-width: 560px; margin: 0 auto; min-height: 100vh; position: relative; }
-.screen { padding: 16px 16px calc(100px + env(safe-area-inset-bottom)); }
-.screen.no-tabs { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+/* Отступы под системные зоны: в полноэкранном режиме Telegram рисует поверх приложения
+   статус-бар и свои кнопки («Назад», «⋯») — их высоту Telegram передаёт в CSS-переменных */
+:root {
+  --safe-top: calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px));
+  --safe-bottom: max(var(--tg-safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px));
+}
+.screen { padding: calc(16px + var(--safe-top)) 16px calc(100px + var(--safe-bottom)); }
+.screen.no-tabs { padding-bottom: calc(24px + var(--safe-bottom)); }
 
 /* ===== Типографика ===== */
 .h1 { font-size: 26px; font-weight: 900; letter-spacing: -0.02em; margin: 0; line-height: 1.15; }
@@ -142,11 +148,10 @@ input { font: inherit; }
 /* ===== Нижнее меню ===== */
 .tabs {
   position: fixed; left: 50%; transform: translateX(-50%);
-  bottom: calc(12px + env(safe-area-inset-bottom));
+  bottom: calc(12px + var(--safe-bottom));
   width: calc(100% - 24px); max-width: 536px;
   display: flex; justify-content: space-around;
-  background: color-mix(in srgb, var(--card) 88%, transparent);
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  background: var(--card);
   border: 1px solid var(--line); border-radius: 24px;
   box-shadow: 0 10px 30px rgba(32, 56, 128, 0.15);
   padding: 8px 6px; z-index: 20;
@@ -223,7 +228,7 @@ input { font: inherit; }
 
 .feedback {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
-  padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  padding: 18px 16px calc(18px + var(--safe-bottom));
   border-radius: 26px 26px 0 0; max-width: 560px; margin: 0 auto;
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.12);
   max-height: 78vh; overflow-y: auto;
@@ -251,7 +256,7 @@ input { font: inherit; }
 }
 
 /* ===== Талисман ===== */
-.mascot { font-size: 64px; line-height: 1; display: inline-block; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.15)); }
+.mascot { font-size: 64px; line-height: 1; display: inline-block; }
 .bubble {
   background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 10px 14px;
   font-weight: 800; position: relative; box-shadow: var(--shadow);
@@ -262,7 +267,7 @@ input { font: inherit; }
 }
 
 /* ===== Уведомления ===== */
-.toasts { position: fixed; top: calc(10px + env(safe-area-inset-top)); left: 0; right: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; padding: 0 16px; }
+.toasts { position: fixed; top: calc(10px + var(--safe-top)); left: 0; right: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; padding: 0 16px; }
 .toast { background: var(--card); border: 1px solid var(--line); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18); border-radius: 18px; padding: 10px 16px; display: flex; gap: 12px; align-items: center; max-width: 420px; width: 100%; }
 .toast-emoji { font-size: 30px; }
 
@@ -327,3 +332,61 @@ input { font: inherit; }
   background: #1b2238; color: #e6ecff; border-radius: 16px; padding: 14px 16px; margin: 0;
   font: 600 15px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; overflow-x: auto; white-space: pre;
 }
+
+
+/* ===== Анимации =====
+   fill-mode backwards: после появления элемент снова реагирует на нажатие (:active).
+   Только transform и opacity: их рисует видеокарта, поэтому даже на слабых телефонах
+   всё плавно. Раньше анимации считались на JavaScript (framer-motion) — отсюда были лаги. */
+@keyframes in-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes in-right { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: none; } }
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes shake { 20% { transform: translateX(-9px); } 40% { transform: translateX(9px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }
+@keyframes bump { 50% { transform: scale(1.06); } }
+@keyframes bob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-5px) rotate(-3deg); } }
+@keyframes float-xp { 0% { opacity: 0; transform: translate(-50%, 10px) scale(0.7); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -60px) scale(1.1); } }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-24px); } to { opacity: 1; transform: none; } }
+
+.anim-in { animation: in-up 0.22s ease-out backwards; }
+.anim-right { animation: in-right 0.24s cubic-bezier(0.2, 0.8, 0.3, 1) backwards; }
+.anim-pop { animation: pop-in 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.25) backwards; }
+.stagger > * { animation: in-up 0.25s ease-out backwards; }
+.stagger > *:nth-child(2) { animation-delay: 30ms; }
+.stagger > *:nth-child(3) { animation-delay: 60ms; }
+.stagger > *:nth-child(4) { animation-delay: 90ms; }
+.stagger > *:nth-child(5) { animation-delay: 120ms; }
+.stagger > *:nth-child(6) { animation-delay: 150ms; }
+.stagger > *:nth-child(n + 7) { animation-delay: 180ms; }
+.shake { animation: shake 0.4s ease-in-out; }
+.bump { animation: bump 0.35s ease-out; }
+.sheet { animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+.mascot { animation: bob 2.6s ease-in-out infinite; will-change: transform; }
+.float-xp { animation: float-xp 0.8s ease-out both; }
+.toast { animation: toast-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards; }
+.pulse-soft { animation: bump 1.6s ease-in-out infinite; }
+.ring-pulse { will-change: transform, opacity; }
+.tap:active, .subject-chip:active, .subject-card:active { transform: scale(0.97); }
+.tab-dot { transition: opacity 0.2s; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+.ring-progress { transition: stroke-dashoffset 0.9s ease-out; }
+.node-inner { display: flex; flex-direction: column; align-items: center; }
+
+/* ===== План ===== */
+.phase-line { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.phase-step { text-align: center; padding: 10px 4px; border-radius: 16px; background: var(--card); border: 2px solid var(--line); }
+.phase-step.on { border-color: var(--primary); background: var(--primary-soft); }
+.phase-step.past { opacity: 0.55; }
+.phase-emoji { font-size: 22px; }
+.phase-title { font-weight: 900; font-size: 12px; line-height: 1.2; }
+.phase-date { font-size: 11px; color: var(--muted); }
+.plan-task { width: 100%; padding: 12px 14px; }
+.plan-task.done { background: var(--good-soft); border-color: transparent; }
+.plan-task.done .h3 { text-decoration: line-through; opacity: 0.7; }
+.plan-check { width: 26px; height: 26px; flex-shrink: 0; border-radius: 9px; border: 2.5px solid var(--line); display: grid; place-items: center; color: #fff; }
+.plan-task.done .plan-check { background: var(--good); border-color: var(--good); }
+.date-badge { min-width: 64px; text-align: center; white-space: pre-line; font-weight: 900; font-size: 13px; line-height: 1.2; padding: 8px 6px; border-radius: 14px; background: var(--primary-soft); color: var(--primary); }
+.tabs .tab { font-size: 10.5px; }

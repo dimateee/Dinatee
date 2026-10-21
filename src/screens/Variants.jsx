@@ -1,5 +1,4 @@
 /* Пробные варианты (математика), мини-тесты по остальным предметам и вторая часть */
-import { motion } from "framer-motion";
 import { FileText, Lock, ChevronRight, Clock } from "lucide-react";
 import { PART2 } from "../data/part2.js";
 import { SCALE_NOTE } from "../data/sources.js";
@@ -23,7 +22,7 @@ export function Variants({ go }) {
       <div className="h1">Варианты</div>
       <SubjectBar go={go} />
 
-      <motion.div className="card hero mt" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+      <div className="card hero mt">
         <div className="row">
           <FileText size={40} />
           <div className="grow">
@@ -35,7 +34,7 @@ export function Variants({ go }) {
           {canVariant ? "Начать" : <><Lock size={18} /> Доступно с подпиской</>}
         </button>
         {!premium && <div className="small mt-s center" style={{ opacity: 0.85 }}>Бесплатно: {FREE_VARIANTS} попытка по каждому предмету</div>}
-      </motion.div>
+      </div>
 
       {history.length > 0 && (
         <div className="card mt">
@@ -53,21 +52,19 @@ export function Variants({ go }) {
 
       {subject.hasPart2 && <>
       <div className="section-title mt-l">Часть 2 · развёрнутый ответ</div>
-      <div className="col">
-        {PART2.map((t, i) => {
+      <div className="col stagger">
+        {PART2.map((t) => {
           const locked = !premium && !FREE_PART2.includes(t.id);
           const pts = state.p2[t.id];
           return (
-            <motion.button key={t.id} className="card tap row" style={{ width: "100%", textAlign: "left" }}
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
-              whileTap={{ scale: 0.98 }} onClick={() => go(locked ? "paywall" : "part2", { id: t.id })}>
+            <button key={t.id} className="card tap row" style={{ width: "100%", textAlign: "left" }} onClick={() => go(locked ? "paywall" : "part2", { id: t.id })}>
               <div className="link-emoji" style={{ fontWeight: 900, fontSize: 18 }}>№{t.num}</div>
               <div className="grow">
                 <div className="h3">{t.title}</div>
                 <div className="muted small">{pts === undefined ? `${t.points} балла` : `Твоя оценка: ${pts} из ${t.points}`}</div>
               </div>
               {locked ? <Lock size={18} color="var(--muted)" /> : <ChevronRight size={18} color="var(--muted)" />}
-            </motion.button>
+            </button>
           );
         })}
       </div>
