@@ -3,8 +3,9 @@ import {
   Home, Dumbbell, Footprints, CalendarDays, Settings as SettingsIcon,
   Check, Plus, ChevronLeft, ChevronRight, Flame, Lock, Crown, Send, X, Timer,
   Trash2, Star, Camera, Image as ImageIcon, PenLine, Sparkles, AlertTriangle, Apple,
-  BookOpen, Folder, GripVertical, ListPlus, Repeat, Droplets, Minus,
+  BookOpen, Folder, GripVertical, ListPlus, Repeat, Droplets, Minus, Calculator, ChevronDown,
 } from "lucide-react";
+import { calcNutrition, ACTIVITY, activityOf, activityLabel, goalPctOptions, hasBodyFat, kcalFromMacros, FAT_PER_KG } from "./nutrition.js";
 
 /* ============ Хранилище на телефоне ============ */
 // Данные лежат в памяти Telegram на этом устройстве. Для синхронизации между устройствами нужен сервер с базой.
@@ -68,12 +69,15 @@ const QUESTIONS = [
     { k: "height", label: "Рост", unit: "см", min: 130, max: 230 },
     { k: "weight", label: "Вес", unit: "кг", min: 35, max: 200 },
   ] },
+  { key: "bodyFat", title: "Знаешь свой процент жира?", optional: true,
+    hint: "Если знаешь (биоимпеданс, DEXA, калипер), посчитаю обмен по формуле Кэтча–Макардла — она точнее при большой мышечной массе. Не знаешь — пропусти, хватит формулы Миффлина–Сан Жеора",
+    numbers: [{ k: "bodyFat", label: "Процент жира", unit: "%", min: 3, max: 60 }] },
   { key: "targetKg", title: "На сколько кг хочешь измениться?", hint: "Округлённо — это ориентир, не точная цифра",
     condition: (a) => a.goal === "mass" || a.goal === "fat",
     numbers: [{ k: "targetKg", label: "Изменение веса", unit: "кг", min: 1, max: 40 }] },
-  { key: "rate", title: "Какой темп тебе подходит?", hint: (a) => rateHint(a.goal),
+  { key: "goalPct", title: "Какой темп тебе подходит?", hint: (a) => goalHint(a.goal),
     condition: (a) => a.goal === "mass" || a.goal === "fat",
-    options: (a) => rateOptions(a.goal, a.age) },
+    options: (a) => goalPctOptions(a.goal, a.age) },
   { key: "level", title: "Какой у тебя опыт?", hint: "Новичкам даю лёгкий старт, чтобы поставить технику",
     options: [["beginner", "Новичок, до 6 месяцев"], ["intermediate", "Средний, от 6 месяцев до 2 лет"], ["advanced", "Опытный, больше 2 лет"]] },
   { key: "place", title: "Где и с чем будешь тренироваться?", hint: "От инвентаря зависит набор упражнений",
@@ -82,6 +86,9 @@ const QUESTIONS = [
     options: [[2, "2 тренировки"], [3, "3 тренировки"], [4, "4 тренировки"]] },
   { key: "run", title: "Сколько пробежишь без остановки?", hint: "По ответу подберу стартовый беговой план",
     options: [["0", "Меньше 1 км"], ["1", "1–3 км"], ["3", "3–5 км"], ["5", "Больше 5 км"]] },
+  { key: "activity", title: "Насколько ты активен в целом?",
+    hint: "Считай всё вместе: работу, шаги и тренировки. От этого коэффициента зависит больше всего — люди обычно завышают свою активность. Сомневаешься — выбери вариант пониже",
+    options: ACTIVITY.map((x) => [x.k, x.label]) },
   { key: "allergies", title: "Есть пищевая аллергия?", hint: "Уберу эти продукты из рецептов и предупрежу, если увижу их на фото", multi: true },
 ];
 const LABELS = {
@@ -108,54 +115,13 @@ const detectAllergens = (text) => {
 };
 const alLabels = (keys) => keys.map((a) => ALLERGENS[a].label.toLowerCase()).join(", ");
 
-// Темп изменения веса, % от массы тела в неделю. Взрослым доступен более быстрый темп,
-// несовершеннолетним — только бережные варианты (организм ещё растёт)
-const KCAL_PER_KG = 7700; // энергетическая ценность килограмма жировой ткани, оценка
-const isAdult = (age) => age >= 18;
-function rateOptions(goal, age) {
-  if (goal === "mass") {
-    const opts = [[0.25, "Медленно, почти без жира"], [0.4, "Стандартный темп"]];
-    if (isAdult(age)) opts.push([0.6, "Быстрее, приму больше жира"]);
-    return opts;
-  }
-  if (goal === "fat") {
-    const opts = [[0.3, "Медленно и бережно"], [0.6, "Стандартный темп"]];
-    if (isAdult(age)) opts.push([1, "Быстрее, если очень надо"]);
-    return opts;
-  }
-  return [];
-}
-const rateHint = (goal) => (goal === "mass"
-  ? "Быстрее — значит больше жира вместе с мышцами, медленнее — суше и дольше"
-  : "Быстрее — выше риск терять мышцы и срываться, медленнее — комфортнее и стабильнее");
-
-// Формула Миффлина — Сан Жеора, активность по числу тренировок
-function calcNutrition(p) {
-  const bmr = 10 * p.weight + 6.25 * p.height - 5 * p.age + (p.sex === "f" ? -161 : 5);
-  const act = { 2: 1.375, 3: 1.46, 4: 1.55 }[p.days] || 1.4;
-  const tdee = bmr * act;
-  let kcal;
-  if (p.goal === "mass" || p.goal === "fat") {
-    const maxRate = isAdult(p.age) ? Infinity : 0.4;
-    const rate = Math.min(maxRate, p.rate || (p.goal === "mass" ? 0.25 : 0.3));
-    const sign = p.goal === "mass" ? 1 : -1;
-    kcal = tdee + sign * ((rate / 100) * p.weight * KCAL_PER_KG) / 7;
-  } else {
-    kcal = tdee * { strength: 1.05, endurance: 1 }[p.goal];
-  }
-  const floor = Math.max(bmr, p.sex === "f" ? 1200 : 1500);
-  kcal = Math.round(Math.max(kcal, floor) / 10) * 10;
-  // при большом весе белок считаем от «опорного» веса, чтобы не завышать
-  const refW = Math.min(p.weight, 25 * (p.height / 100) ** 2 * 1.15);
-  const protein = Math.round(refW * { mass: 1.8, strength: 1.8, fat: 2, endurance: 1.4 }[p.goal]);
-  const fat = Math.round(Math.max(refW * 0.9, (kcal * 0.25) / 9));
-  const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
-  // Вода: 33 мл/кг веса — общепринятый в клинической практике ориентир (согласуется с нормами EFSA/NAM
-  // при пересчёте на среднего человека), плюс надбавка в тренировочный день на потери с потом
-  const waterBase = Math.round((p.weight * 33) / 10) * 10;
-  const waterTrain = Math.round((waterBase + 500) / 10) * 10;
-  return { kcal, protein, fat, carbs, waterBase, waterTrain };
-}
+// Норма питания считается в ./nutrition.js по методике «Расчёт калорий и БЖУ»:
+// Миффлин–Сан Жеор (или Кэтч–Макардл при известном % жира) × коэффициент активности ± поправка под цель
+const goalHint = (goal) => (goal === "mass"
+  ? "Профицит 5–15% к суточному расходу. Больше — быстрее, но вместе с мышцами придёт больше жира"
+  : "Дефицит 10–20% к суточному расходу. Сильнее — выше риск терять мышцы и срываться");
+const etaWeeksOf = (p, n) => (n.kgPerWeek > 0 && p.targetKg > 0 ? Math.round(p.targetKg / n.kgPerWeek) : 0);
+const nf = (x, digits = 0) => Number(x).toLocaleString("ru-RU", { maximumFractionDigits: digits });
 
 /* ============ Упражнения ============ */
 // group — какую из 6 мышечных групп упражнение закрывает; cat — «база» (многосуставные) или «изоляция»
@@ -588,6 +554,7 @@ function fileToJpeg(file, max = 1024) {
 
 const FOOD_PROMPT = `Ты спортивный нутрициолог. Определи блюдо и продукты и оцени пищевую ценность съеденной порции.
 Оценивай вес по размеру тарелки, приборов и типичным порциям. Учитывай масло и соусы, если они заметны.
+Калорийность считай по коэффициентам Атвотера: белки и углеводы — 4 ккал/г, жиры — 9 ккал/г, алкоголь — 7 ккал/г.
 Ответь строго одним JSON-объектом на первой же строке, без markdown, вступления и пояснений до или после:
 {"is_food": true, "dish": "короткое название по-русски", "items": [{"name": "продукт", "grams": число, "kcal": число, "protein": число, "fat": число, "carbs": число}], "allergens": ["ключи из списка gluten, milk, eggs, nuts, peanut, fish, shellfish, soy, sesame, которые вероятно есть в блюде"], "confidence": "high, medium или low", "note": "одно короткое предложение о том, что может быть неточно"}
 Если это не еда, верни {"is_food": false}.`;
@@ -607,7 +574,7 @@ const normalizeRecipe = (r) => ({
   id: "ai" + Date.now(),
   name: String(r.name || "Рецепт"),
   time: num(r.time) || 20,
-  kcal: num(r.kcal), p: num(r.protein), f: num(r.fat), c: num(r.carbs),
+  kcal: num(r.kcal) || Math.round(kcalFromMacros(num(r.protein), num(r.fat), num(r.carbs))), p: num(r.protein), f: num(r.fat), c: num(r.carbs),
   ingredients: (r.ingredients || []).map(String).slice(0, 15),
   steps: (r.steps || []).map(String).slice(0, 10),
   allergens: (r.allergens || []).filter((a) => ALLERGENS[a]),
@@ -791,7 +758,7 @@ const resolve = (q, a, field) => (typeof q[field] === "function" ? q[field](a) :
 
 function Onboarding({ T, onDone }) {
   const [i, setI] = useState(0);
-  const [a, setA] = useState({ age: 25, height: 175, weight: 70, allergies: [], targetKg: 5 });
+  const [a, setA] = useState({ age: 25, height: 175, weight: 70, allergies: [], targetKg: 5, bodyFat: "" });
   const [summary, setSummary] = useState(false);
   const q = QUESTIONS[i];
   const pos = applicable(a).indexOf(q);
@@ -801,7 +768,11 @@ function Onboarding({ T, onDone }) {
   const pick = (val) => { setA({ ...a, [q.key]: val }); setTimeout(goNext, 180); };
   const nextNumbers = () => {
     const na = { ...a };
-    q.numbers.forEach((f) => { na[f.k] = Math.min(f.max, Math.max(f.min, Number(na[f.k]) || f.min)); });
+    q.numbers.forEach((f) => {
+      // необязательное поле (процент жира) можно оставить пустым
+      if (q.optional && (na[f.k] === "" || na[f.k] == null)) { na[f.k] = null; return; }
+      na[f.k] = Math.min(f.max, Math.max(f.min, Number(na[f.k]) || f.min));
+    });
     setA(na);
     const savedA = na; // condition() ниже должно видеть свежие значения
     const n = stepAfter(i, savedA, 1);
@@ -815,8 +786,7 @@ function Onboarding({ T, onDone }) {
     const range = repRangeFor(a);
     const n = calcNutrition(a);
     const hasRate = a.goal === "mass" || a.goal === "fat";
-    const kgWeek = hasRate ? (a.rate || 0) / 100 * a.weight : 0;
-    const etaWeeks = hasRate && kgWeek > 0 ? Math.round((a.targetKg || 0) / kgWeek) : 0;
+    const etaWeeks = hasRate ? etaWeeksOf(a, n) : 0;
     return (
       <div className="max-w-md mx-auto px-5 pt-8 pb-10 min-h-screen flex flex-col" style={{ animation: "rise .4s ease-out" }}>
         <H1>Анкета готова</H1>
@@ -844,7 +814,8 @@ function Onboarding({ T, onDone }) {
               <span style={{ color: MUTED, fontSize: 13 }}>ккал</span>
             </div>
             <Muted size={13}>Белки {n.protein} г, жиры {n.fat} г, углеводы {n.carbs} г</Muted>
-            {hasRate && <Muted size={13}>Темп: {a.goal === "mass" ? "+" : "−"}{fmt(kgWeek.toFixed(2))} кг в неделю, это ориентир, а не точная математика</Muted>}
+            <Muted size={13}>Обмен {nf(n.bmr)} ккал по формуле {n.formula === "katch" ? "Кэтча–Макардла" : "Миффлина–Сан Жеора"} × активность {fmt(n.k)}{n.pct ? `, ${n.pct < 0 ? "дефицит" : "профицит"} ${Math.abs(n.pct)}%` : ""}</Muted>
+            {hasRate && <Muted size={13}>Темп: {a.goal === "mass" ? "+" : "−"}{fmt(n.kgPerWeek.toFixed(2))} кг в неделю, это ориентир, а не точная математика</Muted>}
             {hasRate && a.targetKg > 0 && <Muted size={13}>Цель {a.targetKg} кг — примерно {etaWeeks} {weeksWord(etaWeeks)} при этом темпе</Muted>}
             {a.allergies.length > 0 && <Muted size={13}>Исключаю: {alLabels(a.allergies)}</Muted>}
           </Card>
@@ -905,7 +876,7 @@ function Onboarding({ T, onDone }) {
               <label key={f.k} className="flex items-center justify-between rounded-2xl px-4 py-3 mb-3" style={{ border: `1px solid ${T.line}`, background: T.card }}>
                 <span style={{ color: MUTED }}>{f.label}</span>
                 <span className="flex items-baseline gap-2">
-                  <input type="number" inputMode="numeric" value={a[f.k]} min={f.min} max={f.max}
+                  <input type="number" inputMode="numeric" value={a[f.k] ?? ""} min={f.min} max={f.max} placeholder="—"
                     onChange={(e) => setA({ ...a, [f.k]: e.target.value })}
                     className="bg-transparent text-right outline-none" style={{ width: 84, fontFamily: DISPLAY, fontSize: 24, color: "#fff" }} />
                   <span style={{ color: MUTED, fontSize: 13, width: 24 }}>{f.unit}</span>
@@ -913,6 +884,17 @@ function Onboarding({ T, onDone }) {
               </label>
             ))}
             <div className="mt-4"><Primary T={T} onClick={nextNumbers}>Дальше</Primary></div>
+            {q.optional && (
+              <div className="mt-3">
+                <Ghost T={T} onClick={() => {
+                  const na = { ...a };
+                  q.numbers.forEach((f) => { na[f.k] = null; });
+                  setA(na);
+                  const n = stepAfter(i, na, 1);
+                  n >= QUESTIONS.length ? setSummary(true) : setI(n);
+                }}>Не знаю, пропустить</Ghost>
+              </div>
+            )}
           </>
         ) : (
           options.map(([v, label]) => {
@@ -1873,7 +1855,66 @@ function MacroChips({ p, f, c }) {
   );
 }
 
-function Nutrition({ T, st, up, norm, program, run, openScan, openRecipe, openPay }) {
+// Пошаговый расчёт нормы — в том же порядке, что и в методике
+function NormBreakdown({ T, p, n, go }) {
+  const [open, setOpen] = useState(false);
+  const katch = n.formula === "katch";
+  const tdee10 = Math.round(n.tdee / 10) * 10;
+  const mw = nf(n.macroWeight, 1);
+  const fatBase = Math.ceil(n.macroWeight * FAT_PER_KG - 0.5);
+  const pk = n.protein * 4, fk = n.fat * 9, ck = n.carbs * 4;
+  const steps = [
+    ["Основной обмен", katch
+      ? `Кэтч–Макардл: 370 + 21,6 × ${nf(n.lbm, 1)} = ${nf(n.bmr)} ккал`
+      : `Миффлин–Сан Жеор: 10 × ${nf(p.weight, 1)} + 6,25 × ${p.height} − 5 × ${p.age} ${p.sex === "f" ? "− 161" : "+ 5"} = ${nf(n.bmr)} ккал`,
+      katch ? `Безжировая масса: ${nf(p.weight, 1)} × (1 − ${nf(n.bodyFat, 1)} / 100) = ${nf(n.lbm, 1)} кг` : ""],
+    ["Суточный расход", `${nf(n.bmr)} × ${fmt(n.k)} ≈ ${nf(tdee10)} ккал`, activityLabel(n.k)],
+    ["Цель", n.pct === 0
+      ? `Поддержание веса: ${nf(n.kcal)} ккал`
+      : `${n.pct < 0 ? "Дефицит" : "Профицит"} ${Math.abs(n.pct)}%: ${nf(tdee10)} × ${fmt(1 + n.pct / 100)} ≈ ${nf(n.kcal)} ккал`,
+      n.floored ? "Поднято до основного обмена: долго есть меньше него не рекомендуется" : ""],
+    ["Белок", `${fmt(n.proteinPerKg)} × ${mw} = ${n.protein} г → ${nf(pk)} ккал`,
+      n.macroWeightReason ? `При ИМТ 30 и выше считаю на ${n.macroWeightReason === "target" ? "целевой вес" : "вес при ИМТ 25"}: ${mw} кг` : ""],
+    ["Жиры", `${fmt(n.fatPerKg)} × ${mw} ≈ ${fatBase} г${n.fat !== fatBase ? `, подогнано к 20–35% калорийности: ${n.fat} г` : ""} → ${nf(fk)} ккал`, ""],
+    ["Углеводы", `(${nf(n.kcal)} − ${nf(pk)} − ${nf(fk)}) / 4 = ${n.carbs} г → ${nf(ck)} ккал`, ""],
+  ];
+  return (
+    <Card T={T} className="mt-3" style={{ borderRadius: 22 }}>
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-3 text-left" aria-expanded={open} style={{ color: "#fff" }}>
+        <Calculator size={20} color={T.a} />
+        <div className="flex-1">
+          <div className="font-semibold">Как посчитана норма</div>
+          <Muted size={12}>{katch ? "Кэтч–Макардл" : "Миффлин–Сан Жеор"} × активность {fmt(n.k)}{n.pct ? ` ${n.pct < 0 ? "−" : "+"} ${Math.abs(n.pct)}%` : ""}</Muted>
+        </div>
+        <ChevronDown size={18} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+      </button>
+      {open && (
+        <div className="mt-4" style={{ animation: "rise .25s ease-out" }}>
+          {steps.map(([title, line, sub], i) => (
+            <div key={title} className="flex gap-3 mb-3">
+              <span className="rounded-full flex items-center justify-center flex-shrink-0" style={{ width: 22, height: 22, fontSize: 12, fontWeight: 700, background: "rgba(255,255,255,0.08)" }}>{i + 1}</span>
+              <div className="min-w-0">
+                <div style={{ fontSize: 13, color: MUTED }}>{title}</div>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{line}</div>
+                {sub && <Muted size={12}>{sub}</Muted>}
+              </div>
+            </div>
+          ))}
+          <Muted size={13}>Проверка: {nf(pk)} + {nf(fk)} + {nf(ck)} = {nf(pk + fk + ck)} ккал</Muted>
+          <Muted size={12} className="mt-2">
+            Для сравнения, основной обмен по другим формулам: Миффлин–Сан Жеор {nf(n.mifflin)}, Харрис–Бенедикт {nf(n.harris)}{n.katch ? `, Кэтч–Макардл ${nf(n.katch)}` : ""} ккал.
+          </Muted>
+          <Muted size={12} className="mt-2">
+            Любая формула — стартовая оценка: у 70–80% людей она укладывается в ±10%, у остальных промах бывает 200–300 ккал. Если средний вес 2–3 недели стабилен, то, сколько ты ешь, и есть твой реальный расход.
+          </Muted>
+          <div className="mt-3"><Ghost T={T} onClick={() => go("settings")}>Изменить активность или % жира</Ghost></div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function Nutrition({ T, st, up, norm, program, run, openScan, openRecipe, openPay, go }) {
   const now = new Date();
   const k = keyOf(now);
   const list = st.food[k] || [];
@@ -1893,9 +1934,7 @@ function Nutrition({ T, st, up, norm, program, run, openScan, openRecipe, openPa
   const addWater = (ml) => up((s) => ({ water: { ...s.water, [k]: Math.max(0, (s.water[k] || 0) + ml) } }));
 
   const hasRate = p.goal === "mass" || p.goal === "fat";
-  const kgWeek = hasRate ? (p.rate || 0) / 100 * p.weight : 0;
-  const etaWeeks = hasRate && kgWeek > 0 && p.targetKg > 0 ? Math.round(p.targetKg / kgWeek) : 0;
-  const deficit = Math.round(norm.kcal - (10 * p.weight + 6.25 * p.height - 5 * p.age + (p.sex === "f" ? -161 : 5)) * ({ 2: 1.375, 3: 1.46, 4: 1.55 }[p.days] || 1.4));
+  const etaWeeks = hasRate ? etaWeeksOf(p, norm) : 0;
 
   const onFile = async (e) => {
     const file = e.target.files && e.target.files[0];
@@ -1921,7 +1960,7 @@ function Nutrition({ T, st, up, norm, program, run, openScan, openRecipe, openPa
             <span className="font-semibold" style={{ fontSize: 14 }}>{p.goal === "mass" ? "Программа набора массы" : "Программа похудения"}</span>
           </div>
           <Muted size={13}>
-            {p.goal === "mass" ? "Профицит" : "Дефицit"} {Math.abs(deficit)} ккал/день · цель {p.targetKg} кг · примерно {etaWeeks} {weeksWord(etaWeeks)} при текущем темпе
+            {p.goal === "mass" ? "Профицит" : "Дефицит"} {Math.abs(norm.delta)} ккал/день ({Math.abs(norm.pct)}%) · цель {p.targetKg} кг · примерно {etaWeeks} {weeksWord(etaWeeks)} при текущем темпе
           </Muted>
         </Card>
       )}
@@ -1941,6 +1980,8 @@ function Nutrition({ T, st, up, norm, program, run, openScan, openRecipe, openPa
           <MacroBar T={T} label="Углеводы" val={eaten.c} max={norm.carbs} />
         </div>
       </Card>
+
+      <NormBreakdown T={T} p={p} n={norm} go={go} />
 
       <Card T={T} className="mt-3" style={{ borderRadius: 22 }}>
         <div className="flex items-center gap-3 mb-2">
@@ -2080,7 +2121,11 @@ function FoodScanSheet({ T, init, allergies, onClose, onAdd, onUsed }) {
         setStatus("error");
         return;
       }
-      const items = (r.items || []).map((it) => ({ name: String(it.name || "Продукт"), grams: num(it.grams), kcal: num(it.kcal), p: num(it.protein), f: num(it.fat), c: num(it.carbs) }));
+      const items = (r.items || []).map((it) => {
+        const x = { name: String(it.name || "Продукт"), grams: num(it.grams), p: num(it.protein), f: num(it.fat), c: num(it.carbs) };
+        // если модель не указала калории, считаем по составу: Б × 4 + Ж × 9 + У × 4
+        return { ...x, kcal: num(it.kcal) || Math.round(kcalFromMacros(x.p, x.f, x.c)) };
+      });
       if (!items.length) throw new Error("empty");
       const dish = String(r.dish || items[0].name);
       const found = [...new Set([...(r.allergens || []).filter((a) => ALLERGENS[a]), ...detectAllergens(dish + " " + items.map((x) => x.name).join(" "))])];
@@ -2407,8 +2452,12 @@ function LegalSheet({ T, type, onClose }) {
 
 
 /* ============ Настройки ============ */
-function SettingsScreen({ T, st, up, openPay, go, norm }) {
+function SettingsScreen({ T, st, up, openPay, go, norm, openLegal }) {
   const p = st.profile;
+  const setProf = (patch) => up((s) => ({ profile: { ...s.profile, ...patch } }));
+  const act = activityOf(p);
+  const hasRate = p.goal === "mass" || p.goal === "fat";
+  const bfBad = p.bodyFat != null && p.bodyFat !== "" && !hasBodyFat(p);
   const al = p.allergies || [];
   const toggleAllergy = (id) => up((s) => {
     const cur = s.profile.allergies || [];
@@ -2477,6 +2526,47 @@ function SettingsScreen({ T, st, up, openPay, go, norm }) {
         <Muted size={12} className="mt-3">Рецепты с этими продуктами скрываются, а при распознавании еды появится предупреждение.</Muted>
       </Card>
 
+      <H2>Расчёт нормы</H2>
+      <Card T={T}>
+        <div className="font-semibold mb-1">Активность</div>
+        <Muted size={12} className="mb-3">Работа, шаги и тренировки вместе. Главный источник ошибки — если сомневаешься, выбери вариант пониже.</Muted>
+        <div className="flex flex-col gap-2">
+          {ACTIVITY.map((x) => (
+            <button key={x.k} onClick={() => setProf({ activity: x.k })} aria-pressed={act === x.k}
+              className="rounded-xl px-3 py-2 flex items-center justify-between gap-3 text-left"
+              style={{ border: `1px solid ${act === x.k ? T.a : T.line}`, background: act === x.k ? "rgba(255,255,255,0.08)" : "transparent", color: "#fff", fontSize: 14 }}>
+              <span>{x.label}</span>
+              <span style={{ color: act === x.k ? "#fff" : MUTED, fontWeight: 600 }}>×{fmt(x.k)}</span>
+            </button>
+          ))}
+        </div>
+        {hasRate && (
+          <>
+            <div className="font-semibold mt-5 mb-2">Темп</div>
+            <div className="flex flex-col gap-2">
+              {goalPctOptions(p.goal, p.age).map(([v, label]) => (
+                <Chip key={v} T={T} on={Math.abs(norm.pct) === v} onClick={() => setProf({ goalPct: v })}>{label}</Chip>
+              ))}
+            </div>
+          </>
+        )}
+        <div className="font-semibold mt-5">Процент жира</div>
+        <Muted size={12}>Если знаешь, обмен посчитаю по Кэтчу–Макардлу. Не знаешь — оставь пустым.</Muted>
+        <label className="flex items-center justify-between rounded-xl px-3 py-2 mt-2" style={{ border: `1px solid ${bfBad ? "rgba(255,45,85,0.7)" : T.line}` }}>
+          <span style={{ color: MUTED, fontSize: 14 }}>Жир</span>
+          <span className="flex items-baseline gap-1">
+            <input type="number" inputMode="decimal" min={3} max={60} value={p.bodyFat ?? ""} placeholder="—"
+              onChange={(e) => setProf({ bodyFat: e.target.value === "" ? null : Number(e.target.value) })}
+              className="bg-transparent text-right outline-none" style={{ width: 64, fontSize: 18, color: "#fff" }} aria-label="Процент жира" />
+            <span style={{ color: MUTED, fontSize: 13 }}>%</span>
+          </span>
+        </label>
+        {bfBad && <Muted size={12} className="mt-1" style={{ color: "#FF6B85" }}>Укажи от 3 до 60%, иначе считаю по Миффлину–Сан Жеору</Muted>}
+        <Muted size={13} className="mt-4">
+          Норма сейчас: {norm.kcal.toLocaleString("ru-RU")} ккал, Б {norm.protein}, Ж {norm.fat}, У {norm.carbs}. Подробный расчёт — в «Питании».
+        </Muted>
+      </Card>
+
       <H2>Анкета</H2>
       <Card T={T}>
         <div style={{ fontSize: 15, lineHeight: 1.6 }}>
@@ -2484,10 +2574,10 @@ function SettingsScreen({ T, st, up, openPay, go, norm }) {
           Уровень: {LABELS.level[p.level]}<br />
           {p.age} лет, {p.height} см, {p.weight} кг<br />
           Место: {LABELS.place[p.place]}, {p.days} силовые в неделю<br />
+          Активность: ×{fmt(act)}{hasBodyFat(p) ? `, жир ${p.bodyFat}%` : ""}<br />
           Норма: {norm.kcal.toLocaleString("ru-RU")} ккал, Б {norm.protein}, Ж {norm.fat}, У {norm.carbs}
-          {(p.goal === "mass" || p.goal === "fat") && p.targetKg > 0 && (() => {
-            const kgWeek = (p.rate || 0) / 100 * p.weight;
-            const eta = kgWeek > 0 ? Math.round(p.targetKg / kgWeek) : 0;
+          {hasRate && p.targetKg > 0 && (() => {
+            const eta = etaWeeksOf(p, norm);
             return <><br />Цель: {p.goal === "mass" ? "+" : "−"}{p.targetKg} кг, примерно {eta} {weeksWord(eta)}</>;
           })()}
         </div>
@@ -2497,8 +2587,8 @@ function SettingsScreen({ T, st, up, openPay, go, norm }) {
       <H2>Документы и оплата</H2>
       <Card T={T}>
         <div className="flex flex-col gap-2">
-          <Ghost T={T} onClick={() => setSheet({ type: "privacy" })}>Политика конфиденциальности</Ghost>
-          <Ghost T={T} onClick={() => setSheet({ type: "terms" })}>Пользовательское соглашение</Ghost>
+          <Ghost T={T} onClick={() => openLegal("privacy")}>Политика конфиденциальности</Ghost>
+          <Ghost T={T} onClick={() => openLegal("terms")}>Пользовательское соглашение</Ghost>
         </div>
       </Card>
 
@@ -2616,13 +2706,13 @@ export default function App() {
             )}
             {tab === "run" && <Run T={T} st={st} up={up} run={run} week={week} openPay={openPay} />}
             {tab === "food" && (
-              <Nutrition T={T} st={st} up={up} norm={norm} program={program} run={run} openPay={openPay}
+              <Nutrition T={T} st={st} up={up} norm={norm} program={program} run={run} openPay={openPay} go={go}
                 openScan={(init) => setSheet({ type: "scan", init })}
                 openRecipe={(init) => setSheet({ type: "recipe", init })} />
             )}
             {tab === "dev" && <DevScreen T={T} st={st} up={up} openTheme={(id) => setSheet({ type: "theme", id })} />}
             {tab === "cal" && <CalendarScreen T={T} st={st} up={up} program={program} run={run} week={week} openPay={openPay} />}
-            {tab === "settings" && <SettingsScreen T={T} st={st} up={up} openPay={openPay} go={go} norm={norm} />}
+            {tab === "settings" && <SettingsScreen T={T} st={st} up={up} openPay={openPay} go={go} norm={norm} openLegal={(type) => setSheet({ type })} />}
           </main>
 
           <nav className="fixed bottom-0 left-0 right-0 z-40" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", borderTop: `1px solid ${T.line}` }}>
