@@ -8,70 +8,80 @@
 
 export const BASKET_PRICES_NOTE = "Цены примерные, по Москве. Если в твоём магазине другая — нажми на цену и поправь, RITM запомнит.";
 
-// k — во сколько раз цены сети отличаются от средних; limited — у сети небольшой ассортимент (дискаунтер)
+// k — во сколько раз цены сети отличаются от средних; limited — у сети небольшой ассортимент (дискаунтер);
+// site — сайт сети; catalog: false — товаров на сайте нет (только акции и адреса магазинов)
 export const STORES = [
-  { id: "pyaterochka", name: "Пятёрочка", k: 1.0, color: "#E31E24" },
-  { id: "magnit", name: "Магнит", k: 0.98, color: "#E2001A" },
-  { id: "perekrestok", name: "Перекрёсток", k: 1.12, color: "#0B7A3E" },
-  { id: "lenta", name: "Лента", k: 0.96, color: "#1F3D8A" },
-  { id: "auchan", name: "Ашан", k: 0.95, color: "#E30613" },
-  { id: "vkusvill", name: "ВкусВилл", k: 1.22, color: "#4CAF50" },
-  { id: "chizhik", name: "Чижик", k: 0.86, color: "#F5C400", limited: true },
+  { id: "pyaterochka", name: "Пятёрочка", k: 1.0, color: "#E31E24", site: "5ka.ru" },
+  { id: "magnit", name: "Магнит", k: 0.98, color: "#E2001A", site: "magnit.ru" },
+  { id: "perekrestok", name: "Перекрёсток", k: 1.12, color: "#0B7A3E", site: "perekrestok.ru" },
+  { id: "lenta", name: "Лента", k: 0.96, color: "#1F3D8A", site: "lenta.com" },
+  { id: "auchan", name: "Ашан", k: 0.95, color: "#E30613", site: "auchan.ru" },
+  { id: "dixy", name: "Дикси", k: 0.97, color: "#F7941D", site: "dixy.ru" },
+  { id: "vkusvill", name: "ВкусВилл", k: 1.22, color: "#4CAF50", site: "vkusvill.ru" },
+  { id: "azbuka", name: "Азбука вкуса", k: 1.45, color: "#C9A227", site: "av.ru" },
+  { id: "chizhik", name: "Чижик", k: 0.86, color: "#F5C400", limited: true, site: "chizhik.club", catalog: false },
 ];
+
+// Сайт сети и поиск продукта на нём. Адреса страниц поиска у сетей меняются, поэтому ищем через Яндекс
+// с ограничением по сайту сети — карточки товаров с фото и актуальной ценой там находятся надёжно.
+export const storeSiteUrl = (store) => `https://${store.site}/`;
+export const productSearchUrl = (store, product) =>
+  `https://yandex.ru/search/?text=${encodeURIComponent(`${product.q || product.name} site:${store.site}`)}`;
 
 // role: protein | carb | veg | fruit | dairy | fat — для разнообразия корзины.
 // meals: в какие приёмы пищи продукт уместен (0 завтрак, 1 обед, 2 ужин, 3 перекус).
 // min/max — разумная порция за день в граммах, step — шаг подбора. piece — вес одной штуки (яйцо, банан).
 // pack — граммов в упаковке, price — средняя цена упаковки, ₽. al — аллергены (ключи ALLERGENS в App.jsx).
+// emoji — картинка продукта в списке, q — что искать на сайте магазина, если название слишком общее.
 // premium — нет в дискаунтерах (Чижик).
 export const BASKET_PRODUCTS = [
   // Белок
-  { id: "chicken", pref: 1.2, name: "Куриное филе", role: "protein", meals: [1, 2], kcal: 113, p: 23.6, f: 1.9, c: 0.4, pack: 800, packLabel: "800 г", price: 429, min: 120, max: 400, step: 40, raw: true },
-  { id: "thigh", name: "Филе куриного бедра", role: "protein", meals: [1, 2], kcal: 160, p: 19, f: 9.5, c: 0, pack: 700, packLabel: "700 г", price: 379, min: 120, max: 350, step: 40, raw: true },
-  { id: "turkey", name: "Фарш индейки", role: "protein", meals: [1, 2], kcal: 161, p: 17.5, f: 10, c: 0, pack: 400, packLabel: "400 г", price: 269, min: 100, max: 300, step: 50, raw: true },
-  { id: "beef", name: "Говядина для тушения", role: "protein", meals: [1, 2], kcal: 187, p: 18.9, f: 12.4, c: 0, pack: 500, packLabel: "500 г", price: 529, min: 100, max: 300, step: 50, raw: true },
-  { id: "liver", pref: 0.5, name: "Куриная печень", role: "protein", meals: [1, 2], kcal: 137, p: 20.4, f: 5.9, c: 0.7, pack: 500, packLabel: "500 г", price: 189, min: 100, max: 150, step: 50, raw: true },
-  { id: "pollock", pref: 1.05, name: "Минтай, филе замороженное", role: "protein", meals: [1, 2], kcal: 72, p: 16, f: 0.9, c: 0, pack: 800, packLabel: "800 г", price: 379, min: 150, max: 400, step: 50, raw: true, al: ["fish"] },
-  { id: "salmon", name: "Горбуша, филе", role: "protein", meals: [1, 2], kcal: 140, p: 20.5, f: 6.5, c: 0, pack: 500, packLabel: "500 г", price: 449, min: 120, max: 300, step: 40, raw: true, al: ["fish"], premium: true },
-  { id: "tuna", grp: "canfish", name: "Тунец в собственном соку", role: "protein", meals: [1, 2, 3], kcal: 96, p: 22, f: 1, c: 0, pack: 185, packLabel: "банка 185 г", price: 169, min: 90, max: 185, step: 45, al: ["fish"] },
-  { id: "mackerel", grp: "canfish", name: "Скумбрия в собственном соку", role: "protein", meals: [1, 2], kcal: 191, p: 18, f: 13.2, c: 0, pack: 250, packLabel: "банка 250 г", price: 179, min: 100, max: 250, step: 50, al: ["fish"] },
-  { id: "eggs", pref: 1.05, name: "Яйца С1", role: "protein", meals: [0, 1, 2], kcal: 157, p: 12.7, f: 11.5, c: 0.7, pack: 550, packLabel: "10 шт", price: 119, min: 110, max: 220, step: 55, piece: 55, pieceWord: ["яйцо", "яйца", "яиц"], al: ["eggs"] },
-  { id: "cottage", pref: 1.05, grp: "cottage", name: "Творог 5%", role: "dairy", meals: [0, 2, 3], kcal: 121, p: 17, f: 5, c: 1.8, pack: 350, packLabel: "350 г", price: 189, min: 100, max: 350, step: 50, al: ["milk"] },
-  { id: "cottage2", pref: 1.05, grp: "cottage", name: "Творог 2%", role: "dairy", meals: [0, 2, 3], kcal: 103, p: 18, f: 2, c: 3.3, pack: 200, packLabel: "200 г", price: 109, min: 100, max: 400, step: 50, al: ["milk"] },
-  { id: "greek", name: "Йогурт греческий 2%", role: "dairy", meals: [0, 3], kcal: 66, p: 8, f: 2, c: 3.5, pack: 140, packLabel: "140 г", price: 79, min: 140, max: 420, step: 140, al: ["milk"], premium: true },
-  { id: "kefir", grp: "drink", name: "Кефир 1%", role: "dairy", meals: [0, 3], kcal: 40, p: 3, f: 1, c: 4, pack: 900, packLabel: "900 мл", price: 95, min: 200, max: 500, step: 100, ml: true, al: ["milk"] },
-  { id: "milk", grp: "drink", name: "Молоко 2,5%", role: "dairy", meals: [0, 3], kcal: 53, p: 2.9, f: 2.5, c: 4.7, pack: 900, packLabel: "900 мл", price: 89, min: 150, max: 500, step: 50, ml: true, al: ["milk"] },
-  { id: "cheese", name: "Сыр Российский", role: "dairy", meals: [0, 3], kcal: 363, p: 24.1, f: 29.5, c: 0.3, pack: 200, packLabel: "200 г", price: 229, min: 20, max: 60, step: 10, al: ["milk"] },
-  { id: "tofu", pref: 0.8, name: "Тофу", role: "protein", meals: [1, 2], kcal: 121, p: 12.5, f: 7, c: 2, pack: 300, packLabel: "300 г", price: 219, min: 100, max: 300, step: 50, al: ["soy"], premium: true },
-  { id: "lentils", grp: "legume", name: "Чечевица красная", role: "carb", meals: [1, 2], kcal: 314, p: 24, f: 1.5, c: 48, pack: 450, packLabel: "450 г", price: 119, min: 50, max: 120, step: 10 },
-  { id: "chickpeas", grp: "legume", name: "Нут", role: "carb", meals: [1, 2], kcal: 364, p: 19, f: 6, c: 61, pack: 450, packLabel: "450 г", price: 129, min: 50, max: 120, step: 10 },
-  { id: "beans", pref: 0.85, grp: "legume", name: "Фасоль красная консервированная", role: "carb", meals: [1, 2], kcal: 99, p: 6.7, f: 0.3, c: 17.4, pack: 400, packLabel: "банка 400 г", price: 109, min: 100, max: 300, step: 50 },
+  { id: "chicken", emoji: "🍗", q: "филе куриной грудки", pref: 1.2, name: "Куриное филе", role: "protein", meals: [1, 2], kcal: 113, p: 23.6, f: 1.9, c: 0.4, pack: 800, packLabel: "800 г", price: 429, min: 120, max: 400, step: 40, raw: true },
+  { id: "thigh", emoji: "🍗", name: "Филе куриного бедра", role: "protein", meals: [1, 2], kcal: 160, p: 19, f: 9.5, c: 0, pack: 700, packLabel: "700 г", price: 379, min: 120, max: 350, step: 40, raw: true },
+  { id: "turkey", emoji: "🦃", name: "Фарш индейки", role: "protein", meals: [1, 2], kcal: 161, p: 17.5, f: 10, c: 0, pack: 400, packLabel: "400 г", price: 269, min: 100, max: 300, step: 50, raw: true },
+  { id: "beef", emoji: "🥩", name: "Говядина для тушения", role: "protein", meals: [1, 2], kcal: 187, p: 18.9, f: 12.4, c: 0, pack: 500, packLabel: "500 г", price: 529, min: 100, max: 300, step: 50, raw: true },
+  { id: "liver", emoji: "🥩", q: "печень куриная", pref: 0.5, name: "Куриная печень", role: "protein", meals: [1, 2], kcal: 137, p: 20.4, f: 5.9, c: 0.7, pack: 500, packLabel: "500 г", price: 189, min: 100, max: 150, step: 50, raw: true },
+  { id: "pollock", emoji: "🐟", q: "филе минтая замороженное", pref: 1.05, name: "Минтай, филе замороженное", role: "protein", meals: [1, 2], kcal: 72, p: 16, f: 0.9, c: 0, pack: 800, packLabel: "800 г", price: 379, min: 150, max: 400, step: 50, raw: true, al: ["fish"] },
+  { id: "salmon", emoji: "🐟", q: "филе горбуши", name: "Горбуша, филе", role: "protein", meals: [1, 2], kcal: 140, p: 20.5, f: 6.5, c: 0, pack: 500, packLabel: "500 г", price: 449, min: 120, max: 300, step: 40, raw: true, al: ["fish"], premium: true },
+  { id: "tuna", emoji: "🥫", grp: "canfish", name: "Тунец в собственном соку", role: "protein", meals: [1, 2, 3], kcal: 96, p: 22, f: 1, c: 0, pack: 185, packLabel: "банка 185 г", price: 169, min: 90, max: 185, step: 45, al: ["fish"] },
+  { id: "mackerel", emoji: "🥫", grp: "canfish", name: "Скумбрия в собственном соку", role: "protein", meals: [1, 2], kcal: 191, p: 18, f: 13.2, c: 0, pack: 250, packLabel: "банка 250 г", price: 179, min: 100, max: 250, step: 50, al: ["fish"] },
+  { id: "eggs", emoji: "🥚", q: "яйца куриные С1", pref: 1.05, name: "Яйца С1", role: "protein", meals: [0, 1, 2], kcal: 157, p: 12.7, f: 11.5, c: 0.7, pack: 550, packLabel: "10 шт", price: 119, min: 110, max: 220, step: 55, piece: 55, pieceWord: ["яйцо", "яйца", "яиц"], al: ["eggs"] },
+  { id: "cottage", emoji: "🥣", pref: 1.05, grp: "cottage", name: "Творог 5%", role: "dairy", meals: [0, 2, 3], kcal: 121, p: 17, f: 5, c: 1.8, pack: 350, packLabel: "350 г", price: 189, min: 100, max: 350, step: 50, al: ["milk"] },
+  { id: "cottage2", emoji: "🥣", pref: 1.05, grp: "cottage", name: "Творог 2%", role: "dairy", meals: [0, 2, 3], kcal: 103, p: 18, f: 2, c: 3.3, pack: 200, packLabel: "200 г", price: 109, min: 100, max: 400, step: 50, al: ["milk"] },
+  { id: "greek", emoji: "🍨", q: "йогурт греческий 2%", name: "Йогурт греческий 2%", role: "dairy", meals: [0, 3], kcal: 66, p: 8, f: 2, c: 3.5, pack: 140, packLabel: "140 г", price: 79, min: 140, max: 420, step: 140, al: ["milk"], premium: true },
+  { id: "kefir", emoji: "🥛", grp: "drink", name: "Кефир 1%", role: "dairy", meals: [0, 3], kcal: 40, p: 3, f: 1, c: 4, pack: 900, packLabel: "900 мл", price: 95, min: 200, max: 500, step: 100, ml: true, al: ["milk"] },
+  { id: "milk", emoji: "🥛", grp: "drink", name: "Молоко 2,5%", role: "dairy", meals: [0, 3], kcal: 53, p: 2.9, f: 2.5, c: 4.7, pack: 900, packLabel: "900 мл", price: 89, min: 150, max: 500, step: 50, ml: true, al: ["milk"] },
+  { id: "cheese", emoji: "🧀", name: "Сыр Российский", role: "dairy", meals: [0, 3], kcal: 363, p: 24.1, f: 29.5, c: 0.3, pack: 200, packLabel: "200 г", price: 229, min: 20, max: 60, step: 10, al: ["milk"] },
+  { id: "tofu", emoji: "🧈", pref: 0.8, name: "Тофу", role: "protein", meals: [1, 2], kcal: 121, p: 12.5, f: 7, c: 2, pack: 300, packLabel: "300 г", price: 219, min: 100, max: 300, step: 50, al: ["soy"], premium: true },
+  { id: "lentils", emoji: "🫘", grp: "legume", name: "Чечевица красная", role: "carb", meals: [1, 2], kcal: 314, p: 24, f: 1.5, c: 48, pack: 450, packLabel: "450 г", price: 119, min: 50, max: 120, step: 10 },
+  { id: "chickpeas", emoji: "🫘", grp: "legume", name: "Нут", role: "carb", meals: [1, 2], kcal: 364, p: 19, f: 6, c: 61, pack: 450, packLabel: "450 г", price: 129, min: 50, max: 120, step: 10 },
+  { id: "beans", emoji: "🥫", pref: 0.85, grp: "legume", name: "Фасоль красная консервированная", role: "carb", meals: [1, 2], kcal: 99, p: 6.7, f: 0.3, c: 17.4, pack: 400, packLabel: "банка 400 г", price: 109, min: 100, max: 300, step: 50 },
   // Углеводы
-  { id: "buckwheat", pref: 1.1, name: "Гречка", role: "carb", meals: [0, 1, 2], kcal: 313, p: 12.6, f: 3.3, c: 62.1, pack: 900, packLabel: "900 г", price: 109, min: 50, max: 150, step: 10 },
-  { id: "rice", name: "Рис", role: "carb", meals: [1, 2], kcal: 333, p: 7, f: 1, c: 74, pack: 900, packLabel: "900 г", price: 119, min: 50, max: 150, step: 10 },
-  { id: "oats", name: "Овсяные хлопья", role: "carb", meals: [0, 3], kcal: 352, p: 12.3, f: 6.2, c: 61.8, pack: 400, packLabel: "400 г", price: 75, min: 40, max: 120, step: 10, al: ["gluten"] },
-  { id: "pasta", name: "Макароны из твёрдых сортов", role: "carb", meals: [1, 2], kcal: 344, p: 12, f: 1.5, c: 70, pack: 450, packLabel: "450 г", price: 89, min: 60, max: 150, step: 10, al: ["gluten"] },
-  { id: "bulgur", name: "Булгур", role: "carb", meals: [1, 2], kcal: 342, p: 12.3, f: 1.3, c: 57.6, pack: 400, packLabel: "400 г", price: 109, min: 50, max: 130, step: 10, al: ["gluten"], premium: true },
-  { id: "bread", name: "Хлеб цельнозерновой", role: "carb", meals: [0, 1, 2, 3], kcal: 235, p: 8, f: 3, c: 43, pack: 300, packLabel: "300 г", price: 69, min: 30, max: 150, step: 30, al: ["gluten"] },
-  { id: "potato", name: "Картофель", role: "carb", meals: [1, 2], kcal: 77, p: 2, f: 0.4, c: 16.3, pack: 1500, packLabel: "1,5 кг", price: 89, min: 150, max: 500, step: 50 },
+  { id: "buckwheat", emoji: "🍲", q: "крупа гречневая ядрица", pref: 1.1, name: "Гречка", role: "carb", meals: [0, 1, 2], kcal: 313, p: 12.6, f: 3.3, c: 62.1, pack: 900, packLabel: "900 г", price: 109, min: 50, max: 150, step: 10 },
+  { id: "rice", emoji: "🍚", q: "рис круглозерный", name: "Рис", role: "carb", meals: [1, 2], kcal: 333, p: 7, f: 1, c: 74, pack: 900, packLabel: "900 г", price: 119, min: 50, max: 150, step: 10 },
+  { id: "oats", emoji: "🌾", q: "овсяные хлопья геркулес", name: "Овсяные хлопья", role: "carb", meals: [0, 3], kcal: 352, p: 12.3, f: 6.2, c: 61.8, pack: 400, packLabel: "400 г", price: 75, min: 40, max: 120, step: 10, al: ["gluten"] },
+  { id: "pasta", emoji: "🍝", q: "макароны из твердых сортов пшеницы", name: "Макароны из твёрдых сортов", role: "carb", meals: [1, 2], kcal: 344, p: 12, f: 1.5, c: 70, pack: 450, packLabel: "450 г", price: 89, min: 60, max: 150, step: 10, al: ["gluten"] },
+  { id: "bulgur", emoji: "🌾", name: "Булгур", role: "carb", meals: [1, 2], kcal: 342, p: 12.3, f: 1.3, c: 57.6, pack: 400, packLabel: "400 г", price: 109, min: 50, max: 130, step: 10, al: ["gluten"], premium: true },
+  { id: "bread", emoji: "🍞", name: "Хлеб цельнозерновой", role: "carb", meals: [0, 1, 2, 3], kcal: 235, p: 8, f: 3, c: 43, pack: 300, packLabel: "300 г", price: 69, min: 30, max: 150, step: 30, al: ["gluten"] },
+  { id: "potato", emoji: "🥔", name: "Картофель", role: "carb", meals: [1, 2], kcal: 77, p: 2, f: 0.4, c: 16.3, pack: 1500, packLabel: "1,5 кг", price: 89, min: 150, max: 500, step: 50 },
   // Фрукты
-  { id: "banana", name: "Бананы", role: "fruit", meals: [0, 3], kcal: 96, p: 1.5, f: 0.5, c: 21, pack: 1000, packLabel: "1 кг", price: 139, min: 120, max: 240, step: 120, piece: 120, pieceWord: ["банан", "банана", "бананов"] },
-  { id: "apple", name: "Яблоки", role: "fruit", meals: [0, 3], kcal: 47, p: 0.4, f: 0.4, c: 9.8, pack: 1000, packLabel: "1 кг", price: 129, min: 180, max: 360, step: 180, piece: 180, pieceWord: ["яблоко", "яблока", "яблок"] },
-  { id: "orange", name: "Апельсины", role: "fruit", meals: [0, 3], kcal: 43, p: 0.9, f: 0.2, c: 8.1, pack: 1000, packLabel: "1 кг", price: 159, min: 200, max: 400, step: 200, piece: 200, pieceWord: ["апельсин", "апельсина", "апельсинов"] },
-  { id: "berries", name: "Ягоды замороженные", role: "fruit", meals: [0, 3], kcal: 50, p: 1, f: 0.3, c: 10, pack: 300, packLabel: "300 г", price: 189, min: 100, max: 200, step: 50, premium: true },
+  { id: "banana", emoji: "🍌", name: "Бананы", role: "fruit", meals: [0, 3], kcal: 96, p: 1.5, f: 0.5, c: 21, pack: 1000, packLabel: "1 кг", price: 139, min: 120, max: 240, step: 120, piece: 120, pieceWord: ["банан", "банана", "бананов"] },
+  { id: "apple", emoji: "🍎", name: "Яблоки", role: "fruit", meals: [0, 3], kcal: 47, p: 0.4, f: 0.4, c: 9.8, pack: 1000, packLabel: "1 кг", price: 129, min: 180, max: 360, step: 180, piece: 180, pieceWord: ["яблоко", "яблока", "яблок"] },
+  { id: "orange", emoji: "🍊", name: "Апельсины", role: "fruit", meals: [0, 3], kcal: 43, p: 0.9, f: 0.2, c: 8.1, pack: 1000, packLabel: "1 кг", price: 159, min: 200, max: 400, step: 200, piece: 200, pieceWord: ["апельсин", "апельсина", "апельсинов"] },
+  { id: "berries", emoji: "🫐", q: "ягодная смесь замороженная", name: "Ягоды замороженные", role: "fruit", meals: [0, 3], kcal: 50, p: 1, f: 0.3, c: 10, pack: 300, packLabel: "300 г", price: 189, min: 100, max: 200, step: 50, premium: true },
   // Овощи
-  { id: "cucumber", pref: 1.1, name: "Огурцы", role: "veg", meals: [0, 1, 2], kcal: 15, p: 0.8, f: 0.1, c: 2.8, pack: 450, packLabel: "450 г", price: 129, min: 100, max: 300, step: 50 },
-  { id: "tomato", pref: 1.1, name: "Помидоры", role: "veg", meals: [0, 1, 2], kcal: 20, p: 1.1, f: 0.2, c: 3.7, pack: 500, packLabel: "500 г", price: 159, min: 100, max: 300, step: 50 },
-  { id: "cabbage", pref: 0.9, name: "Капуста белокочанная", role: "veg", meals: [1, 2], kcal: 28, p: 1.8, f: 0.1, c: 4.7, pack: 1000, packLabel: "≈1 кг", price: 45, min: 100, max: 300, step: 50 },
-  { id: "carrot", name: "Морковь", role: "veg", meals: [1, 2, 3], kcal: 35, p: 1.3, f: 0.1, c: 6.9, pack: 1000, packLabel: "1 кг", price: 59, min: 100, max: 250, step: 50 },
-  { id: "broccoli", name: "Брокколи замороженная", role: "veg", meals: [1, 2], kcal: 28, p: 3, f: 0.4, c: 5.2, pack: 400, packLabel: "400 г", price: 149, min: 100, max: 300, step: 50 },
-  { id: "vegmix", name: "Овощная смесь замороженная", role: "veg", meals: [1, 2], kcal: 35, p: 1.8, f: 0.3, c: 6, pack: 400, packLabel: "400 г", price: 119, min: 100, max: 300, step: 50 },
+  { id: "cucumber", emoji: "🥒", pref: 1.1, name: "Огурцы", role: "veg", meals: [0, 1, 2], kcal: 15, p: 0.8, f: 0.1, c: 2.8, pack: 450, packLabel: "450 г", price: 129, min: 100, max: 300, step: 50 },
+  { id: "tomato", emoji: "🍅", pref: 1.1, name: "Помидоры", role: "veg", meals: [0, 1, 2], kcal: 20, p: 1.1, f: 0.2, c: 3.7, pack: 500, packLabel: "500 г", price: 159, min: 100, max: 300, step: 50 },
+  { id: "cabbage", emoji: "🥬", pref: 0.9, name: "Капуста белокочанная", role: "veg", meals: [1, 2], kcal: 28, p: 1.8, f: 0.1, c: 4.7, pack: 1000, packLabel: "≈1 кг", price: 45, min: 100, max: 300, step: 50 },
+  { id: "carrot", emoji: "🥕", name: "Морковь", role: "veg", meals: [1, 2, 3], kcal: 35, p: 1.3, f: 0.1, c: 6.9, pack: 1000, packLabel: "1 кг", price: 59, min: 100, max: 250, step: 50 },
+  { id: "broccoli", emoji: "🥦", name: "Брокколи замороженная", role: "veg", meals: [1, 2], kcal: 28, p: 3, f: 0.4, c: 5.2, pack: 400, packLabel: "400 г", price: 149, min: 100, max: 300, step: 50 },
+  { id: "vegmix", emoji: "🫑", q: "овощная смесь замороженная", name: "Овощная смесь замороженная", role: "veg", meals: [1, 2], kcal: 35, p: 1.8, f: 0.3, c: 6, pack: 400, packLabel: "400 г", price: 119, min: 100, max: 300, step: 50 },
   // Жиры
-  { id: "oil", pref: 0.8, name: "Масло подсолнечное", role: "fat", meals: [1, 2], kcal: 899, p: 0, f: 99.9, c: 0, pack: 830, packLabel: "0,9 л", price: 139, min: 5, max: 20, step: 5, ml: true },
-  { id: "walnuts", name: "Грецкие орехи", role: "fat", meals: [0, 3], kcal: 654, p: 15, f: 65, c: 7, pack: 150, packLabel: "150 г", price: 229, min: 15, max: 40, step: 5, al: ["nuts"] },
-  { id: "peanuts", pref: 0.85, grp: "peanut", name: "Арахис", role: "fat", meals: [3], kcal: 610, p: 26, f: 52, c: 10, pack: 200, packLabel: "200 г", price: 129, min: 20, max: 40, step: 10, al: ["peanut"] },
-  { id: "pbutter", grp: "peanut", name: "Арахисовая паста", role: "fat", meals: [0, 3], kcal: 588, p: 25, f: 50, c: 20, pack: 340, packLabel: "340 г", price: 259, min: 15, max: 40, step: 5, al: ["peanut"] },
-  { id: "avocado", name: "Авокадо", role: "fat", meals: [0, 1, 2], kcal: 160, p: 2, f: 14.7, c: 1.8, pack: 170, packLabel: "1 шт", price: 129, min: 85, max: 170, step: 85, piece: 170, pieceWord: ["авокадо", "авокадо", "авокадо"], premium: true },
+  { id: "oil", emoji: "🌻", q: "масло подсолнечное рафинированное", pref: 0.8, name: "Масло подсолнечное", role: "fat", meals: [1, 2], kcal: 899, p: 0, f: 99.9, c: 0, pack: 830, packLabel: "0,9 л", price: 139, min: 5, max: 20, step: 5, ml: true },
+  { id: "walnuts", emoji: "🌰", name: "Грецкие орехи", role: "fat", meals: [0, 3], kcal: 654, p: 15, f: 65, c: 7, pack: 150, packLabel: "150 г", price: 229, min: 15, max: 40, step: 5, al: ["nuts"] },
+  { id: "peanuts", emoji: "🥜", pref: 0.85, grp: "peanut", name: "Арахис", role: "fat", meals: [3], kcal: 610, p: 26, f: 52, c: 10, pack: 200, packLabel: "200 г", price: 129, min: 20, max: 40, step: 10, al: ["peanut"] },
+  { id: "pbutter", emoji: "🥜", grp: "peanut", name: "Арахисовая паста", role: "fat", meals: [0, 3], kcal: 588, p: 25, f: 50, c: 20, pack: 340, packLabel: "340 г", price: 259, min: 15, max: 40, step: 5, al: ["peanut"] },
+  { id: "avocado", emoji: "🥑", name: "Авокадо", role: "fat", meals: [0, 1, 2], kcal: 160, p: 2, f: 14.7, c: 1.8, pack: 170, packLabel: "1 шт", price: 129, min: 85, max: 170, step: 85, piece: 170, pieceWord: ["авокадо", "авокадо", "авокадо"], premium: true },
 ];
 
 export const BASKET_MODES = [

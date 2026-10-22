@@ -26,7 +26,7 @@ import {
 } from "./plans.js";
 import { CountUp, observeReveal } from "./motion.jsx";
 import { goal, goalOnce } from "./analytics.js";
-import { STORES, BASKET_PRODUCTS, BASKET_MODES, BASKET_PRICES_NOTE, storeById, buildBasket, amountLabel, weightHint } from "./basket.js";
+import { STORES, BASKET_PRODUCTS, BASKET_MODES, BASKET_PRICES_NOTE, storeById, buildBasket, amountLabel, weightHint, storeSiteUrl, productSearchUrl } from "./basket.js";
 import {
   NEAR_RADII, readSavedLocation, saveLocation, getLocation, openLocationSettings, distLabel, walkLabel, kmLabel,
   loadPlaces, findAddress, addressOf, yandexMapWidget,
@@ -3011,7 +3011,8 @@ const TAB_DETAILS = {
   basket: {
     desc: "Корзина продуктов под твою норму КБЖУ и бюджет в выбранном магазине.",
     points: [
-      "Пятёрочка, Магнит, Перекрёсток, Лента, Ашан, ВкусВилл, Чижик",
+      "Пятёрочка, Магнит, Перекрёсток, Лента, Ашан, Дикси, ВкусВилл, Азбука вкуса, Чижик",
+      "У каждого продукта — картинка и ссылка на него на сайте сети: там фото и актуальная цена",
       "Собирает на приём пищи, день или неделю и считает цену — сколько стоит еда и сколько платить на кассе",
       "Можно ограничить бюджет, поправить цену и убрать продукт, которого нет в твоём магазине",
       "Готовую корзину — одной кнопкой в список покупок",
@@ -10794,6 +10795,11 @@ function BasketScreen({ T, st, up, norm, openShopping }) {
         })}
       </div>
 
+      <button onClick={() => { openExternalLink(storeSiteUrl(store)); goal("basket_store_site", { store: store.id }); }}
+        className="inline-flex items-center gap-1.5 mt-2 text-left ritm-press" style={{ fontSize: 13, color: T.a, background: "none", whiteSpace: "nowrap" }}>
+        <Globe size={14} /> Сайт {store.name}: {store.site} <ExternalLink size={12} />
+      </button>
+
       <Segmented T={T} items={BASKET_MODES.map((m) => m.label)} value={BASKET_MODES.findIndex((m) => m.id === mode)} onChange={(i) => setB({ mode: BASKET_MODES[i].id })} />
       {mode === "meal" && (
         <div className="flex flex-wrap gap-2 -mt-1 mb-3">
@@ -10840,10 +10846,18 @@ function BasketScreen({ T, st, up, norm, openShopping }) {
               return (
                 <div key={pr.id} className="py-3" style={{ borderTop: idx ? `1px solid ${T.line}` : "none" }}>
                   <div className="flex items-start gap-3">
+                    <span className="rounded-2xl flex items-center justify-center flex-shrink-0" aria-hidden="true"
+                      style={{ width: 44, height: 44, fontSize: 24, background: "rgba(255,255,255,0.06)", border: `1px solid ${T.line}` }}>{pr.emoji || "🛒"}</span>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium">{pr.name}</div>
                       <Muted size={12}>{amountLabel(pr, it.grams)}{hint ? ` (${hint})` : ""}{mode === "week" ? " в день" : ""} · {m.kcal}{"\u00a0"}ккал · Б{"\u00a0"}{m.p}</Muted>
                       <Muted size={11}>Купить: {it.packs > 1 ? `${it.packs} × ` : ""}{pr.packLabel} — {rub(it.buyCost)}</Muted>
+                      {store.catalog !== false && (
+                        <button onClick={() => { openExternalLink(productSearchUrl(store, pr)); goal("basket_product_link", { store: store.id }); }}
+                          className="inline-flex items-center gap-1 mt-1 text-left ritm-press" style={{ fontSize: 12, color: T.a, background: "none", whiteSpace: "nowrap", maxWidth: "100%" }} aria-label={`${pr.name} на сайте ${store.name}`}>
+                          <span className="truncate">Фото и цена</span> <ExternalLink size={11} className="flex-shrink-0" />
+                        </button>
+                      )}
                     </div>
                     <button onClick={() => { setRemoving(null); setEditing(editing === pr.id ? null : pr.id); setPriceDraft(String(it.packPrice)); }}
                       aria-label={`Изменить цену: ${pr.name}`} className="flex items-center gap-1 rounded-full px-2.5 py-1.5 flex-shrink-0 ritm-press"
@@ -10941,7 +10955,7 @@ function BasketScreen({ T, st, up, norm, openShopping }) {
       )}
 
       <Muted size={11} className="mt-5">
-        {BASKET_PRICES_NOTE} Набор продуктов — типичный для сети: если чего-то нет в твоём магазине, нажми ✕ → «Нет в этом магазине». КБЖУ — средние значения: крупы и макароны считаются сухими, мясо и рыба — сырыми.{allergies.length ? ` Продукты с аллергенами (${alLabels(allergies)}) не предлагаются.` : ""}
+        {BASKET_PRICES_NOTE} По ссылке «Фото и цена» откроется поиск этого продукта на сайте сети ({store.site}) — там фото и актуальная цена.{store.catalog === false ? ` У сети ${store.name} на сайте нет каталога товаров — только акции и адреса.` : ""} Набор продуктов — типичный для сети: если чего-то нет в твоём магазине, нажми ✕ → «Нет в этом магазине». КБЖУ — средние значения: крупы и макароны считаются сухими, мясо и рыба — сырыми.{allergies.length ? ` Продукты с аллергенами (${alLabels(allergies)}) не предлагаются.` : ""}
       </Muted>
     </div>
   );
