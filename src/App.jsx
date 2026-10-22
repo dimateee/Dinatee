@@ -29,7 +29,7 @@ import { goal, goalOnce } from "./analytics.js";
 import { STORES, BASKET_PRODUCTS, BASKET_MODES, BASKET_PRICES_NOTE, storeById, buildBasket, amountLabel, weightHint, storeSiteUrl, productSearchUrl } from "./basket.js";
 import {
   NEAR_RADII, readSavedLocation, saveLocation, getLocation, openLocationSettings, distLabel, walkLabel, kmLabel,
-  loadPlaces, findAddress, addressOf, yandexMapWidget,
+  loadPlaces, findAddress, addressOf, yandexMapWidget, cachedPlaces, rememberPlaces,
   yandexRoute, yandexPlace, yandexSearch, PRICE_TIERS, GYM_FILTERS, RUN_FILTERS, matchesFilter, KIND_LABEL, surfaceLabel, hoursLabel, lapsFor, lapsWord,
 } from "./places.js";
 import { SUPPLEMENTS, SUPP_LEVELS, SUPP_DISCLAIMER, SUPP_SPORT_NOTE, suppGoalOf } from "./supplements.js";
@@ -10988,6 +10988,7 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
   const [addr, setAddr] = useState("");
   const [found, setFound] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [geoErr, setGeoErr] = useState("");
   const [tries, setTries] = useState(0);
   const [showMap, setShowMap] = useState(true);
@@ -10998,10 +10999,27 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
   useEffect(() => {
     if (!loc) return undefined;
     const id = ++reqId.current;
-    setRes((r) => ({ ...r, status: "loading", stage: "", detail: "" }));
-    loadPlaces(apiUrl, { kind, lat: loc.lat, lon: loc.lon, r: radius }, (stage) => { if (id === reqId.current) setRes((r) => ({ ...r, stage })); })
-      .then((data) => { if (id === reqId.current) { setRes({ status: "ok", items: data.items, stage: "", detail: "" }); goal("near_results", { kind, via: data.via, n: data.items.length }); } })
-      .catch((e) => { if (id === reqId.current) { setRes({ status: "error", items: [], stage: "", detail: String(e?.message || "").slice(0, 120) }); goal("near_error", { kind }); } });
+    // Этот район уже искали — показываем сразу; свежее 12 часов — даже не переспрашиваем карту
+    const hit = tries === 0 ? cachedPlaces(kind, loc.lat, loc.lon, radius) : null;
+    if (hit) {
+      setRes({ status: "ok", items: hit.items, stage: "", detail: "", stale: false });
+      if (Date.now() - hit.at < 12 * 3600000) return undefined;
+    } else {
+      setRes((r) => ({ ...r, status: "loading", stage: "", detail: "", stale: false }));
+    }
+    loadPlaces(apiUrl, { kind, lat: loc.lat, lon: loc.lon, r: radius }, (stage) => { if (id === reqId.current && !hit) setRes((r) => ({ ...r, stage })); })
+      .then((data) => {
+        if (id !== reqId.current) return;
+        rememberPlaces(kind, loc.lat, loc.lon, radius, data.items);
+        setRes({ status: "ok", items: data.items, stage: "", detail: "", stale: false });
+        goal("near_results", { kind, via: data.via, n: data.items.length });
+      })
+      .catch((e) => {
+        if (id !== reqId.current) return;
+        if (hit) setRes((r) => ({ ...r, stale: true }));
+        else setRes({ status: "error", items: [], stage: "", detail: String(e?.message || "").slice(0, 120), stale: false });
+        goal("near_error", { kind });
+      });
     return undefined;
   }, [kind, radius, loc?.lat, loc?.lon, tries]);
 
@@ -11028,14 +11046,15 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
   const search = async () => {
     const q = addr.trim();
     if (q.length < 3) return;
-    setBusy(true); setGeoErr(""); setFound(null);
+    setBusy(true); setSearching(true); setGeoErr(""); setFound(null);
     try {
       const results = await findAddress(apiUrl, q);
       if (!results.length) setGeoErr("notfound");
-      else if (results.length === 1) choose(results[0]);
+      // Ровно один точный дом — берём сразу; иначе (несколько вариантов или дом не нашёлся) — человек выбирает сам
+      else if (results.length === 1 && !results[0].approx) choose(results[0]);
       else setFound(results);
     } catch (e) { setGeoErr("network"); }
-    finally { setBusy(false); }
+    finally { setBusy(false); setSearching(false); }
   };
 
   const items = res.items.filter((it) => matchesFilter(it, filter));
@@ -11061,7 +11080,7 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
         )}
         <button onClick={locate} disabled={busy} className="w-full rounded-xl py-3 px-4 font-semibold flex items-center justify-center gap-2 ritm-press"
           style={{ background: loc ? "rgba(255,255,255,0.05)" : T.grad, color: loc ? "#fff" : T.on, border: loc ? `1px solid ${T.line}` : "none", opacity: busy ? 0.6 : 1 }}>
-          <LocateFixed size={17} /> {busy ? "Определяю…" : isMine ? "Обновить моё место" : "Где я сейчас"}
+          <LocateFixed size={17} /> {busy && !searching ? "Определяю…" : isMine ? "Обновить моё место" : "Где я сейчас"}
         </button>
         <div className="flex gap-2 mt-2">
           <input value={addr} onChange={(e) => setAddr(e.target.value)} onKeyDown={(e) => e.key === "Enter" && search()}
@@ -11070,9 +11089,13 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
           <button onClick={search} disabled={busy || addr.trim().length < 3} aria-label="Найти адрес" className="rounded-xl px-4 ritm-press"
             style={{ background: T.grad, color: T.on, opacity: busy || addr.trim().length < 3 ? 0.5 : 1 }}><Search size={18} /></button>
         </div>
+        {searching && <Muted size={12} className="mt-2">Ищу адрес — если дом записан с корпусом, проверяю несколько вариантов, это до 10 секунд…</Muted>}
         {found && (
           <div className="mt-2 flex flex-col gap-1">
             <Muted size={12}>Какой адрес твой?</Muted>
+            {found.every((x) => x.approx) && (
+              <Muted size={12} style={{ color: "#ffd36a" }}>Дома с таким номером на открытой карте нет — нашлась только улица, точка может оказаться в другом её конце. Точнее всего — нажать «Где я сейчас», находясь дома.</Muted>
+            )}
             {found.map((x, i) => (
               <button key={i} onClick={() => choose(x)} className="text-left rounded-xl px-3 py-2.5 ritm-press" style={{ ...ghost, fontSize: 14 }}>{x.label}</button>
             ))}
@@ -11099,7 +11122,7 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
           </div>
 
           {res.status === "loading" && (
-            <Loader T={T} text={res.stage === "device" ? "Сервер карт отвечает долго — ищу напрямую…" : kind === "gym" ? "Ищу залы и площадки…" : "Ищу парки и стадионы…"} />
+            <Loader T={T} text={res.stage === "device" ? "Серверы карт отвечают долго — пробую другие, это может занять до 30 секунд…" : kind === "gym" ? "Ищу залы и площадки…" : "Ищу парки и стадионы…"} />
           )}
           {res.status === "error" && (
             <Card T={T} className="mt-4">
@@ -11113,6 +11136,9 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
           )}
           {res.status === "ok" && items.length > 0 && (
             <>
+              {res.stale && (
+                <Muted size={12} className="mt-3" style={{ color: "#ffd36a" }}>Карта сейчас не отвечает — показан последний сохранённый список.</Muted>
+              )}
               <div className="flex items-center justify-between mt-4 mb-2">
                 <Muted size={13}>Нашлось: {items.length}</Muted>
                 <button onClick={() => setShowMap((v) => !v)} className="flex items-center gap-1 rounded-full px-3 py-1.5 ritm-press" style={{ ...ghost, fontSize: 13 }}>

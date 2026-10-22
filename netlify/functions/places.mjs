@@ -12,7 +12,7 @@
 import { getStore } from "@netlify/blobs";
 import {
   OVERPASS_SERVER, buildQuery, overpassRace, shapeGym, shapeRun, nearestFirst,
-  nominatimSearchUrl, nominatimReverseUrl, photonSearchUrl, parseNominatim, parsePhoton, reverseLabel,
+  nominatimReverseUrl, reverseLabel, geocodeSmart, parseAddress,
 } from "../../src/placesShape.js";
 
 const UA = "RITM/1.0 (ritmru.ru; Telegram Mini App; contact: @doltiii)";
@@ -45,15 +45,6 @@ async function cached(key, ttl, produce) {
   return data;
 }
 
-async function geocode(q) {
-  try {
-    const found = parseNominatim(await getJson(nominatimSearchUrl(q), 4500));
-    if (found.length) return found;
-  } catch (e) { /* попробуем запасной */ }
-  try {
-    return parsePhoton(await getJson(photonSearchUrl(q), 3500));
-  } catch (e) { return []; }
-}
 
 export default async (req) => {
   const sp = new URL(req.url).searchParams;
@@ -61,9 +52,17 @@ export default async (req) => {
     const q = (sp.get("q") || "").trim().slice(0, 160);
     if (q) {
       if (q.length < 3) return json({ ok: false, error: "short" }, 400);
-      const key = `geo:${q.toLowerCase().replace(/\s+/g, " ")}`;
-      const results = await cached(key, GEO_TTL, async () => { const found = await geocode(q); return found.length ? found : null; });
-      return json({ ok: true, results: results || [] }, 200, { "Cache-Control": "public, max-age=3600" });
+      // «18к1» → «18 к1», сокращения → полные слова, несколько вариантов запроса, дома выше улиц (src/placesShape.js).
+      // В кеш кладём только удачный ответ: нашёлся дом или в запросе дома не было. Улица вместо дома может быть
+      // временным сбоем Nominatim — такое не запоминаем на месяц.
+      const key = `geo2:${q.toLowerCase().replace(/\s+/g, " ")}`;
+      const store = cache();
+      const hit = await store.get(key, { type: "json" }).catch(() => null);
+      if (hit && Date.now() - (hit.at || 0) < GEO_TTL) return json({ ok: true, results: hit.data }, 200, { "Cache-Control": "public, max-age=3600" });
+      const results = await geocodeSmart(q, (url) => getJson(url, 4000), { budgetMs: 8500 });
+      const wantsHouse = !!parseAddress(q).house;
+      if (results.length && (!wantsHouse || results.some((x) => x.house))) await store.setJSON(key, { at: Date.now(), data: results }).catch(() => {});
+      return json({ ok: true, results }, 200, { "Cache-Control": "no-store" });
     }
 
     const rlat = Number(sp.get("rlat"));
@@ -84,7 +83,7 @@ export default async (req) => {
     const gl = Number(lat.toFixed(3));
     const gn = Number(lon.toFixed(3));
     const items = await cached(`v2:${kind}:${gl}:${gn}:${r}`, PLACES_TTL, async () => {
-      const elements = await overpassRace(OVERPASS_SERVER, buildQuery(kind, gl, gn, r, 8), { timeoutMs: 8800, headers: { "User-Agent": UA, Accept: "application/json" } });
+      const elements = await overpassRace(OVERPASS_SERVER, buildQuery(kind, gl, gn, r, 8), { timeoutMs: 8800, batchMs: 5200, headers: { "User-Agent": UA, Accept: "application/json" } });
       return kind === "run" ? shapeRun(elements) : shapeGym(elements);
     });
     return json({ ok: true, kind, r, items: nearestFirst(items, { lat, lon }, r) }, 200, { "Cache-Control": "public, max-age=600" });

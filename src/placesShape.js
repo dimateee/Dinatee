@@ -14,6 +14,7 @@ export const OVERPASS_DEVICE = [
   "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
   "https://overpass.private.coffee/api/interpreter",
   "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
 ];
 
 const toRad = (d) => (d * Math.PI) / 180;
@@ -58,7 +59,7 @@ export function buildQuery(kind, lat, lon, r, timeout = 8) {
 
 // Спрашиваем несколько зеркал одновременно, первый нормальный ответ побеждает, остальные запросы отменяем.
 // Если первые оба не ответили — пробуем следующие, пока не кончится время.
-export async function overpassRace(urls, query, { timeoutMs = 8000, headers = {}, parallel = 2 } = {}) {
+export async function overpassRace(urls, query, { timeoutMs = 8000, batchMs = timeoutMs, headers = {}, parallel = 2 } = {}) {
   const deadline = Date.now() + timeoutMs;
   const body = `data=${encodeURIComponent(query)}`;
   let lastError = "no_mirror";
@@ -69,7 +70,7 @@ export async function overpassRace(urls, query, { timeoutMs = 8000, headers = {}
     const attempts = urls.slice(i, i + parallel).map(async (url) => {
       const ctrl = new AbortController();
       ctrls.push(ctrl);
-      const timer = setTimeout(() => ctrl.abort(), left);
+      const timer = setTimeout(() => ctrl.abort(), Math.min(left, batchMs));
       try {
         const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", ...headers }, body, signal: ctrl.signal });
         if (!r.ok) throw new Error(`http_${r.status}`);
@@ -220,6 +221,7 @@ export function nearestFirst(items, here, r, limit = 50) {
 export const nominatimSearchUrl = (q) => `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=ru&accept-language=ru&addressdetails=1&q=${encodeURIComponent(q)}`;
 export const nominatimReverseUrl = (lat, lon) => `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&accept-language=ru&lat=${lat.toFixed(5)}&lon=${lon.toFixed(5)}`;
 export const photonSearchUrl = (q) => `https://photon.komoot.io/api/?limit=5&q=${encodeURIComponent(q)}`;
+export const nominatimStructuredUrl = (street, city) => `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=ru&accept-language=ru&addressdetails=1&street=${encodeURIComponent(street)}${city ? `&city=${encodeURIComponent(city)}` : ""}`;
 
 const shortLabel = (parts) => [...new Set(parts.filter(Boolean))].slice(0, 4).join(", ");
 const streetOf = (a) => [a.road || a.pedestrian || a.footway || a.square, a.house_number].filter(Boolean).join(", ");
@@ -229,7 +231,7 @@ export function parseNominatim(list) {
     const a = x.address || {};
     const city = a.city || a.town || a.village || a.municipality || a.state;
     const label = shortLabel([x.name && x.name !== a.road ? x.name : "", streetOf(a), a.suburb || a.city_district, city]) || x.display_name;
-    return { label, lat: Number(x.lat), lon: Number(x.lon) };
+    return { label, lat: Number(x.lat), lon: Number(x.lon), house: a.house_number || "" };
   }).filter((x) => Number.isFinite(x.lat) && Number.isFinite(x.lon));
 }
 export function parsePhoton(data) {
@@ -237,11 +239,100 @@ export function parsePhoton(data) {
     const p = f.properties || {};
     const [lon, lat] = f.geometry?.coordinates || [];
     const street = [p.street, p.housenumber].filter(Boolean).join(", ");
-    return { label: shortLabel([p.name !== p.street ? p.name : "", street, p.district, p.city || p.state]), lat, lon };
+    return { label: shortLabel([p.name !== p.street ? p.name : "", street, p.district, p.city || p.state]), lat, lon, house: p.housenumber || "" };
   }).filter((x) => Number.isFinite(x.lat) && Number.isFinite(x.lon));
 }
 // Короткая подпись для «Где я сейчас»: «Тверская улица, 7» или район
 export function reverseLabel(x) {
   const a = x?.address || {};
   return streetOf(a) || a.suburb || a.city_district || a.neighbourhood || "";
+}
+
+// Как пишут адреса в России и как они записаны на карте: «18к1», «18 корп. 1», «д. 18, корпус 1» → «18 к1»;
+// «стр. 2» → «с2»; «ул.», «пр-т», «пер.» → полные слова. На OpenStreetMap московские дома записаны как «18 к1»,
+// и запрос «18к1» без пробела поиск не узнаёт — находит только улицу, причём кусок улицы в случайном районе.
+const ABBR = [
+  [/(^|[\s,])ул\.?(?=[\s,]|$)/gi, "$1улица"], [/(^|[\s,])(?:пр-т|просп)\.?(?=[\s,]|$)/gi, "$1проспект"], [/(^|[\s,])пер\.?(?=[\s,]|$)/gi, "$1переулок"],
+  [/(^|[\s,])ш\.(?=[\s,]|$)/gi, "$1шоссе"], [/(^|[\s,])наб\.?(?=[\s,]|$)/gi, "$1набережная"], [/(^|[\s,])(?:б-р|бул)\.?(?=[\s,]|$)/gi, "$1бульвар"],
+  [/(^|[\s,])пл\.(?=[\s,]|$)/gi, "$1площадь"], [/(^|[\s,])(?:мкр|мкрн)\.?(?=[\s,]|$)/gi, "$1микрорайон"], [/(^|[\s,])г\.\s*/gi, "$1"],
+  [/(^|[\s,])(?:д|дом)\.?\s*(?=\d)/gi, "$1"],
+];
+const CITIES = /^(москва|санкт-петербург|спб|питер|новосибирск|екатеринбург|казань|нижний новгород|челябинск|самара|омск|ростов-на-дону|уфа|красноярск|воронеж|пермь|волгоград|краснодар|тюмень|саратов|тольятти|ижевск|барнаул|ярославль|иркутск|хабаровск|владивосток|махачкала|томск|оренбург|кемерово|рязань|астрахань|пенза|липецк|тула|киров|калининград|сочи|химки|балашиха|подольск|мытищи|королев|люберцы|красногорск|одинцово)\s+/i;
+const HOUSE_RE = /(\d+)\s*([а-яё]?)(?:\s*(?:к|корп|корпус)\.?\s*(\d+))?(?:\s*(?:с|стр|строение)\.?\s*(\d+))?(?:\s*\/\s*(\d+))?\s*$/i;
+
+export function parseAddress(raw) {
+  let q = String(raw || "").replace(/ё/g, "е").replace(/\s+/g, " ").trim();
+  q = q.replace(/,\s*(к|корп|корпус|с|стр|строение)\.?\s*(?=\d)/gi, " $1 ");
+  for (const [re, to] of ABBR) q = q.replace(re, to);
+  q = q.replace(/\s+/g, " ").replace(/\s*,\s*/g, ", ").replace(/^,\s*|,\s*$/g, "").trim();
+  const m = HOUSE_RE.exec(q);
+  if (!m) return { text: q, street: q, city: "", house: null };
+  const [all, num, lit, k, st, frac] = m;
+  const before = q.slice(0, q.length - all.length).replace(/[\s,]+$/, "");
+  let parts = before.split(",").map((x) => x.trim()).filter(Boolean);
+  // «москва никулинская 18» без запятых: крупный город в начале отделяем сами
+  if (parts.length === 1) {
+    const c = CITIES.exec(parts[0]);
+    if (c && parts[0].length > c[0].length) parts = [c[1], parts[0].slice(c[0].length).trim()];
+  }
+  const city = parts.length > 1 && !/\d/.test(parts[0]) ? parts[0] : "";
+  const street = (city ? parts.slice(1) : parts).join(", ");
+  const osm = `${num}${lit.toLowerCase()}${frac ? `/${frac}` : ""}${k ? ` к${k}` : ""}${st ? ` с${st}` : ""}`;
+  const text = [city, street, osm].filter(Boolean).join(", ");
+  return { text, street, city, house: { num, lit: lit.toLowerCase(), k: k || "", s: st || "", osm, plain: `${num}${lit.toLowerCase()}` } };
+}
+const houseKey = (h) => String(h || "").toLowerCase().replace(/ё/g, "е").replace(/корпус|корп\.?/g, "к").replace(/строение|стр\.?/g, "с").replace(/[\s.]/g, "");
+
+// Варианты запроса — от точного к общему. Запрашивать по очереди и остановиться на первом, где нашёлся дом.
+export function addressQueries(raw) {
+  const a = parseAddress(raw);
+  const out = [{ kind: "free", q: a.text }];
+  if (a.house && a.street) {
+    out.push({ kind: "structured", street: `${a.house.osm} ${a.street}`, city: a.city });
+    if (a.house.k || a.house.s) out.push({ kind: "free", q: [a.city, a.street, a.house.plain].filter(Boolean).join(", ") });
+  }
+  if (a.text !== String(raw || "").trim()) out.push({ kind: "free", q: String(raw).trim() });
+  return { parsed: a, queries: out };
+}
+
+// Сортировка: сначала точное совпадение дома (с корпусом), потом тот же номер без корпуса, потом прочие дома,
+// в конце — улицы целиком. Одинаковые подписи и точки ближе 40 м — один результат.
+export function rankAddresses(list, parsed) {
+  const want = parsed?.house ? houseKey(parsed.house.osm) : "";
+  const wantPlain = parsed?.house ? houseKey(parsed.house.plain) : "";
+  const score = (x) => {
+    const h = houseKey(x.house);
+    if (!h) return 0;
+    if (want && h === want) return 30;
+    if (wantPlain && (h === wantPlain || h.startsWith(wantPlain + "к") || h.startsWith(wantPlain + "с"))) return 20;
+    return 10;
+  };
+  const out = [];
+  for (const x of [...list].sort((a, b) => score(b) - score(a))) {
+    if (out.some((o) => o.label === x.label || distanceM(o, x) < 40)) continue;
+    out.push({ ...x, exact: score(x) === 30 });
+  }
+  const hasHouse = out.some((x) => x.house);
+  return out.slice(0, 5).map((x) => (parsed?.house && !x.house ? { ...x, approx: true, label: `${x.label} — дом не найден` } : x)).filter((x) => !hasHouse || x.house);
+}
+
+// Весь поиск адреса. getJson(url) — загрузка JSON (на сервере с User-Agent, в приложении — обычный fetch).
+// Nominatim просит не чаще запроса в секунду с одного адреса — между его запросами пауза; Photon спрашиваем параллельно.
+export async function geocodeSmart(raw, getJson, { budgetMs = 8000 } = {}) {
+  const deadline = Date.now() + budgetMs;
+  const { parsed, queries } = addressQueries(raw);
+  const pool = [];
+  const photon = getJson(photonSearchUrl(parsed.text || raw)).then(parsePhoton).catch(() => []);
+  for (let i = 0; i < queries.length; i++) {
+    if (Date.now() > deadline - 1500) break;
+    if (i > 0) await new Promise((r) => setTimeout(r, 1100));
+    const v = queries[i];
+    const url = v.kind === "structured" ? nominatimStructuredUrl(v.street, v.city) : nominatimSearchUrl(v.q);
+    const found = await getJson(url).then(parseNominatim).catch(() => []);
+    pool.push(...found);
+    // Нашёлся дом с нужным номером — дальше не спрашиваем
+    if (rankAddresses(found, parsed).some((x) => x.exact || (!parsed.house && x))) break;
+  }
+  pool.push(...(await photon));
+  return rankAddresses(pool, parsed);
 }

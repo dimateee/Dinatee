@@ -3,7 +3,7 @@
 
 import {
   OVERPASS_DEVICE, buildQuery, overpassRace, shapeGym, shapeRun, nearestFirst,
-  nominatimSearchUrl, nominatimReverseUrl, photonSearchUrl, parseNominatim, parsePhoton, reverseLabel,
+  nominatimReverseUrl, reverseLabel, geocodeSmart,
 } from "./placesShape.js";
 
 export const NEAR_RADII = [1000, 2000, 3000, 5000];
@@ -39,7 +39,8 @@ export function loadPlaces(apiUrl, { kind, lat, lon, r }, onStage) {
     if (settled) throw new Error("not_needed");
     onStage?.("device");
     try {
-      const elements = await overpassRace(OVERPASS_DEVICE, buildQuery(kind, lat, lon, r, 15), { timeoutMs: 16000 });
+      // До четырёх зеркал парами, по 10 секунд на пару: перегруженный сервер не съедает всё время
+      const elements = await overpassRace(OVERPASS_DEVICE, buildQuery(kind, lat, lon, r, 15), { timeoutMs: 26000, batchMs: 10000 });
       const shaped = kind === "run" ? shapeRun(elements) : shapeGym(elements);
       return { items: nearestFirst(shaped, { lat, lon }, r), via: "device" };
     } catch (e) { throw new Error(`device:${e.message}`); }
@@ -49,17 +50,40 @@ export function loadPlaces(apiUrl, { kind, lat, lon, r }, onStage) {
     .catch((e) => { clearTimeout(timer); throw new Error((e?.errors || [e]).map((x) => x?.message).join(" ")); });
 }
 
-// Адрес → точка: свой сервер, потом карта напрямую с телефона
+// Адрес → точка: свой сервер (у него кеш), а если он не ответил или нашёл только улицу без дома —
+// тот же умный поиск прямо с телефона (src/placesShape.js: «18к1» → «18 к1», варианты запроса, дома выше улиц)
 export async function findAddress(apiUrl, q) {
+  let fromServer = [];
   try {
-    const d = await timedJson(apiUrl(`/api/places?q=${encodeURIComponent(q)}`), 9000);
-    if (d?.ok && d.results?.length) return d.results;
+    const d = await timedJson(apiUrl(`/api/places?q=${encodeURIComponent(q)}`), 11000);
+    if (d?.ok && Array.isArray(d.results)) fromServer = d.results;
   } catch (e) { /* дальше напрямую */ }
+  if (fromServer.some((x) => x.exact) || (fromServer.length && !fromServer.some((x) => x.approx))) return fromServer;
   try {
-    const found = parseNominatim(await timedJson(nominatimSearchUrl(q), 7000));
-    if (found.length) return found;
-  } catch (e) { /* запасной */ }
-  try { return parsePhoton(await timedJson(photonSearchUrl(q), 6000)); } catch (e) { return []; }
+    const direct = await geocodeSmart(q, (url) => timedJson(url, 6000), { budgetMs: 9000 });
+    if (direct.some((x) => x.house) || !fromServer.length) return direct.length ? direct : fromServer;
+  } catch (e) { /* остаёмся с ответом сервера */ }
+  return fromServer;
+}
+
+// Найденные места запоминаем на телефоне: повторно открытый район показывается сразу, а если карта
+// не ответила — остаётся последний удачный список. Храним 15 последних запросов, неделю.
+const PLACES_CACHE = "ritm-near-cache-v1";
+const placesKey = (kind, lat, lon, r) => `${kind}:${lat.toFixed(3)}:${lon.toFixed(3)}:${r}`;
+export function cachedPlaces(kind, lat, lon, r) {
+  try {
+    const all = JSON.parse(localStorage.getItem(PLACES_CACHE) || "{}");
+    const hit = all[placesKey(kind, lat, lon, r)];
+    return hit && Date.now() - hit.at < 7 * 86400000 ? hit : null;
+  } catch (e) { return null; }
+}
+export function rememberPlaces(kind, lat, lon, r, items) {
+  try {
+    const all = JSON.parse(localStorage.getItem(PLACES_CACHE) || "{}");
+    all[placesKey(kind, lat, lon, r)] = { at: Date.now(), items };
+    const keep = Object.entries(all).sort((a, b) => b[1].at - a[1].at).slice(0, 15);
+    localStorage.setItem(PLACES_CACHE, JSON.stringify(Object.fromEntries(keep)));
+  } catch (e) { /* переполнено или приватный режим — просто не запоминаем */ }
 }
 
 // Точка → короткий адрес для подписи «Где я сейчас»; не получилось — пустая строка
