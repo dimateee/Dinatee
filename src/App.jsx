@@ -9,6 +9,7 @@ import {
   LayoutDashboard, ChevronUp, EyeOff, Eye, Sunrise, Coffee,
   Users, UserPlus, BarChart3,
   LogIn, LogOut, Smartphone, Share, Monitor, UserRound, Cloud, SquarePlus,
+  ShoppingBasket, MapPin, Pill, LocateFixed, Route, Wallet, ExternalLink, Phone, Globe, ShieldAlert, Search, Trees, Shuffle, Pencil, Undo2,
 } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
@@ -25,6 +26,12 @@ import {
 } from "./plans.js";
 import { CountUp, observeReveal } from "./motion.jsx";
 import { goal, goalOnce } from "./analytics.js";
+import { STORES, BASKET_PRODUCTS, BASKET_MODES, BASKET_PRICES_NOTE, storeById, buildBasket, amountLabel, weightHint } from "./basket.js";
+import {
+  NEAR_RADII, readSavedLocation, saveLocation, getLocation, openLocationSettings, distLabel, walkLabel, kmLabel,
+  yandexRoute, yandexPlace, yandexSearch, PRICE_TIERS, GYM_FILTERS, RUN_FILTERS, matchesFilter, KIND_LABEL, surfaceLabel, hoursLabel, lapsFor, lapsWord,
+} from "./places.js";
+import { SUPPLEMENTS, SUPP_LEVELS, SUPP_DISCLAIMER, SUPP_SPORT_NOTE, suppGoalOf } from "./supplements.js";
 
 /* ============ Отдельные приложения (iOS через Capacitor, Windows через Electron) ============ */
 // RITM остаётся собой и внутри Telegram, и в виде отдельных приложений — определяем,
@@ -3000,6 +3007,32 @@ function Onboarding({ T, onDone }) {
 // Подробное описание каждого раздела для пошагового тура — один экран на раздел,
 // плюс завершающий экран выбора режимов.
 const TAB_DETAILS = {
+  basket: {
+    desc: "Корзина продуктов под твою норму КБЖУ и бюджет в выбранном магазине.",
+    points: [
+      "Пятёрочка, Магнит, Перекрёсток, Лента, Ашан, ВкусВилл, Чижик",
+      "Собирает на приём пищи, день или неделю и считает цену — сколько стоит еда и сколько платить на кассе",
+      "Можно ограничить бюджет, поправить цену и убрать продукт, которого нет в твоём магазине",
+      "Готовую корзину — одной кнопкой в список покупок",
+    ],
+  },
+  near: {
+    desc: "Залы, уличные площадки и места для бега рядом с домом.",
+    points: [
+      "По геопозиции или по адресу, в радиусе от 1 до 5 км",
+      "Фитнес-клубы с примерным уровнем цен, бесплатные воркаут-площадки, спорткомплексы",
+      "Парки, стадионы и беговые дорожки — с примерной длиной круга",
+      "Маршрут и карточка места с ценами и отзывами — в Яндекс Картах",
+    ],
+  },
+  supps: {
+    desc: "Справочник спортивных добавок: что работает, зачем и кому нельзя.",
+    points: [
+      "Протеин, креатин, кофеин, омега-3, витамин D и другие — по исследованиям",
+      "Как принимать, с дозой под твой вес и норму белка",
+      "Противопоказания и с чем нельзя сочетать",
+    ],
+  },
   today: {
     desc: "Главный экран дня — всё, что нужно сделать сегодня, одним взглядом.",
     points: [
@@ -4196,7 +4229,7 @@ function FinishWorkout({ T, st, up, k }) {
 
 const daysOf = (map, pred) => Object.keys(map).filter((d) => pred(map[d])).map(Number).sort((a, b) => a - b).map((d) => WD[d]).join(", ");
 
-function Train({ T, st, up, program, openEx, openNewWorkout, openWorkout, openSchedule, openSession, openTemplates }) {
+function Train({ T, st, up, program, openEx, openNewWorkout, openWorkout, openSchedule, openSession, openTemplates, openNear }) {
   const now = new Date();
   const k = keyOf(now);
   const wd = wdOf(now);
@@ -4306,6 +4339,7 @@ function Train({ T, st, up, program, openEx, openNewWorkout, openWorkout, openSc
           </div>
         </>
       )}
+      {openNear && <div className="mt-2"><Ghost T={T} onClick={() => openNear("gym")}><MapPin size={16} /> Зал или площадка рядом с домом</Ghost></div>}
     </div>
   );
 }
@@ -4912,7 +4946,7 @@ function RunCard({ T, s, dayLabel, isToday, done, onToggleDone }) {
 
 const runsWord = (n) => { const m = n % 100; if (m >= 11 && m <= 14) return "пробежек"; const l = n % 10; return l === 1 ? "пробежка" : l >= 2 && l <= 4 ? "пробежки" : "пробежек"; };
 
-function Run({ T, st, up, run, week, openPay, openSchedule, isCustom }) {
+function Run({ T, st, up, run, week, openPay, openSchedule, isCustom, openNear }) {
   const [sel, setSel] = useState(week);
   const [warmup, setWarmup] = useState(false);
   const now = new Date();
@@ -4971,6 +5005,7 @@ function Run({ T, st, up, run, week, openPay, openSchedule, isCustom }) {
       )}
       <Muted size={12} className="mt-4 mb-2">Перед бегом разминайся 5–10 минут, после заканчивай спокойным шагом. Ускорения и фартлек чередуются по неделям.</Muted>
       <Ghost T={T} onClick={() => setWarmup(true)}><Footprints size={16} /> Открыть разминку перед бегом</Ghost>
+      {openNear && <div className="mt-2"><Ghost T={T} onClick={() => openNear("run")}><Trees size={16} /> Где бегать рядом: парки и стадионы</Ghost></div>}
       {warmup && <ChargeSession T={T} mode={CHARGE_MODES.find((m) => m.id === "aerobic")} onClose={() => setWarmup(false)} />}
     </div>
   );
@@ -6347,12 +6382,12 @@ function ThemeSheet({ T, theme, up, onClose }) {
 }
 
 /* ============ Питание ============ */
-function MacroBar({ T, label, val, max }) {
+function MacroBar({ T, label, val, max, unit = "г" }) {
   return (
     <div className="flex-1 min-w-0">
       <div style={{ fontSize: 12, color: MUTED }}>{label}</div>
       <div style={{ fontSize: 14, fontWeight: 600 }}>
-        {Math.round(val)}<span style={{ color: MUTED, fontWeight: 400 }}> / {max} г</span>
+        {Math.round(val)}<span style={{ color: MUTED, fontWeight: 400 }}> / {max} {unit}</span>
       </div>
       <div className="rounded-full mt-1 overflow-hidden" style={{ height: 5, background: "rgba(255,255,255,0.08)" }}>
         <div className="rounded-full" style={{ width: `${Math.min(100, (val / Math.max(1, max)) * 100)}%`, height: "100%", background: T.grad, transition: "width .6s ease" }} />
@@ -6986,7 +7021,7 @@ function ManualFoodSheet({ T, init, allergies, aiLeft, onUsedAi, onAdd, onSavePr
   );
 }
 
-function Nutrition({ T, st, up, norm, program, run, openScan, openRecipe, openPay, openBarcode, openAdd, openEntry, onPhoto, openShopping }) {
+function Nutrition({ T, st, up, norm, program, run, openScan, openRecipe, openPay, openBarcode, openAdd, openEntry, onPhoto, openShopping, go }) {
   const now = new Date();
   const k = keyOf(now);
   const list = st.food[k] || [];
@@ -7119,6 +7154,21 @@ function Nutrition({ T, st, up, norm, program, run, openScan, openRecipe, openPa
           </>
         )}
       </div>
+
+      {go && (
+        <div className="grid grid-cols-2 gap-2 mt-4">
+          <Card T={T} onClick={() => go("basket")} style={{ borderRadius: 20 }}>
+            <ShoppingBasket size={20} color={T.a} />
+            <div className="font-semibold mt-2" style={{ fontSize: 14 }}>Корзина под норму</div>
+            <Muted size={12}>Продукты в магазине под КБЖУ и бюджет</Muted>
+          </Card>
+          <Card T={T} onClick={() => go("supps")} style={{ borderRadius: 20 }}>
+            <Pill size={20} color={T.a} />
+            <div className="font-semibold mt-2" style={{ fontSize: 14 }}>Спортивные добавки</div>
+            <Muted size={12}>Что работает и кому нельзя</Muted>
+          </Card>
+        </div>
+      )}
 
       <H2>Дневник питания</H2>
       <Muted size={12} className="mb-3">Нажми на запись, чтобы изменить вес или приём пищи.</Muted>
@@ -10640,11 +10690,548 @@ function PaidSheet({ T, until, onClose }) {
 /* ============ Приложение ============ */
 // Полный набор доступных разделов нижней навигации. "today" всегда виден и закреплён первым —
 // остальные можно скрывать и переставлять на экране «Разделы» в Настройках.
+/* ============ Корзина: продукты под норму КБЖУ и бюджет в выбранном магазине ============ */
+// Логика подбора и каталог — src/basket.js. Здесь — экран: магазин, на что собираем (приём пищи / день /
+// неделя), бюджет, результат с ценой и кнопкой «в список покупок». Выбор магазина, бюджет, свои цены и
+// убранные продукты хранятся в state.basket и синхронизируются вместе с остальными данными.
+const BASKET_BUDGET = {
+  meal: { min: 80, max: 800, step: 10, def: 200, per: "на приём" },
+  day: { min: 150, max: 2000, step: 50, def: 500, per: "на день" },
+  week: { min: 1000, max: 12000, step: 100, def: 3000, per: "на неделю" },
+};
+const rub = (n) => `${Math.round(n).toLocaleString("ru-RU")} ₽`;
+
+function BasketScreen({ T, st, up, norm, openShopping }) {
+  const b = st.basket || {};
+  const store = storeById(b.store);
+  const mode = BASKET_MODES.some((m) => m.id === b.mode) ? b.mode : "day";
+  const meal = Number.isInteger(b.meal) ? b.meal : defaultMeal();
+  const cfg = BASKET_BUDGET[mode];
+  const budgetOn = !!b.budgetOn;
+  const budget = Math.min(cfg.max, Math.max(cfg.min, Number(b.budget?.[mode]) || cfg.def));
+  const useEaten = !!b.useEaten && mode === "day";
+  const [seed, setSeed] = useState(1);
+  const [editing, setEditing] = useState(null);
+  const [priceDraft, setPriceDraft] = useState("");
+  const [removing, setRemoving] = useState(null);
+  const [added, setAdded] = useState(false);
+  const setB = (patch) => { setAdded(false); up((s) => ({ basket: { ...(s.basket || {}), ...(typeof patch === "function" ? patch(s.basket || {}) : patch) } })); };
+
+  const k = keyOf(new Date());
+  const eaten = sumFood(st.food?.[k] || []);
+  const allergies = st.profile?.allergies || [];
+  const share = mode === "meal" ? MEAL_SPLITS[meal] : 1;
+  const full = { kcal: norm.kcal * share, p: norm.protein * share, f: norm.fat * share, c: norm.carbs * share };
+  const target = useEaten
+    ? { kcal: Math.max(0, full.kcal - eaten.kcal), p: Math.max(0, full.p - eaten.p), f: Math.max(0, full.f - eaten.f), c: Math.max(0, full.c - eaten.c) }
+    : full;
+  const tgt = { kcal: Math.round(target.kcal), p: Math.round(target.p), f: Math.round(target.f), c: Math.round(target.c) };
+  const perDayBudget = budgetOn ? (mode === "week" ? budget / 7 : budget) : 0;
+  const skip = b.skip || [];
+  const missing = b.missing || {};
+  const prices = b.prices || {};
+  const depKey = JSON.stringify([store.id, mode, meal, perDayBudget, seed, tgt, allergies, skip, missing[store.id] || [], prices[store.id] || {}]);
+  const result = useMemo(() => (tgt.kcal >= 150
+    ? buildBasket({ store, target: tgt, mode, meal, budget: perDayBudget, allergies, skip, missing, prices, seed })
+    : null), [depKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const savePrice = (id) => {
+    const v = Math.round(Number(String(priceDraft).replace(",", ".")));
+    setB((cur) => {
+      const own = { ...((cur.prices || {})[store.id] || {}) };
+      if (v > 0) own[id] = v; else delete own[id];
+      return { prices: { ...(cur.prices || {}), [store.id]: own } };
+    });
+    setEditing(null);
+  };
+  const resetPrice = (id) => { setPriceDraft(""); setB((cur) => { const own = { ...((cur.prices || {})[store.id] || {}) }; delete own[id]; return { prices: { ...(cur.prices || {}), [store.id]: own } }; }); setEditing(null); };
+  const removeProduct = (id, where) => {
+    setRemoving(null);
+    if (where === "store") setB((cur) => ({ missing: { ...(cur.missing || {}), [store.id]: [...new Set([...((cur.missing || {})[store.id] || []), id])] } }));
+    else setB((cur) => ({ skip: [...new Set([...(cur.skip || []), id])] }));
+  };
+  const restore = (id) => setB((cur) => ({
+    skip: (cur.skip || []).filter((x) => x !== id),
+    missing: { ...(cur.missing || {}), [store.id]: ((cur.missing || {})[store.id] || []).filter((x) => x !== id) },
+  }));
+  const removedIds = [...new Set([...skip, ...(missing[store.id] || [])])];
+
+  const addToList = () => {
+    if (!result) return;
+    const lines = result.items.map((it) => `${it.product.name} — ${it.packs > 1 ? `${it.packs} × ` : ""}${it.product.packLabel} (≈ ${rub(it.buyCost)})`);
+    up((s) => {
+      const cur = s.shoppingList || { recipes: [], checked: {}, custom: [] };
+      const have = new Set((cur.custom || []).map((c) => c.text));
+      const stamp = Date.now();
+      const extra = lines.filter((t) => !have.has(t)).map((text, i) => ({ id: `b${stamp}${i}`, text }));
+      return { shoppingList: { ...cur, custom: [...(cur.custom || []), ...extra] } };
+    });
+    setAdded(true);
+    goal("basket_to_list", { store: store.id, mode });
+  };
+
+  const low = result ? [["p", "белка"], ["kcal", "калорий"], ["c", "углеводов"], ["f", "жиров"]].filter(([key]) => tgt[key] > 0 && result.total[key] < tgt[key] * 0.85) : [];
+  const periodWord = mode === "week" ? "на неделю" : mode === "meal" ? "на приём" : "на день";
+  const ghost = { border: `1px solid ${T.line}`, background: "rgba(255,255,255,0.04)", color: "#fff" };
+
+  return (
+    <div>
+      <H1>Корзина</H1>
+      <Muted className="mt-1">Выбери магазин — соберу продукты под твою норму КБЖУ и бюджет и посчитаю, сколько это стоит.</Muted>
+
+      <div className="flex gap-2 overflow-x-auto no-scrollbar mt-4 -mx-1 px-1 pb-1">
+        {STORES.map((s) => {
+          const on = s.id === store.id;
+          return (
+            <button key={s.id} onClick={() => { setB({ store: s.id }); setSeed(1); }} aria-pressed={on}
+              className="flex items-center gap-2 rounded-full px-3.5 py-2 flex-shrink-0 ritm-press"
+              style={{ fontSize: 14, fontWeight: 600, border: `1px solid ${on ? "transparent" : T.line}`, background: on ? T.grad : "rgba(255,255,255,0.04)", color: on ? T.on : "#fff" }}>
+              <span className="rounded-full" style={{ width: 9, height: 9, background: s.color, boxShadow: "0 0 0 2px rgba(255,255,255,0.25)" }} />
+              {s.name}
+            </button>
+          );
+        })}
+      </div>
+
+      <Segmented T={T} items={BASKET_MODES.map((m) => m.label)} value={BASKET_MODES.findIndex((m) => m.id === mode)} onChange={(i) => setB({ mode: BASKET_MODES[i].id })} />
+      {mode === "meal" && (
+        <div className="flex flex-wrap gap-2 -mt-1 mb-3">
+          {MEALS.map((label, i) => <Chip key={label} T={T} on={meal === i} onClick={() => setB({ meal: i })}>{label}</Chip>)}
+        </div>
+      )}
+
+      <Card T={T} style={{ borderRadius: 20 }}>
+        <Muted size={12}>{mode === "meal" ? `Цель на ${MEALS[meal].toLowerCase()}` : useEaten ? "Осталось добрать сегодня" : mode === "week" ? "Цель на каждый день недели" : "Цель на день"}</Muted>
+        <div className="font-semibold" style={{ fontSize: 16 }}>{tgt.kcal.toLocaleString("ru-RU")}{"\u00a0"}ккал · Б{"\u00a0"}{tgt.p} · Ж{"\u00a0"}{tgt.f} · У{"\u00a0"}{tgt.c}</div>
+        {mode === "day" && (
+          <div className="flex items-center gap-3 mt-3">
+            <div className="flex-1"><div style={{ fontSize: 14 }}>Учесть, что уже съел сегодня</div><Muted size={12}>Съедено {Math.round(eaten.kcal)} ккал</Muted></div>
+            <Toggle T={T} on={useEaten} onChange={(v) => setB({ useEaten: v })} label="Учесть съеденное сегодня" />
+          </div>
+        )}
+        <div className="flex items-center gap-3 mt-3 pt-3" style={{ borderTop: `1px solid ${T.line}` }}>
+          <Wallet size={18} color={T.a} />
+          <div className="flex-1"><div style={{ fontSize: 14 }}>Ограничить бюджет</div>{budgetOn && <Muted size={12}>до {rub(budget)} {cfg.per}</Muted>}</div>
+          <Toggle T={T} on={budgetOn} onChange={(v) => setB({ budgetOn: v })} label="Ограничить бюджет" />
+        </div>
+        {budgetOn && (
+          <input type="range" min={cfg.min} max={cfg.max} step={cfg.step} value={budget} aria-label="Бюджет, рублей"
+            onChange={(e) => setB((cur) => ({ budget: { ...(cur.budget || {}), [mode]: Number(e.target.value) } }))}
+            className="w-full mt-3" style={{ accentColor: T.a }} />
+        )}
+      </Card>
+
+      {!result ? (
+        <Card T={T} className="mt-4"><Muted size={14}>{useEaten ? "Норма на сегодня почти набрана — докупать ничего не нужно." : "Не получилось собрать корзину."}</Muted></Card>
+      ) : result.items.length === 0 ? (
+        <Card T={T} className="mt-4"><Muted size={14}>Из доступных продуктов не получилось собрать корзину. Верни убранные продукты ниже или выбери другой магазин.</Muted></Card>
+      ) : (
+        <>
+          <H2 right={<button onClick={() => { setSeed((x) => x + 1); goal("basket_reroll", { store: store.id }); }} className="flex items-center gap-1 rounded-full px-3 py-1.5 ritm-press" style={{ ...ghost, fontSize: 13 }}><Shuffle size={14} /> Другой набор</button>}>
+            {store.name} · {periodWord}
+          </H2>
+          <Card T={T} style={{ borderRadius: 22, padding: "6px 16px" }}>
+            {result.items.map((it, idx) => {
+              const pr = it.product;
+              const own = Number(prices[store.id]?.[pr.id]) > 0;
+              const hint = weightHint(pr);
+              const m = { kcal: Math.round((pr.kcal * it.grams) / 100), p: Math.round((pr.p * it.grams) / 100) };
+              return (
+                <div key={pr.id} className="py-3" style={{ borderTop: idx ? `1px solid ${T.line}` : "none" }}>
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium">{pr.name}</div>
+                      <Muted size={12}>{amountLabel(pr, it.grams)}{hint ? ` (${hint})` : ""}{mode === "week" ? " в день" : ""} · {m.kcal}{"\u00a0"}ккал · Б{"\u00a0"}{m.p}</Muted>
+                      <Muted size={11}>Купить: {it.packs > 1 ? `${it.packs} × ` : ""}{pr.packLabel} — {rub(it.buyCost)}</Muted>
+                    </div>
+                    <button onClick={() => { setRemoving(null); setEditing(editing === pr.id ? null : pr.id); setPriceDraft(String(it.packPrice)); }}
+                      aria-label={`Изменить цену: ${pr.name}`} className="flex items-center gap-1 rounded-full px-2.5 py-1.5 flex-shrink-0 ritm-press"
+                      style={{ ...ghost, fontSize: 13, fontWeight: 600, borderColor: own ? T.a : T.line }}>
+                      ≈ {rub(it.cost)} <Pencil size={12} color={MUTED} />
+                    </button>
+                    <button onClick={() => { setEditing(null); setRemoving(removing === pr.id ? null : pr.id); }} aria-label={`Убрать: ${pr.name}`}
+                      className="rounded-full p-2 flex-shrink-0 ritm-press" style={{ color: MUTED }}><X size={15} /></button>
+                  </div>
+                  {editing === pr.id && (
+                    <div className="mt-2 rounded-xl p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
+                      <Muted size={12} className="mb-2">Цена за {pr.packLabel} в твоём магазине:</Muted>
+                      <div className="flex gap-2">
+                        <input value={priceDraft} onChange={(e) => setPriceDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && savePrice(pr.id)}
+                          inputMode="decimal" aria-label="Цена упаковки, рублей" className="flex-1 min-w-0 rounded-xl px-3 py-2 bg-transparent outline-none"
+                          style={{ border: `1px solid ${T.line}`, color: "#fff", fontSize: 15 }} />
+                        <button onClick={() => savePrice(pr.id)} className="rounded-xl px-4 font-semibold" style={{ background: T.grad, color: T.on }}>Сохранить</button>
+                      </div>
+                      {own && <button onClick={() => resetPrice(pr.id)} className="mt-2" style={{ fontSize: 12, color: MUTED, background: "none" }}>Вернуть среднюю цену</button>}
+                    </div>
+                  )}
+                  {removing === pr.id && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button onClick={() => removeProduct(pr.id, "store")} className="rounded-full px-3 py-1.5 ritm-press" style={{ ...ghost, fontSize: 13 }}>Нет в этом магазине</button>
+                      <button onClick={() => removeProduct(pr.id, "all")} className="rounded-full px-3 py-1.5 ritm-press" style={{ ...ghost, fontSize: 13 }}>Не ем это</button>
+                      <button onClick={() => setRemoving(null)} className="rounded-full px-3 py-1.5" style={{ fontSize: 13, color: MUTED, background: "none" }}>Отмена</button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </Card>
+
+          <Card T={T} className="mt-3" style={{ borderRadius: 22 }}>
+            <div className="flex gap-4">
+              <MacroBar T={T} label="Калории" val={result.total.kcal} max={tgt.kcal} unit="ккал" />
+              <MacroBar T={T} label="Белки" val={result.total.p} max={tgt.p} />
+            </div>
+            <div className="flex gap-4 mt-3">
+              <MacroBar T={T} label="Жиры" val={result.total.f} max={tgt.f} />
+              <MacroBar T={T} label="Углеводы" val={result.total.c} max={tgt.c} />
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,.04)" }}>
+                <div style={{ color: MUTED, fontSize: 11 }}>Еда {periodWord}</div>
+                <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 20 }}>≈ {rub(result.cost)}</div>
+              </div>
+              <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,.04)" }}>
+                <div style={{ color: MUTED, fontSize: 11 }}>На кассе</div>
+                <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 20 }}>≈ {rub(result.buyCost)}</div>
+              </div>
+            </div>
+            <Muted size={11} className="mt-2">На кассе дороже, потому что упаковки покупаются целиком, — остатки пойдут на следующие дни.</Muted>
+          </Card>
+
+          {(result.limitedByBudget || low.length > 0) && (
+            <Card T={T} className="mt-3" style={{ borderRadius: 20, border: "1px solid rgba(255,211,106,0.45)" }}>
+              <div className="flex gap-2">
+                <AlertTriangle size={18} color="#ffd36a" className="flex-shrink-0 mt-0.5" />
+                <Muted size={13} style={{ color: "#ffe4a3" }}>
+                  {result.limitedByBudget
+                    ? `В бюджет ${rub(budget)} ${cfg.per} норма не помещается${low.length ? `: не хватает ${low.map((x) => x[1]).join(", ")}` : ""}. Без ограничения корзина стоила бы ≈ ${rub(result.fullCost)}.`
+                    : `Из продуктов этого магазина не хватает ${low.map((x) => x[1]).join(", ")}. Попробуй «Другой набор» или верни убранные продукты.`}
+                </Muted>
+              </div>
+            </Card>
+          )}
+
+          <div className="mt-4 flex flex-col gap-2">
+            {added ? (
+              <Ghost T={T} onClick={openShopping}><Check size={16} color={T.a} /> Добавлено в список покупок — открыть</Ghost>
+            ) : (
+              <Primary T={T} onClick={addToList}><ShoppingCart size={18} /> В список покупок</Primary>
+            )}
+            <Ghost T={T} onClick={() => openExternalLink(yandexSearch(store.name))}><MapPin size={16} /> {store.name} рядом на карте</Ghost>
+          </div>
+        </>
+      )}
+
+      {removedIds.length > 0 && (
+        <>
+          <H2>Убраны из подбора</H2>
+          <div className="flex flex-wrap gap-2">
+            {removedIds.map((id) => {
+              const pr = BASKET_PRODUCTS.find((x) => x.id === id);
+              if (!pr) return null;
+              return (
+                <button key={id} onClick={() => restore(id)} className="flex items-center gap-1.5 rounded-full px-3 py-1.5 ritm-press" style={{ ...ghost, fontSize: 13 }} aria-label={`Вернуть: ${pr.name}`}>
+                  <Undo2 size={13} /> {pr.name}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      <Muted size={11} className="mt-5">
+        {BASKET_PRICES_NOTE} Набор продуктов — типичный для сети: если чего-то нет в твоём магазине, нажми ✕ → «Нет в этом магазине». КБЖУ — средние значения: крупы и макароны считаются сухими, мясо и рыба — сырыми.{allergies.length ? ` Продукты с аллергенами (${alLabels(allergies)}) не предлагаются.` : ""}
+      </Muted>
+    </div>
+  );
+}
+
+/* ============ Рядом: залы, площадки, места для бега ============ */
+// Данные — /api/places (OpenStreetMap, netlify/functions/places.mjs), маршрут и карточка места — Яндекс Карты.
+// Координаты храним только на устройстве (src/places.js), в синхронизацию они не попадают.
+const GEO_ERRORS = {
+  denied_tg: "Telegram не дал доступ к геопозиции. Разреши его в настройках или введи адрес.",
+  denied: "Доступ к геопозиции запрещён. Разреши его в настройках браузера или введи адрес.",
+  unavailable: "Не получилось определить, где ты. Введи адрес.",
+  timeout: "Геопозиция долго не определяется. Попробуй ещё раз или введи адрес.",
+  notfound: "Адрес не нашёлся. Напиши город и улицу, например «Москва, Тверская 7».",
+  network: "Нет связи с сервером. Проверь интернет и попробуй ещё раз.",
+};
+const NEAR_FALLBACK = {
+  gym: ["Тренажёрный зал", "Фитнес-клуб", "Воркаут площадка", "Бассейн"],
+  run: ["Парк", "Стадион", "Беговая дорожка", "Лесопарк"],
+};
+const NEAR_ICON = { gym: Dumbbell, sport: Activity, outdoor: Dumbbell, park: Trees, forest: Trees, reserve: Trees, stadium: Footprints, track: Footprints };
+
+function NearScreen({ T, kind: initialKind = "gym" }) {
+  const [kind, setKind] = useState(initialKind === "run" ? "run" : "gym");
+  useEffect(() => { setKind(initialKind === "run" ? "run" : "gym"); }, [initialKind]);
+  const [loc, setLoc] = useState(() => readSavedLocation());
+  const [radius, setRadius] = useState(2000);
+  const [filter, setFilter] = useState("all");
+  const [res, setRes] = useState({ status: "idle", items: [] });
+  const [addr, setAddr] = useState("");
+  const [found, setFound] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [geoErr, setGeoErr] = useState("");
+  const [tries, setTries] = useState(0);
+  const reqId = useRef(0);
+  const tg = tgApp();
+
+  useEffect(() => { setFilter("all"); }, [kind]);
+  useEffect(() => {
+    if (!loc) return undefined;
+    const id = ++reqId.current;
+    setRes((r) => ({ ...r, status: "loading" }));
+    fetch(apiUrl(`/api/places?kind=${kind}&lat=${loc.lat.toFixed(5)}&lon=${loc.lon.toFixed(5)}&r=${radius}`))
+      .then(async (r) => { const data = await r.json().catch(() => ({})); if (!r.ok || !data.ok) throw new Error(data.error || "upstream"); return data; })
+      .then((data) => { if (id === reqId.current) setRes({ status: "ok", items: data.items || [] }); })
+      .catch(() => { if (id === reqId.current) setRes({ status: "error", items: [] }); });
+    return undefined;
+  }, [kind, radius, loc?.lat, loc?.lon, tries]);
+
+  const choose = (x) => { const next = { lat: x.lat, lon: x.lon, label: x.label }; setLoc(next); saveLocation(next); setFound(null); setAddr(""); setGeoErr(""); };
+  const locate = async () => {
+    setBusy(true); setGeoErr(""); setFound(null);
+    try { choose({ ...(await getLocation(tg)), label: "Моё местоположение" }); goal("near_locate", { kind }); }
+    catch (e) { setGeoErr(GEO_ERRORS[e?.message] ? e.message : "unavailable"); }
+    finally { setBusy(false); }
+  };
+  const search = async () => {
+    const q = addr.trim();
+    if (q.length < 3) return;
+    setBusy(true); setGeoErr(""); setFound(null);
+    try {
+      const r = await fetch(apiUrl(`/api/places?q=${encodeURIComponent(q)}`));
+      const data = await r.json();
+      if (!data.ok || !data.results?.length) setGeoErr("notfound");
+      else if (data.results.length === 1) choose(data.results[0]);
+      else setFound(data.results);
+    } catch (e) { setGeoErr("network"); }
+    finally { setBusy(false); }
+  };
+
+  const items = res.items.filter((it) => matchesFilter(it, filter));
+  const filters = kind === "gym" ? GYM_FILTERS : RUN_FILTERS;
+  const ghost = { border: `1px solid ${T.line}`, background: "rgba(255,255,255,0.04)", color: "#fff" };
+  const tierColor = { good: T.a, mid: "#8fd3ff", high: "#ffb86b", none: MUTED };
+
+  return (
+    <div>
+      <H1>Рядом</H1>
+      <Muted className="mt-1">Залы, уличные площадки и места для бега недалеко от дома — с маршрутом в Яндекс Картах.</Muted>
+      <Segmented T={T} items={["Залы и площадки", "Где бегать"]} value={kind === "run" ? 1 : 0} onChange={(i) => setKind(i ? "run" : "gym")} />
+
+      <Card T={T} style={{ borderRadius: 20 }}>
+        {loc ? (
+          <div className="flex items-center gap-2 mb-3">
+            <MapPin size={16} color={T.a} className="flex-shrink-0" />
+            <div className="flex-1 min-w-0 truncate" style={{ fontSize: 14 }}>{loc.label || "Выбранная точка"}</div>
+          </div>
+        ) : (
+          <Muted size={13} className="mb-3">Покажу, что есть рядом с тобой. Определи место автоматически или введи адрес дома.</Muted>
+        )}
+        <button onClick={locate} disabled={busy} className="w-full rounded-xl py-3 px-4 font-semibold flex items-center justify-center gap-2 ritm-press"
+          style={{ background: loc ? "rgba(255,255,255,0.05)" : T.grad, color: loc ? "#fff" : T.on, border: loc ? `1px solid ${T.line}` : "none", opacity: busy ? 0.6 : 1 }}>
+          <LocateFixed size={17} /> {loc?.label === "Моё местоположение" ? "Обновить моё место" : "Где я сейчас"}
+        </button>
+        <div className="flex gap-2 mt-2">
+          <input value={addr} onChange={(e) => setAddr(e.target.value)} onKeyDown={(e) => e.key === "Enter" && search()}
+            placeholder="Город, улица, дом" aria-label="Адрес" className="flex-1 min-w-0 rounded-xl px-3 py-3 bg-transparent outline-none"
+            style={{ border: `1px solid ${T.line}`, color: "#fff", fontSize: 15 }} />
+          <button onClick={search} disabled={busy || addr.trim().length < 3} aria-label="Найти адрес" className="rounded-xl px-4 ritm-press"
+            style={{ background: T.grad, color: T.on, opacity: busy || addr.trim().length < 3 ? 0.5 : 1 }}><Search size={18} /></button>
+        </div>
+        {found && (
+          <div className="mt-2 flex flex-col gap-1">
+            {found.map((x, i) => (
+              <button key={i} onClick={() => choose(x)} className="text-left rounded-xl px-3 py-2.5 ritm-press" style={{ ...ghost, fontSize: 14 }}>{x.label}</button>
+            ))}
+          </div>
+        )}
+        {geoErr && (
+          <div className="mt-2">
+            <Muted size={12} style={{ color: "#ffd36a" }}>{GEO_ERRORS[geoErr]}</Muted>
+            {geoErr === "denied_tg" && <button onClick={() => openLocationSettings(tg)} className="mt-1" style={{ fontSize: 13, color: T.a, background: "none" }}>Открыть настройки доступа</button>}
+          </div>
+        )}
+      </Card>
+
+      {loc && (
+        <>
+          <div className="flex flex-wrap gap-2 mt-4">
+            {NEAR_RADII.map((r) => <Chip key={r} T={T} on={radius === r} onClick={() => setRadius(r)}>{r / 1000} км</Chip>)}
+          </div>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar mt-2 -mx-1 px-1 pb-1">
+            {filters.map(([id, label]) => (
+              <button key={id} onClick={() => setFilter(id)} aria-pressed={filter === id} className="rounded-full px-3 py-1.5 flex-shrink-0 ritm-press"
+                style={{ fontSize: 13, ...(filter === id ? { background: "rgba(255,255,255,0.14)", color: "#fff", border: `1px solid ${T.a}` } : ghost) }}>{label}</button>
+            ))}
+          </div>
+
+          {res.status === "loading" && <Loader T={T} text={kind === "gym" ? "Ищу залы и площадки…" : "Ищу парки и стадионы…"} />}
+          {res.status === "error" && (
+            <Card T={T} className="mt-4">
+              <Muted size={14} className="mb-3">Сервис карт сейчас не ответил. Попробуй ещё раз или открой поиск в Яндекс Картах ниже.</Muted>
+              <Ghost T={T} onClick={() => setTries((x) => x + 1)}><RotateCcw size={16} /> Повторить</Ghost>
+            </Card>
+          )}
+          {res.status === "ok" && items.length === 0 && (
+            <Card T={T} className="mt-4"><Muted size={14}>В радиусе {radius / 1000} км ничего не нашлось. Увеличь радиус или поищи в Яндекс Картах ниже.</Muted></Card>
+          )}
+          {res.status === "ok" && items.length > 0 && (
+            <div className="flex flex-col gap-2 mt-4">
+              {items.map((it) => {
+                const Icon = NEAR_ICON[it.kind] || MapPin;
+                const tier = it.price ? PRICE_TIERS[it.price] : null;
+                const surface = surfaceLabel(it.surface);
+                const laps = lapsFor(it.loop, 5);
+                return (
+                  <Card key={it.id} T={T} style={{ borderRadius: 20 }}>
+                    <div className="flex gap-3">
+                      <span className="rounded-full flex items-center justify-center flex-shrink-0" style={{ width: 40, height: 40, background: "rgba(255,255,255,0.06)", border: `1px solid ${T.line}` }}>
+                        <Icon size={18} color={T.a} />
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold">{it.name}</div>
+                        <Muted size={12}>{it.named && KIND_LABEL[it.kind] ? `${KIND_LABEL[it.kind]} · ` : ""}{distLabel(it.dist)} · {walkLabel(it.dist)}</Muted>
+                        {tier && <div className="mt-1" style={{ fontSize: 12, fontWeight: 600, color: tierColor[tier.tone] }}>{tier.label}</div>}
+                        {kind === "run" && it.loop > 0 && (
+                          <Muted size={12}>Круг ≈ {kmLabel(it.loop)}{laps > 1 ? ` · 5 км ≈ ${laps} ${lapsWord(laps)}` : ""}{it.lit ? " · есть освещение" : ""}{surface ? ` · ${surface}` : ""}</Muted>
+                        )}
+                        {it.hours && <Muted size={11}>Часы: {hoursLabel(it.hours)}</Muted>}
+                        {it.address && <Muted size={11}>{it.address}</Muted>}
+                        {it.access && <Muted size={11} style={{ color: "#ffd36a" }}>Вход может быть ограничен</Muted>}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <button onClick={() => { openExternalLink(yandexRoute(it, loc, it.dist > 2500 ? "mt" : "pd")); goal("near_route", { kind: it.kind }); }}
+                        className="flex-1 rounded-xl py-2.5 flex items-center justify-center gap-1.5 font-semibold ritm-press" style={{ background: T.grad, color: T.on, fontSize: 14 }}>
+                        <Route size={15} /> Маршрут
+                      </button>
+                      <button onClick={() => openExternalLink(yandexPlace(it))} className="flex-1 rounded-xl py-2.5 flex items-center justify-center gap-1.5 ritm-press" style={{ ...ghost, fontSize: 14 }}>
+                        <ExternalLink size={15} /> {it.price && it.price !== "free" ? "Цены и отзывы" : "На карте"}
+                      </button>
+                      {it.website && (
+                        <button onClick={() => openExternalLink(it.website)} aria-label="Сайт" className="rounded-xl px-3 ritm-press" style={ghost}><Globe size={16} /></button>
+                      )}
+                      {it.phone && (
+                        <a href={`tel:${it.phone.replace(/[^\d+]/g, "")}`} aria-label={`Позвонить: ${it.phone}`} className="rounded-xl px-3 flex items-center ritm-press" style={ghost}><Phone size={16} /></a>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      <H2>Поиск в Яндекс Картах</H2>
+      <div className="flex flex-wrap gap-2">
+        {NEAR_FALLBACK[kind].map((text) => (
+          <button key={text} onClick={() => openExternalLink(yandexSearch(text, loc))} className="flex items-center gap-1.5 rounded-full px-3 py-2 ritm-press" style={{ ...ghost, fontSize: 13 }}>
+            <Search size={13} /> {text}
+          </button>
+        ))}
+      </div>
+      <Muted size={11} className="mt-5">
+        Места — из открытой карты OpenStreetMap (© участники OpenStreetMap), на ней бывает не всё. Цена для известных сетей — примерный уровень; точные цены, расписание и отзывы — в карточке места в Яндекс Картах. Твой адрес хранится только на этом устройстве.
+      </Muted>
+    </div>
+  );
+}
+
+/* ============ Спортивные добавки: справочник ============ */
+// Тексты и дозы — src/supplements.js. Персонально: норма белка из расчёта питания и доза кофеина по весу.
+function SuppsScreen({ T, st, norm }) {
+  const p = st.profile || {};
+  const goalId = suppGoalOf(p);
+  const [mine, setMine] = useState(!!goalId);
+  const [open, setOpen] = useState(null);
+  const ctx = { weight: Number(p.weight) || 0, protein: norm?.protein || 0 };
+  const list = mine && goalId ? SUPPLEMENTS.filter((s) => s.goals.includes(goalId)) : SUPPLEMENTS;
+  const levelColor = { good: T.a, mid: "#8fd3ff", weak: MUTED, bad: "#ff7a7a" };
+  const goalName = { mass: "набор мышц", fat: "похудение", strength: "сила", endurance: "выносливость" }[goalId];
+
+  return (
+    <div>
+      <H1>Добавки</H1>
+      <Muted className="mt-1">Что это, зачем, как принимать и кому нельзя — коротко и по исследованиям.</Muted>
+
+      <Card T={T} className="mt-4" style={{ borderRadius: 20, border: "1px solid rgba(255,211,106,0.45)" }}>
+        <div className="flex gap-2">
+          <ShieldAlert size={18} color="#ffd36a" className="flex-shrink-0 mt-0.5" />
+          <Muted size={13} style={{ color: "#ffe4a3" }}>{SUPP_DISCLAIMER}</Muted>
+        </div>
+      </Card>
+      {p.age > 0 && p.age < 18 && (
+        <Card T={T} className="mt-3" style={{ borderRadius: 20 }}>
+          <Muted size={13}>Тебе меньше 18. Растущему организму важнее нормальная еда, сон и режим тренировок. Добавки, кроме протеина как обычной еды, — только после разговора с врачом.</Muted>
+        </Card>
+      )}
+
+      {goalId && (
+        <>
+          <Segmented T={T} items={["Под мою цель", "Все"]} value={mine ? 0 : 1} onChange={(i) => setMine(i === 0)} />
+          {mine && goalName && <Muted size={12} className="-mt-2">Цель из анкеты: {goalName}</Muted>}
+        </>
+      )}
+
+      <div className="flex flex-col gap-2 mt-3">
+        {list.map((s) => {
+          const lv = SUPP_LEVELS[s.level];
+          const isOpen = open === s.id;
+          return (
+            <Card key={s.id} T={T} style={{ borderRadius: 20 }}>
+              <button onClick={() => setOpen(isOpen ? null : s.id)} aria-expanded={isOpen} className="w-full flex items-center gap-3 text-left" style={{ color: "#fff" }}>
+                <span className="rounded-full flex items-center justify-center flex-shrink-0" style={{ width: 40, height: 40, background: "rgba(255,255,255,0.06)", border: `1px solid ${T.line}` }}>
+                  <Pill size={18} color={levelColor[lv.tone]} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold">{s.name}</div>
+                  {s.aka && <Muted size={12}>{s.aka}</Muted>}
+                  <div style={{ fontSize: 12, fontWeight: 600, color: levelColor[lv.tone] }}>{lv.label}</div>
+                </div>
+                <ChevronDown size={18} color={MUTED} style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+              </button>
+              {isOpen && (
+                <div className="mt-3 pt-3 flex flex-col gap-3" style={{ borderTop: `1px solid ${T.line}` }}>
+                  <div><div className="font-semibold mb-1" style={{ fontSize: 13 }}>Что это</div><Muted size={13}>{s.what}</Muted></div>
+                  <div><div className="font-semibold mb-1" style={{ fontSize: 13 }}>Зачем</div><Muted size={13}>{s.why}</Muted></div>
+                  <div>
+                    <div className="font-semibold mb-1" style={{ fontSize: 13 }}>Как принимать</div>
+                    <ul className="flex flex-col gap-1" style={{ paddingLeft: 18, listStyle: "disc", color: MUTED, fontSize: 13, lineHeight: 1.5 }}>
+                      {s.how(ctx).map((line, i) => <li key={i}>{line}</li>)}
+                    </ul>
+                  </div>
+                  <div className="rounded-xl p-3" style={{ background: "rgba(255,122,122,0.07)", border: "1px solid rgba(255,122,122,0.25)" }}>
+                    <div className="font-semibold mb-1 flex items-center gap-1.5" style={{ fontSize: 13, color: "#ffb0b0" }}><AlertTriangle size={14} /> Противопоказания и осторожно</div>
+                    <ul className="flex flex-col gap-1" style={{ paddingLeft: 18, listStyle: "disc", color: "rgba(255,255,255,0.72)", fontSize: 13, lineHeight: 1.5 }}>
+                      {s.contra.map((line, i) => <li key={i}>{line}</li>)}
+                    </ul>
+                  </div>
+                  {s.note && <Muted size={12}>{s.note}</Muted>}
+                </div>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+      {mine && goalId && <Muted size={12} className="mt-3 text-center">Омега-3, витамин D и другие общие добавки — на вкладке «Все».</Muted>}
+      <Muted size={11} className="mt-5">{SUPP_SPORT_NOTE}</Muted>
+    </div>
+  );
+}
+
 const TABS_ALL = [
   ["today", "Сегодня", Home],
   ["train", "Силовые", Dumbbell],
   ["run", "Бег", Footprints],
   ["food", "Питание", Apple],
+  ["basket", "Корзина", ShoppingBasket],
+  ["near", "Рядом", MapPin],
+  ["supps", "Добавки", Pill],
   ["health", "Здоровье", Activity],
   ["dev", "Развитие", BookOpen],
   ["cal", "Календарь", CalendarDays],
@@ -11190,6 +11777,9 @@ export default function App() {
   }, [st.done, st.runDone, st.habits, st.dailyTasks, st.tasks]);
 
   const go = (t) => { haptic(); setTab(t); window.scrollTo?.(0, 0); };
+  // «Рядом» открывается и с экранов «Силовые» (залы) и «Бег» (где бегать) — сразу на нужной вкладке
+  const [nearKind, setNearKind] = useState("gym");
+  const openNear = (k) => { setNearKind(k); go("near"); };
   // reason — что именно упёрлось в бесплатный лимит («scans», «assistant»…): окно оплаты начинает
   // с этого, а не с общего списка. Вызов прямо из onClick передаёт событие — тогда причина «direct».
   const openPay = (reason) => {
@@ -11238,7 +11828,7 @@ export default function App() {
             {tab === "today" && <Today T={T} st={view} up={up} program={program} run={run} week={week} go={go} name={name} streak={myStreak} norm={norm} onPhoto={startPhotoScan}
               openSession={(dayTitle, items, range) => setSheet({ type: "session", dayTitle, items, range })} />}
             {tab === "train" && (
-              <Train T={T} st={view} up={up} program={program} openSchedule={openSchedule}
+              <Train T={T} st={view} up={up} program={program} openSchedule={openSchedule} openNear={openNear}
                 openEx={(item) => setSheet({ type: "ex", item, range: program.range })}
                 openNewWorkout={() => {
                   const current = view.workouts || [];
@@ -11251,7 +11841,7 @@ export default function App() {
                 openTemplates={() => { if (!view.pro) { openPay("templates"); return; } setSheet({ type: "templates" }); }}
                 openSession={(dayTitle, items, range) => setSheet({ type: "session", dayTitle, items, range })} />
             )}
-            {tab === "run" && <Run T={T} st={view} up={up} run={run} week={week} openPay={openPay} openSchedule={openSchedule} isCustom={!!st.schedule} />}
+            {tab === "run" && <Run T={T} st={view} up={up} run={run} week={week} openPay={openPay} openSchedule={openSchedule} openNear={openNear} isCustom={!!st.schedule} />}
             {tab === "food" && (
               <Nutrition T={T} st={view} up={up} norm={norm} program={program} run={run} openPay={openPay}
                 openScan={(init) => setSheet({ type: "scan", init })}
@@ -11260,8 +11850,11 @@ export default function App() {
                 openAdd={(meal) => setSheet({ type: "addfood", meal })}
                 openEntry={(id) => setSheet({ type: "entry", id })}
                 openShopping={() => setSheet({ type: "shopping" })}
-                onPhoto={startPhotoScan} />
+                onPhoto={startPhotoScan} go={go} />
             )}
+            {tab === "basket" && <BasketScreen T={T} st={view} up={up} norm={norm} openShopping={() => setSheet({ type: "shopping" })} />}
+            {tab === "near" && <NearScreen T={T} kind={nearKind} />}
+            {tab === "supps" && <SuppsScreen T={T} st={view} norm={norm} />}
             {tab === "health" && <HealthScreen T={T} st={view} up={up} openWellbeing={() => setSheet({ type: "wellbeing" })} openRecalc={() => setSheet({ type: "recalc" })} />}
             {tab === "dev" && <DevScreen T={T} st={view} up={up} openTheme={(id) => setSheet({ type: "theme", id })} />}
             {tab === "cal" && <CalendarScreen T={T} st={view} up={up} program={program} run={run} week={week} openPay={openPay} openSchedule={openSchedule} />}
