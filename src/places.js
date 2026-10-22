@@ -1,7 +1,85 @@
 // «Рядом»: залы, уличные площадки и места для бега около дома. Данные — /api/places (OpenStreetMap),
 // маршрут и карточка места — в Яндекс Картах.
 
+import {
+  OVERPASS_DEVICE, buildQuery, overpassRace, shapeGym, shapeRun, nearestFirst,
+  nominatimSearchUrl, nominatimReverseUrl, photonSearchUrl, parseNominatim, parsePhoton, reverseLabel,
+} from "./placesShape.js";
+
 export const NEAR_RADII = [1000, 2000, 3000, 5000];
+
+async function timedJson(url, ms) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, { headers: { Accept: "application/json" }, signal: ctrl.signal });
+    const data = await r.json().catch(() => null);
+    if (!r.ok && !data) throw new Error(`http_${r.status}`);
+    return data;
+  } catch (e) {
+    throw new Error(e?.name === "AbortError" ? "timeout" : e?.message || "network");
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Места рядом. Сначала свой сервер — у него кеш, и для уже искавшегося района ответ мгновенный.
+// Если сервер за 4 секунды не ответил (или ответил ошибкой), телефон параллельно спрашивает карту
+// напрямую — у телефона свой адрес в интернете, его не ограничивают из-за чужих запросов, и нет
+// 10-секундного лимита серверной функции. Берём то, что пришло первым.
+export function loadPlaces(apiUrl, { kind, lat, lon, r }, onStage) {
+  let startDevice;
+  const gate = new Promise((res) => { startDevice = res; });
+  const timer = setTimeout(() => startDevice(), 4000);
+  let settled = false;
+  const server = timedJson(apiUrl(`/api/places?kind=${kind}&lat=${lat.toFixed(5)}&lon=${lon.toFixed(5)}&r=${r}`), 11000)
+    .then((d) => { if (!d?.ok) throw new Error(d?.detail || d?.error || "upstream"); return { items: d.items || [], via: "server" }; })
+    .catch((e) => { startDevice(); throw new Error(`server:${e.message}`); });
+  const device = gate.then(async () => {
+    if (settled) throw new Error("not_needed");
+    onStage?.("device");
+    try {
+      const elements = await overpassRace(OVERPASS_DEVICE, buildQuery(kind, lat, lon, r, 15), { timeoutMs: 16000 });
+      const shaped = kind === "run" ? shapeRun(elements) : shapeGym(elements);
+      return { items: nearestFirst(shaped, { lat, lon }, r), via: "device" };
+    } catch (e) { throw new Error(`device:${e.message}`); }
+  });
+  return Promise.any([server, device])
+    .then((res) => { settled = true; clearTimeout(timer); return res; })
+    .catch((e) => { clearTimeout(timer); throw new Error((e?.errors || [e]).map((x) => x?.message).join(" ")); });
+}
+
+// Адрес → точка: свой сервер, потом карта напрямую с телефона
+export async function findAddress(apiUrl, q) {
+  try {
+    const d = await timedJson(apiUrl(`/api/places?q=${encodeURIComponent(q)}`), 9000);
+    if (d?.ok && d.results?.length) return d.results;
+  } catch (e) { /* дальше напрямую */ }
+  try {
+    const found = parseNominatim(await timedJson(nominatimSearchUrl(q), 7000));
+    if (found.length) return found;
+  } catch (e) { /* запасной */ }
+  try { return parsePhoton(await timedJson(photonSearchUrl(q), 6000)); } catch (e) { return []; }
+}
+
+// Точка → короткий адрес для подписи «Где я сейчас»; не получилось — пустая строка
+export async function addressOf(apiUrl, lat, lon) {
+  try {
+    const d = await timedJson(apiUrl(`/api/places?rlat=${lat.toFixed(5)}&rlon=${lon.toFixed(5)}`), 6000);
+    if (d?.ok && d.label) return d.label;
+  } catch (e) { /* дальше напрямую */ }
+  try { return reverseLabel(await timedJson(nominatimReverseUrl(lat, lon), 6000)); } catch (e) { return ""; }
+}
+
+// Карта Яндекса без ключа (виджет для сайтов): ты — красная метка, места — с номерами, как в списке
+const PIN = { gym: "bl", sport: "or", outdoor: "gn", park: "gn", forest: "dg", reserve: "dg", stadium: "or", track: "or" };
+export function yandexMapWidget(here, items, r) {
+  const z = r <= 1000 ? 15 : r <= 2000 ? 14 : r <= 3000 ? 13 : 12;
+  const f = (x) => x.toFixed(6);
+  const pts = items.slice(0, 30).map((it, i) => `${f(it.lon)},${f(it.lat)},pm2${PIN[it.kind] || "bl"}m${i + 1}`);
+  pts.push(`${f(here.lon)},${f(here.lat)},pm2rdm`);
+  return `https://yandex.ru/map-widget/v1/?ll=${f(here.lon)},${f(here.lat)}&z=${z}&pt=${pts.join("~")}`;
+}
 const LOC_KEY = "ritm-near-location";
 
 // Координаты дома храним только на этом устройстве — в синхронизацию (сервер, облако Telegram) не уходят

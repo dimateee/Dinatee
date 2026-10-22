@@ -28,8 +28,9 @@
   Content-Type: application/manifest+json; charset=utf-8
   Cache-Control: public, max-age=3600
 
-# Базовая защита для всех страниц
+# Базовая защита для всех страниц. Геопозиция разрешена только самому сайту — она нужна разделу «Рядом»
+# (раньше стояло geolocation=() — браузер отказывал в ней сразу, и «Где я сейчас» не работало)
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: geolocation=(), payment=(), usb=()
+  Permissions-Policy: geolocation=(self), payment=(), usb=()

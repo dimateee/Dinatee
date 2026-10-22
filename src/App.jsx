@@ -29,6 +29,7 @@ import { goal, goalOnce } from "./analytics.js";
 import { STORES, BASKET_PRODUCTS, BASKET_MODES, BASKET_PRICES_NOTE, storeById, buildBasket, amountLabel, weightHint } from "./basket.js";
 import {
   NEAR_RADII, readSavedLocation, saveLocation, getLocation, openLocationSettings, distLabel, walkLabel, kmLabel,
+  loadPlaces, findAddress, addressOf, yandexMapWidget,
   yandexRoute, yandexPlace, yandexSearch, PRICE_TIERS, GYM_FILTERS, RUN_FILTERS, matchesFilter, KIND_LABEL, surfaceLabel, hoursLabel, lapsFor, lapsWord,
 } from "./places.js";
 import { SUPPLEMENTS, SUPP_LEVELS, SUPP_DISCLAIMER, SUPP_SPORT_NOTE, suppGoalOf } from "./supplements.js";
@@ -10969,12 +10970,13 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
   const [loc, setLoc] = useState(() => readSavedLocation());
   const [radius, setRadius] = useState(2000);
   const [filter, setFilter] = useState("all");
-  const [res, setRes] = useState({ status: "idle", items: [] });
+  const [res, setRes] = useState({ status: "idle", items: [], stage: "", detail: "" });
   const [addr, setAddr] = useState("");
   const [found, setFound] = useState(null);
   const [busy, setBusy] = useState(false);
   const [geoErr, setGeoErr] = useState("");
   const [tries, setTries] = useState(0);
+  const [showMap, setShowMap] = useState(true);
   const reqId = useRef(0);
   const tg = tgApp();
 
@@ -10982,19 +10984,31 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
   useEffect(() => {
     if (!loc) return undefined;
     const id = ++reqId.current;
-    setRes((r) => ({ ...r, status: "loading" }));
-    fetch(apiUrl(`/api/places?kind=${kind}&lat=${loc.lat.toFixed(5)}&lon=${loc.lon.toFixed(5)}&r=${radius}`))
-      .then(async (r) => { const data = await r.json().catch(() => ({})); if (!r.ok || !data.ok) throw new Error(data.error || "upstream"); return data; })
-      .then((data) => { if (id === reqId.current) setRes({ status: "ok", items: data.items || [] }); })
-      .catch(() => { if (id === reqId.current) setRes({ status: "error", items: [] }); });
+    setRes((r) => ({ ...r, status: "loading", stage: "", detail: "" }));
+    loadPlaces(apiUrl, { kind, lat: loc.lat, lon: loc.lon, r: radius }, (stage) => { if (id === reqId.current) setRes((r) => ({ ...r, stage })); })
+      .then((data) => { if (id === reqId.current) { setRes({ status: "ok", items: data.items, stage: "", detail: "" }); goal("near_results", { kind, via: data.via, n: data.items.length }); } })
+      .catch((e) => { if (id === reqId.current) { setRes({ status: "error", items: [], stage: "", detail: String(e?.message || "").slice(0, 120) }); goal("near_error", { kind }); } });
     return undefined;
   }, [kind, radius, loc?.lat, loc?.lon, tries]);
 
   const choose = (x) => { const next = { lat: x.lat, lon: x.lon, label: x.label }; setLoc(next); saveLocation(next); setFound(null); setAddr(""); setGeoErr(""); };
   const locate = async () => {
     setBusy(true); setGeoErr(""); setFound(null);
-    try { choose({ ...(await getLocation(tg)), label: "Моё местоположение" }); goal("near_locate", { kind }); }
-    catch (e) { setGeoErr(GEO_ERRORS[e?.message] ? e.message : "unavailable"); }
+    try {
+      const p = await getLocation(tg);
+      choose({ ...p, label: "Моё местоположение" });
+      goal("near_locate", { kind });
+      // Подпись с улицей — чтобы сразу было видно, что место определилось верно
+      addressOf(apiUrl, p.lat, p.lon).then((street) => {
+        if (!street) return;
+        setLoc((cur) => {
+          if (!cur || cur.lat !== p.lat || cur.lon !== p.lon) return cur;
+          const next = { ...cur, label: `Я здесь: ${street}` };
+          saveLocation(next);
+          return next;
+        });
+      });
+    } catch (e) { setGeoErr(GEO_ERRORS[e?.message] ? e.message : "unavailable"); }
     finally { setBusy(false); }
   };
   const search = async () => {
@@ -11002,11 +11016,10 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
     if (q.length < 3) return;
     setBusy(true); setGeoErr(""); setFound(null);
     try {
-      const r = await fetch(apiUrl(`/api/places?q=${encodeURIComponent(q)}`));
-      const data = await r.json();
-      if (!data.ok || !data.results?.length) setGeoErr("notfound");
-      else if (data.results.length === 1) choose(data.results[0]);
-      else setFound(data.results);
+      const results = await findAddress(apiUrl, q);
+      if (!results.length) setGeoErr("notfound");
+      else if (results.length === 1) choose(results[0]);
+      else setFound(results);
     } catch (e) { setGeoErr("network"); }
     finally { setBusy(false); }
   };
@@ -11015,6 +11028,7 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
   const filters = kind === "gym" ? GYM_FILTERS : RUN_FILTERS;
   const ghost = { border: `1px solid ${T.line}`, background: "rgba(255,255,255,0.04)", color: "#fff" };
   const tierColor = { good: T.a, mid: "#8fd3ff", high: "#ffb86b", none: MUTED };
+  const isMine = /^Моё местоположение|^Я здесь/.test(loc?.label || "");
 
   return (
     <div>
@@ -11033,7 +11047,7 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
         )}
         <button onClick={locate} disabled={busy} className="w-full rounded-xl py-3 px-4 font-semibold flex items-center justify-center gap-2 ritm-press"
           style={{ background: loc ? "rgba(255,255,255,0.05)" : T.grad, color: loc ? "#fff" : T.on, border: loc ? `1px solid ${T.line}` : "none", opacity: busy ? 0.6 : 1 }}>
-          <LocateFixed size={17} /> {loc?.label === "Моё местоположение" ? "Обновить моё место" : "Где я сейчас"}
+          <LocateFixed size={17} /> {busy ? "Определяю…" : isMine ? "Обновить моё место" : "Где я сейчас"}
         </button>
         <div className="flex gap-2 mt-2">
           <input value={addr} onChange={(e) => setAddr(e.target.value)} onKeyDown={(e) => e.key === "Enter" && search()}
@@ -11044,6 +11058,7 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
         </div>
         {found && (
           <div className="mt-2 flex flex-col gap-1">
+            <Muted size={12}>Какой адрес твой?</Muted>
             {found.map((x, i) => (
               <button key={i} onClick={() => choose(x)} className="text-left rounded-xl px-3 py-2.5 ritm-press" style={{ ...ghost, fontSize: 14 }}>{x.label}</button>
             ))}
@@ -11069,65 +11084,86 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
             ))}
           </div>
 
-          {res.status === "loading" && <Loader T={T} text={kind === "gym" ? "Ищу залы и площадки…" : "Ищу парки и стадионы…"} />}
+          {res.status === "loading" && (
+            <Loader T={T} text={res.stage === "device" ? "Сервер карт отвечает долго — ищу напрямую…" : kind === "gym" ? "Ищу залы и площадки…" : "Ищу парки и стадионы…"} />
+          )}
           {res.status === "error" && (
             <Card T={T} className="mt-4">
-              <Muted size={14} className="mb-3">Сервис карт сейчас не ответил. Попробуй ещё раз или открой поиск в Яндекс Картах ниже.</Muted>
+              <Muted size={14} className="mb-3">Карта сейчас не ответила — её серверы бывают перегружены. Попробуй ещё раз через минуту или открой поиск в Яндекс Картах ниже.</Muted>
               <Ghost T={T} onClick={() => setTries((x) => x + 1)}><RotateCcw size={16} /> Повторить</Ghost>
+              {res.detail && <Muted size={10} className="mt-2" style={{ opacity: 0.6 }}>Код: {res.detail}</Muted>}
             </Card>
           )}
           {res.status === "ok" && items.length === 0 && (
-            <Card T={T} className="mt-4"><Muted size={14}>В радиусе {radius / 1000} км ничего не нашлось. Увеличь радиус или поищи в Яндекс Картах ниже.</Muted></Card>
+            <Card T={T} className="mt-4"><Muted size={14}>В радиусе {radius / 1000} км на открытой карте ничего не отмечено. Увеличь радиус или поищи в Яндекс Картах ниже — там мест больше.</Muted></Card>
           )}
           {res.status === "ok" && items.length > 0 && (
-            <div className="flex flex-col gap-2 mt-4">
-              {items.map((it) => {
-                const Icon = NEAR_ICON[it.kind] || MapPin;
-                const tier = it.price ? PRICE_TIERS[it.price] : null;
-                const surface = surfaceLabel(it.surface);
-                const laps = lapsFor(it.loop, 5);
-                return (
-                  <Card key={it.id} T={T} style={{ borderRadius: 20 }}>
-                    <div className="flex gap-3">
-                      <span className="rounded-full flex items-center justify-center flex-shrink-0" style={{ width: 40, height: 40, background: "rgba(255,255,255,0.06)", border: `1px solid ${T.line}` }}>
-                        <Icon size={18} color={T.a} />
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold">{it.name}</div>
-                        <Muted size={12}>{it.named && KIND_LABEL[it.kind] ? `${KIND_LABEL[it.kind]} · ` : ""}{distLabel(it.dist)} · {walkLabel(it.dist)}</Muted>
-                        {tier && <div className="mt-1" style={{ fontSize: 12, fontWeight: 600, color: tierColor[tier.tone] }}>{tier.label}</div>}
-                        {kind === "run" && it.loop > 0 && (
-                          <Muted size={12}>Круг ≈ {kmLabel(it.loop)}{laps > 1 ? ` · 5 км ≈ ${laps} ${lapsWord(laps)}` : ""}{it.lit ? " · есть освещение" : ""}{surface ? ` · ${surface}` : ""}</Muted>
-                        )}
-                        {it.hours && <Muted size={11}>Часы: {hoursLabel(it.hours)}</Muted>}
-                        {it.address && <Muted size={11}>{it.address}</Muted>}
-                        {it.access && <Muted size={11} style={{ color: "#ffd36a" }}>Вход может быть ограничен</Muted>}
+            <>
+              <div className="flex items-center justify-between mt-4 mb-2">
+                <Muted size={13}>Нашлось: {items.length}</Muted>
+                <button onClick={() => setShowMap((v) => !v)} className="flex items-center gap-1 rounded-full px-3 py-1.5 ritm-press" style={{ ...ghost, fontSize: 13 }}>
+                  <MapPin size={13} /> {showMap ? "Скрыть карту" : "Показать на карте"}
+                </button>
+              </div>
+              {showMap && (
+                <div className="rounded-[20px] overflow-hidden mb-3" style={{ border: `1px solid ${T.line}`, background: "#1a1c20", height: 260 }}>
+                  <iframe title="Карта мест рядом" src={yandexMapWidget(loc, items, radius)} loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+                    style={{ width: "100%", height: "100%", border: 0 }} />
+                </div>
+              )}
+              <div className="flex flex-col gap-2">
+                {items.map((it, idx) => {
+                  const Icon = NEAR_ICON[it.kind] || MapPin;
+                  const tier = it.price ? PRICE_TIERS[it.price] : null;
+                  const surface = surfaceLabel(it.surface);
+                  const laps = lapsFor(it.loop, 5);
+                  return (
+                    <Card key={it.id} T={T} style={{ borderRadius: 20 }}>
+                      <div className="flex gap-3">
+                        <span className="relative rounded-full flex items-center justify-center flex-shrink-0" style={{ width: 40, height: 40, background: "rgba(255,255,255,0.06)", border: `1px solid ${T.line}` }}>
+                          <Icon size={18} color={T.a} />
+                          {idx < 30 && (
+                            <span className="absolute rounded-full flex items-center justify-center" style={{ top: -6, right: -6, minWidth: 20, height: 20, padding: "0 5px", fontSize: 11, fontWeight: 700, background: T.grad, color: T.on }}>{idx + 1}</span>
+                          )}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold">{it.name}</div>
+                          <Muted size={12}>{it.named && KIND_LABEL[it.kind] ? `${KIND_LABEL[it.kind]} · ` : ""}{it.dist <= 60 ? "ты рядом" : `${distLabel(it.dist)} · ${walkLabel(it.dist)}`}</Muted>
+                          {tier && <div className="mt-1" style={{ fontSize: 12, fontWeight: 600, color: tierColor[tier.tone] }}>{tier.label}</div>}
+                          {kind === "run" && it.loop > 0 && (
+                            <Muted size={12}>Круг ≈ {kmLabel(it.loop)}{laps > 1 ? ` · 5 км ≈ ${laps} ${lapsWord(laps)}` : ""}{it.lit ? " · есть освещение" : ""}{surface ? ` · ${surface}` : ""}</Muted>
+                          )}
+                          {it.hours && <Muted size={11}>Часы: {hoursLabel(it.hours)}</Muted>}
+                          {it.address && <Muted size={11}>{it.address}</Muted>}
+                          {it.access && <Muted size={11} style={{ color: "#ffd36a" }}>Вход может быть ограничен</Muted>}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex gap-2 mt-3">
-                      <button onClick={() => { openExternalLink(yandexRoute(it, loc, it.dist > 2500 ? "mt" : "pd")); goal("near_route", { kind: it.kind }); }}
-                        className="flex-1 rounded-xl py-2.5 flex items-center justify-center gap-1.5 font-semibold ritm-press" style={{ background: T.grad, color: T.on, fontSize: 14 }}>
-                        <Route size={15} /> Маршрут
-                      </button>
-                      <button onClick={() => openExternalLink(yandexPlace(it))} className="flex-1 rounded-xl py-2.5 flex items-center justify-center gap-1.5 ritm-press" style={{ ...ghost, fontSize: 14 }}>
-                        <ExternalLink size={15} /> {it.price && it.price !== "free" ? "Цены и отзывы" : "На карте"}
-                      </button>
-                      {it.website && (
-                        <button onClick={() => openExternalLink(it.website)} aria-label="Сайт" className="rounded-xl px-3 ritm-press" style={ghost}><Globe size={16} /></button>
-                      )}
-                      {it.phone && (
-                        <a href={`tel:${it.phone.replace(/[^\d+]/g, "")}`} aria-label={`Позвонить: ${it.phone}`} className="rounded-xl px-3 flex items-center ritm-press" style={ghost}><Phone size={16} /></a>
-                      )}
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
+                      <div className="flex gap-2 mt-3">
+                        <button onClick={() => { openExternalLink(yandexRoute(it, loc, it.dist > 2500 ? "mt" : "pd")); goal("near_route", { kind: it.kind }); }}
+                          className="flex-1 rounded-xl py-2.5 flex items-center justify-center gap-1.5 font-semibold ritm-press" style={{ background: T.grad, color: T.on, fontSize: 14 }}>
+                          <Route size={15} /> Маршрут
+                        </button>
+                        <button onClick={() => openExternalLink(yandexPlace(it))} className="flex-1 rounded-xl py-2.5 flex items-center justify-center gap-1.5 ritm-press" style={{ ...ghost, fontSize: 14 }}>
+                          <ExternalLink size={15} /> {it.price && it.price !== "free" ? "Цены и отзывы" : "На карте"}
+                        </button>
+                        {it.website && (
+                          <button onClick={() => openExternalLink(it.website)} aria-label="Сайт" className="rounded-xl px-3 ritm-press" style={ghost}><Globe size={16} /></button>
+                        )}
+                        {it.phone && (
+                          <a href={`tel:${it.phone.replace(/[^\d+]/g, "")}`} aria-label={`Позвонить: ${it.phone}`} className="rounded-xl px-3 flex items-center ritm-press" style={ghost}><Phone size={16} /></a>
+                        )}
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </>
           )}
         </>
       )}
 
       <H2>Поиск в Яндекс Картах</H2>
+      <Muted size={12} className="-mt-1 mb-3">На открытой карте отмечено не всё — в Яндексе мест больше, с ценами и отзывами.</Muted>
       <div className="flex flex-wrap gap-2">
         {NEAR_FALLBACK[kind].map((text) => (
           <button key={text} onClick={() => openExternalLink(yandexSearch(text, loc))} className="flex items-center gap-1.5 rounded-full px-3 py-2 ritm-press" style={{ ...ghost, fontSize: 13 }}>
@@ -11136,7 +11172,7 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
         ))}
       </div>
       <Muted size={11} className="mt-5">
-        Места — из открытой карты OpenStreetMap (© участники OpenStreetMap), на ней бывает не всё. Цена для известных сетей — примерный уровень; точные цены, расписание и отзывы — в карточке места в Яндекс Картах. Твой адрес хранится только на этом устройстве.
+        Места — из открытой карты OpenStreetMap (© участники OpenStreetMap). Цена для известных сетей — примерный уровень; точные цены, расписание и отзывы — в карточке места в Яндекс Картах. Твой адрес хранится только на этом устройстве.
       </Muted>
     </div>
   );
