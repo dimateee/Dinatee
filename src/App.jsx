@@ -29,7 +29,7 @@ import { goal, goalOnce } from "./analytics.js";
 import { STORES, BASKET_PRODUCTS, BASKET_MODES, BASKET_PRICES_NOTE, storeById, buildBasket, amountLabel, weightHint, storeSiteUrl, productSearchUrl } from "./basket.js";
 import {
   NEAR_RADII, readSavedLocation, saveLocation, getLocation, openLocationSettings, distLabel, walkLabel, kmLabel,
-  loadPlaces, findAddress, addressOf, yandexMapWidget, cachedPlaces, rememberPlaces,
+  loadPlaces, findAddress, addressOf, yandexSearchWidget, cachedPlaces, rememberPlaces,
   yandexRoute, yandexPlace, yandexSearch, PRICE_TIERS, GYM_FILTERS, RUN_FILTERS, matchesFilter, KIND_LABEL, surfaceLabel, hoursLabel, lapsFor, lapsWord,
 } from "./places.js";
 import { SUPPLEMENTS, SUPP_LEVELS, SUPP_DISCLAIMER, SUPP_SPORT_NOTE, suppGoalOf } from "./supplements.js";
@@ -10972,8 +10972,9 @@ const GEO_ERRORS = {
   notfound: "Адрес не нашёлся. Напиши город и улицу, например «Москва, Тверская 7».",
   network: "Нет связи с сервером. Проверь интернет и попробуй ещё раз.",
 };
-const NEAR_FALLBACK = {
-  gym: ["Тренажёрный зал", "Фитнес-клуб", "Воркаут площадка", "Бассейн"],
+// Что искать в Яндекс Картах — кнопки над картой
+const NEAR_QUERIES = {
+  gym: ["Тренажёрный зал", "Фитнес-клуб", "Воркаут площадка", "Бассейн", "Йога"],
   run: ["Парк", "Стадион", "Беговая дорожка", "Лесопарк"],
 };
 const NEAR_ICON = { gym: Dumbbell, sport: Activity, outdoor: Dumbbell, park: Trees, forest: Trees, reserve: Trees, stadium: Footprints, track: Footprints };
@@ -10991,7 +10992,7 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
   const [searching, setSearching] = useState(false);
   const [geoErr, setGeoErr] = useState("");
   const [tries, setTries] = useState(0);
-  const [showMap, setShowMap] = useState(true);
+  const [queryIdx, setQueryIdx] = useState({ gym: 0, run: 0 });
   const reqId = useRef(0);
   const tg = tgApp();
 
@@ -11062,11 +11063,13 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
   const ghost = { border: `1px solid ${T.line}`, background: "rgba(255,255,255,0.04)", color: "#fff" };
   const tierColor = { good: T.a, mid: "#8fd3ff", high: "#ffb86b", none: MUTED };
   const isMine = /^Моё местоположение|^Я здесь/.test(loc?.label || "");
+  const query = NEAR_QUERIES[kind][queryIdx[kind]] || NEAR_QUERIES[kind][0];
+  const mapSrc = yandexSearchWidget(query, loc, radius);
 
   return (
     <div>
       <H1>Рядом</H1>
-      <Muted className="mt-1">Залы, уличные площадки и места для бега недалеко от дома — с маршрутом в Яндекс Картах.</Muted>
+      <Muted className="mt-1">Залы, площадки и места для бега рядом — на карте Яндекса, с рейтингом, часами работы и маршрутом.</Muted>
       <Segmented T={T} items={["Залы и площадки", "Где бегать"]} value={kind === "run" ? 1 : 0} onChange={(i) => setKind(i ? "run" : "gym")} />
 
       <Card T={T} style={{ borderRadius: 20 }}>
@@ -11109,9 +11112,35 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
         )}
       </Card>
 
+      {/* Сверху — поиск Яндекс Карт прямо в приложении: появляется сразу, мест у Яндекса намного больше,
+          а в карточке места рейтинг, часы, телефон и маршрут. Без указанного места Яндекс ищет по региону. */}
+      <div className="flex gap-2 overflow-x-auto no-scrollbar mt-4 -mx-1 px-1 pb-1">
+        {NEAR_QUERIES[kind].map((text, i) => (
+          <button key={text} onClick={() => { setQueryIdx((q) => ({ ...q, [kind]: i })); goal("near_query", { kind, text }); }} aria-pressed={queryIdx[kind] === i}
+            className="flex items-center gap-1.5 rounded-full px-3.5 py-2 flex-shrink-0 ritm-press"
+            style={{ fontSize: 14, fontWeight: 600, ...(queryIdx[kind] === i ? { background: T.grad, color: T.on, border: "1px solid transparent" } : ghost) }}>
+            <Search size={13} /> {text}
+          </button>
+        ))}
+      </div>
+      <div className="rounded-[20px] overflow-hidden mt-2" style={{ border: `1px solid ${T.line}`, background: "#1a1c20", height: 340 }}>
+        <iframe key={mapSrc} title={`Яндекс Карты: ${query}`} src={mapSrc} loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+          style={{ width: "100%", height: "100%", border: 0 }} />
+      </div>
+      <Muted size={12} className="mt-2">Нажми на метку — откроется карточка места: рейтинг, часы работы, телефон и маршрут.{loc ? "" : " Укажи своё место выше — поиск будет точнее."}</Muted>
+      <div className="mt-3">
+        <Primary T={T} onClick={() => { openExternalLink(yandexSearch(query, loc)); goal("near_open_yandex", { kind }); }}>
+          <ExternalLink size={17} /> Открыть в Яндекс Картах — цены и отзывы
+        </Primary>
+      </div>
+
       {loc && (
         <>
-          <div className="flex flex-wrap gap-2 mt-4">
+          <H2>Списком рядом</H2>
+          <Muted size={12} className="-mt-2 mb-3">
+            {kind === "run" ? "Парки, стадионы и лес с расстоянием и длиной круга." : "Залы и площадки с расстоянием и примерным уровнем цен сети."} Подгружается из открытой карты — карта выше работает и без него.
+          </Muted>
+          <div className="flex flex-wrap gap-2">
             {NEAR_RADII.map((r) => <Chip key={r} T={T} on={radius === r} onClick={() => setRadius(r)}>{r / 1000} км</Chip>)}
           </div>
           <div className="flex gap-2 overflow-x-auto no-scrollbar mt-2 -mx-1 px-1 pb-1">
@@ -11122,37 +11151,31 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
           </div>
 
           {res.status === "loading" && (
-            <Loader T={T} text={res.stage === "device" ? "Серверы карт отвечают долго — пробую другие, это может занять до 30 секунд…" : kind === "gym" ? "Ищу залы и площадки…" : "Ищу парки и стадионы…"} />
+            <Card T={T} className="mt-3">
+              <div className="flex items-center gap-3">
+                <RitmMark T={T} size={20} animated />
+                <Muted size={13}>{res.stage === "device" ? "Открытая карта отвечает долго — пробую другие серверы. Пока можно смотреть карту выше." : "Подгружаю список…"}</Muted>
+              </div>
+            </Card>
           )}
           {res.status === "error" && (
-            <Card T={T} className="mt-4">
-              <Muted size={14} className="mb-3">Карта сейчас не ответила — её серверы бывают перегружены. Попробуй ещё раз через минуту или открой поиск в Яндекс Картах ниже.</Muted>
+            <Card T={T} className="mt-3">
+              <Muted size={13} className="mb-3">Список из открытой карты сейчас не загрузился — её серверы перегружены. Карта Яндекса выше работает, а список можно попробовать ещё раз.</Muted>
               <Ghost T={T} onClick={() => setTries((x) => x + 1)}><RotateCcw size={16} /> Повторить</Ghost>
               {res.detail && <Muted size={10} className="mt-2" style={{ opacity: 0.6 }}>Код: {res.detail}</Muted>}
             </Card>
           )}
           {res.status === "ok" && items.length === 0 && (
-            <Card T={T} className="mt-4"><Muted size={14}>В радиусе {radius / 1000} км на открытой карте ничего не отмечено. Увеличь радиус или поищи в Яндекс Картах ниже — там мест больше.</Muted></Card>
+            <Card T={T} className="mt-3"><Muted size={13}>В радиусе {radius / 1000} км на открытой карте ничего не отмечено — смотри карту Яндекса выше или увеличь радиус.</Muted></Card>
           )}
           {res.status === "ok" && items.length > 0 && (
             <>
               {res.stale && (
-                <Muted size={12} className="mt-3" style={{ color: "#ffd36a" }}>Карта сейчас не отвечает — показан последний сохранённый список.</Muted>
+                <Muted size={12} className="mt-3" style={{ color: "#ffd36a" }}>Открытая карта сейчас не отвечает — показан последний сохранённый список.</Muted>
               )}
-              <div className="flex items-center justify-between mt-4 mb-2">
-                <Muted size={13}>Нашлось: {items.length}</Muted>
-                <button onClick={() => setShowMap((v) => !v)} className="flex items-center gap-1 rounded-full px-3 py-1.5 ritm-press" style={{ ...ghost, fontSize: 13 }}>
-                  <MapPin size={13} /> {showMap ? "Скрыть карту" : "Показать на карте"}
-                </button>
-              </div>
-              {showMap && (
-                <div className="rounded-[20px] overflow-hidden mb-3" style={{ border: `1px solid ${T.line}`, background: "#1a1c20", height: 260 }}>
-                  <iframe title="Карта мест рядом" src={yandexMapWidget(loc, items, radius)} loading="lazy" referrerPolicy="no-referrer-when-downgrade"
-                    style={{ width: "100%", height: "100%", border: 0 }} />
-                </div>
-              )}
+              <Muted size={13} className="mt-3 mb-2">Нашлось: {items.length}</Muted>
               <div className="flex flex-col gap-2">
-                {items.map((it, idx) => {
+                {items.map((it) => {
                   const Icon = NEAR_ICON[it.kind] || MapPin;
                   const tier = it.price ? PRICE_TIERS[it.price] : null;
                   const surface = surfaceLabel(it.surface);
@@ -11160,11 +11183,8 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
                   return (
                     <Card key={it.id} T={T} style={{ borderRadius: 20 }}>
                       <div className="flex gap-3">
-                        <span className="relative rounded-full flex items-center justify-center flex-shrink-0" style={{ width: 40, height: 40, background: "rgba(255,255,255,0.06)", border: `1px solid ${T.line}` }}>
+                        <span className="rounded-full flex items-center justify-center flex-shrink-0" style={{ width: 40, height: 40, background: "rgba(255,255,255,0.06)", border: `1px solid ${T.line}` }}>
                           <Icon size={18} color={T.a} />
-                          {idx < 30 && (
-                            <span className="absolute rounded-full flex items-center justify-center" style={{ top: -6, right: -6, minWidth: 20, height: 20, padding: "0 5px", fontSize: 11, fontWeight: 700, background: T.grad, color: T.on }}>{idx + 1}</span>
-                          )}
                         </span>
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold">{it.name}</div>
@@ -11202,17 +11222,8 @@ function NearScreen({ T, kind: initialKind = "gym" }) {
         </>
       )}
 
-      <H2>Поиск в Яндекс Картах</H2>
-      <Muted size={12} className="-mt-1 mb-3">На открытой карте отмечено не всё — в Яндексе мест больше, с ценами и отзывами.</Muted>
-      <div className="flex flex-wrap gap-2">
-        {NEAR_FALLBACK[kind].map((text) => (
-          <button key={text} onClick={() => openExternalLink(yandexSearch(text, loc))} className="flex items-center gap-1.5 rounded-full px-3 py-2 ritm-press" style={{ ...ghost, fontSize: 13 }}>
-            <Search size={13} /> {text}
-          </button>
-        ))}
-      </div>
       <Muted size={11} className="mt-5">
-        Места — из открытой карты OpenStreetMap (© участники OpenStreetMap). Цена для известных сетей — примерный уровень; точные цены, расписание и отзывы — в карточке места в Яндекс Картах. Твой адрес хранится только на этом устройстве.
+        Карта и карточки мест — Яндекс Карты. Список с расстоянием — из открытой карты OpenStreetMap (© участники OpenStreetMap), на ней отмечено не всё. Цена для известных сетей — примерный уровень. Твой адрес хранится только на этом устройстве.
       </Muted>
     </div>
   );

@@ -95,6 +95,17 @@ export async function addressOf(apiUrl, lat, lon) {
   try { return reverseLabel(await timedJson(nominatimReverseUrl(lat, lon), 6000)); } catch (e) { return ""; }
 }
 
+// Поиск Яндекс Карт прямо в приложении (виджет для сайтов, без ключа): «Тренажёрный зал» вокруг точки.
+// Метки кликабельны — в карточке места рейтинг, часы, телефон и маршрут. Без точки Яндекс ищет по региону.
+export function yandexSearchWidget(text, here, r = 2000) {
+  const params = ["mode=search", `text=${encodeURIComponent(text)}`];
+  if (here) {
+    const z = r <= 1000 ? 15 : r <= 2000 ? 14 : r <= 3000 ? 13 : 12;
+    params.unshift(`ll=${here.lon.toFixed(6)},${here.lat.toFixed(6)}`, `z=${z}`);
+  }
+  return `https://yandex.ru/map-widget/v1/?${params.join("&")}`;
+}
+
 // Карта Яндекса без ключа (виджет для сайтов): ты — красная метка, места — с номерами, как в списке
 const PIN = { gym: "bl", sport: "or", outdoor: "gn", park: "gn", forest: "dg", reserve: "dg", stadium: "or", track: "or" };
 export function yandexMapWidget(here, items, r) {
