@@ -44,6 +44,7 @@ contacts: {
   telegram: "@username",                      // сюда же приходят заказы из корзины
   channel: "https://t.me/имя_канала",
   email: "name@mail.ru",
+  avito: "https://www.avito.ru/...",          // ссылка на профиль Авито
   tiktok: "https://www.tiktok.com/@имя",
   youtube: "https://www.youtube.com/@имя",
 },

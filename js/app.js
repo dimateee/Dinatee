@@ -64,6 +64,7 @@
     telegram: '<svg viewBox="0 0 24 24"><path d="M21 4 3 11l6 2.5L11.5 20 21 4Z"/><path d="m9 13.5 4-3.5"/></svg>',
     channel: '<svg viewBox="0 0 24 24"><path d="M4 10v4a1 1 0 0 0 1 1h3l6 4V5L8 9H5a1 1 0 0 0-1 1Z"/><path d="M18 9a4 4 0 0 1 0 6"/></svg>',
     email: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg>',
+    avito: '<svg viewBox="0 0 24 24"><path d="M3 12.5V4a1 1 0 0 1 1-1h8.5l8.8 8.8a1 1 0 0 1 0 1.4l-7.9 7.9a1 1 0 0 1-1.4 0L3 12.5Z"/><circle cx="8" cy="8" r="1.6"/></svg>',
     tiktok: '<svg viewBox="0 0 24 24"><path d="M14 4v10.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 4c.4 2.6 2.2 4.3 5 4.5"/></svg>',
     youtube: '<svg viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="4"/><path d="m10 9.5 5 2.5-5 2.5v-5Z"/></svg>',
   };
@@ -384,6 +385,7 @@
     var tgUser = telegramUsername(contacts.telegram);
     var channelUrl = asUrl(contacts.channel);
     var email = String(contacts.email || "").trim().replace(/^mailto:/i, "");
+    var avito = asUrl(contacts.avito);
     var tiktok = asUrl(contacts.tiktok);
     var youtube = asUrl(contacts.youtube);
 
@@ -391,6 +393,7 @@
       { key: "telegram", title: "Telegram", about: "Написать нам", sub: tgUser ? "@" + tgUser : "", href: tgUser ? "https://t.me/" + tgUser : "", c: "var(--c-teal)" },
       { key: "channel", title: "Telegram-канал", about: "Новинки и дропы", sub: channelUrl ? handleFromUrl(channelUrl) : "", href: channelUrl, c: "var(--c-blue)" },
       { key: "email", title: "Почта", about: "Для вопросов", sub: email, href: email ? "mailto:" + email : "", c: "var(--c-orange)" },
+      { key: "avito", title: "Авито", about: "Наш профиль", sub: avito ? "Профиль и отзывы" : "", href: avito, c: "var(--c-green)" },
       { key: "tiktok", title: "TikTok", about: "Видео и обзоры", sub: tiktok ? handleFromUrl(tiktok) : "", href: tiktok, c: "var(--c-pink)" },
       { key: "youtube", title: "YouTube", about: "Обзоры товаров", sub: youtube ? handleFromUrl(youtube) : "", href: youtube, c: "var(--c-coral)" },
     ];

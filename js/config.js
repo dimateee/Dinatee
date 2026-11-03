@@ -30,13 +30,15 @@ window.SHOP = {
                 Можно так: "@username" или так: "https://t.me/username"
      channel  — ссылка на Telegram-канал: "https://t.me/имя_канала"
      email    — почта: "name@mail.ru"
+     avito    — ссылка на профиль Авито
      tiktok   — "https://www.tiktok.com/@имя"
      youtube  — "https://www.youtube.com/@имя"
   -------------------------------- */
   contacts: {
     telegram: "@pyexdg",
-    channel: "",
+    channel: "https://t.me/pyexdggg",
     email: "pyexdg@mail.ru",
+    avito: "https://www.avito.ru/user/4043acf41d0c243aafa732491a209ccd/profile?src=sharing",
     tiktok: "",
     youtube: "",
   },
