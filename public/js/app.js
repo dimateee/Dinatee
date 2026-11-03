@@ -253,6 +253,7 @@
   var drawer = $("[data-drawer]");
   var overlay = $("[data-overlay]");
   var modal = $("[data-modal]");
+  var success = $("[data-success]");
   var lastFocus = null;
 
   function orderText() {
@@ -330,7 +331,12 @@
   function addToCart(id, sourceEl) {
     setQty(id, qty(id) + 1);
     flyToCart(sourceEl);
+    haptic("light");
     toast("«" + byId[id].name + "» в корзине");
+  }
+
+  function anyLayerOpen() {
+    return drawer.classList.contains("is-open") || modal.classList.contains("is-open") || success.classList.contains("is-open");
   }
 
   function openLayer(el) {
@@ -338,17 +344,17 @@
     el.classList.add("is-open");
     el.setAttribute("aria-hidden", "false");
     document.body.classList.add("is-locked");
-    var focusTarget = $("[data-close]", el);
+    var focusTarget = $("[data-close], [data-success-close]", el);
     if (focusTarget) setTimeout(function () { focusTarget.focus({ preventScroll: true }); }, 60);
+    syncBackButton();
   }
 
   function closeLayer(el) {
     el.classList.remove("is-open");
     el.setAttribute("aria-hidden", "true");
-    if (!drawer.classList.contains("is-open") && !modal.classList.contains("is-open")) {
-      document.body.classList.remove("is-locked");
-    }
+    if (!anyLayerOpen()) document.body.classList.remove("is-locked");
     if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+    syncBackButton();
   }
 
   function openCart() {
@@ -555,12 +561,21 @@
     clearTimeout(sentTimer);
     sentTimer = setTimeout(function () {
       btn.classList.remove("is-sent");
-      label.textContent = "Отправить заявку в Telegram";
+      label.textContent = requestLabel();
     }, 2200);
+  }
+
+  function requestLabel() { return getTg() ? "Отправить заявку" : "Отправить заявку в Telegram"; }
+
+  function clearRequestForm() {
+    FIELDS.forEach(function (k) { if (k !== "name") field(k).value = ""; });
+    syncExampleChips();
+    saveDraft();
   }
 
   function sendRequest() {
     if (!validateRequest()) return;
+    if (getTg()) { sendRequestViaBot(); return; }
     var text = requestText();
     var user = telegramUsername(contacts.telegram);
     if (!user) {
@@ -601,6 +616,183 @@
       saveDraft();
     });
     form.addEventListener("animationend", function (e) { if (e.target === form) form.classList.remove("is-shaking"); });
+  }
+
+  /* ---------- Telegram Mini App ----------
+     Внутри Telegram заказ и заявка уходят прямо боту (/api/order), а бот
+     присылает уведомление владельцу и подтверждение покупателю.
+     Если функции бота недоступны, открывается чат с готовым текстом, как на сайте. */
+  function getTg() {
+    var w = window.Telegram && window.Telegram.WebApp;
+    return w && w.initData ? w : null;
+  }
+
+  function tgCall(fn) {
+    var t = getTg();
+    if (!t) return;
+    try { return fn(t); } catch (e) { /* старая версия Telegram */ }
+  }
+
+  function tgAtLeast(t, v) {
+    try { return t.isVersionAtLeast(v); } catch (e) { return false; }
+  }
+
+  function haptic(kind) {
+    tgCall(function (t) {
+      if (!t.HapticFeedback || !tgAtLeast(t, "6.1")) return;
+      if (kind === "success" || kind === "error") t.HapticFeedback.notificationOccurred(kind);
+      else t.HapticFeedback.impactOccurred(kind || "light");
+    });
+  }
+
+  function syncBackButton() {
+    tgCall(function (t) {
+      if (!tgAtLeast(t, "6.1")) return;
+      if (anyLayerOpen()) t.BackButton.show(); else t.BackButton.hide();
+    });
+  }
+
+  function onTgBack() {
+    if (success.classList.contains("is-open")) closeLayer(success);
+    else if (modal.classList.contains("is-open")) closeLayer(modal);
+    else if (drawer.classList.contains("is-open")) closeCart();
+  }
+
+  function openTelegram(url) {
+    var t = getTg();
+    if (t && /^https:\/\/t\.me\//i.test(url)) { try { t.openTelegramLink(url); return; } catch (e) { /* ниже */ } }
+    if (t && /^https?:\/\//i.test(url)) { try { t.openLink(url); return; } catch (e) { /* ниже */ } }
+    openExternal(url);
+  }
+
+  // Если бот не ответил: отправить текст обычным сообщением
+  function fallbackToChat(text) {
+    var user = telegramUsername(contacts.telegram);
+    if (user) {
+      openTelegram("https://t.me/" + encodeURIComponent(user) + "?text=" + encodeURIComponent(text));
+      toast("Не получилось отправить через бота. Открываем чат, отправьте сообщение");
+    } else {
+      copy(text).then(function () { toast("Не получилось отправить. Текст скопирован"); }, function () { toast("Не получилось отправить"); });
+    }
+  }
+
+  function askWriteAccess() {
+    return new Promise(function (resolve) {
+      var t = getTg();
+      var data = t && t.initDataUnsafe;
+      var u = data && data.user;
+      // спрашиваем, только если мини-апп открыт по прямой ссылке и бот ещё не может писать покупателю
+      if (!u || u.allows_write_to_pm || !data.chat_type || !tgAtLeast(t, "6.9")) return resolve();
+      try { t.requestWriteAccess(function () { resolve(); }); } catch (e) { resolve(); }
+    });
+  }
+
+  function postToBot(payload) {
+    var t = getTg();
+    return fetch("/api/order", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-telegram-init-data": t.initData },
+      body: JSON.stringify(payload),
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok || !d.ok) throw new Error(d.error || "HTTP " + r.status);
+        return d;
+      });
+    });
+  }
+
+  function setBusy(btn, busy) {
+    if (!btn) return;
+    btn.classList.toggle("is-loading", busy);
+    if (busy) btn.setAttribute("aria-busy", "true"); else btn.removeAttribute("aria-busy");
+  }
+
+  function showSuccess(title, text) {
+    $("[data-success-title]").textContent = title;
+    $("[data-success-text]").textContent = text;
+    openLayer(success);
+  }
+
+  var sending = false;
+
+  function submitOrderViaBot(btn) {
+    var ids = Object.keys(cart);
+    if (sending || !ids.length) return;
+    sending = true;
+    setBusy(btn, true);
+    var text = orderText();
+    askWriteAccess()
+      .then(function () {
+        return postToBot({ type: "order", items: ids.map(function (id) { return { id: id, qty: cart[id] }; }) });
+      })
+      .then(function (res) {
+        cart = {};
+        saveCart();
+        updateCartUI();
+        ids.forEach(updateCardAction);
+        closeCart();
+        haptic("success");
+        showSuccess("Заказ отправлен!", res.buyerNotified
+          ? "Мы получили заказ и прислали подтверждение в чат с ботом. Скоро напишем, чтобы уточнить детали."
+          : "Мы получили заказ и скоро напишем вам в Telegram.");
+      })
+      .catch(function (err) {
+        if (window.console) console.warn("Заказ через бота не отправлен:", err);
+        haptic("error");
+        fallbackToChat(text);
+      })
+      .then(function () {
+        sending = false;
+        setBusy(btn, false);
+      });
+  }
+
+  function sendRequestViaBot() {
+    if (sending) return;
+    sending = true;
+    var btn = $("[data-request-submit]");
+    setBusy(btn, true);
+    var text = requestText();
+    askWriteAccess()
+      .then(function () { return postToBot({ type: "request", fields: requestData() }); })
+      .then(function (res) {
+        clearRequestForm();
+        haptic("success");
+        showSuccess("Заявка отправлена!", res.buyerNotified
+          ? "Мы подберём вещь, посчитаем цену и напишем вам в чат с ботом."
+          : "Мы подберём вещь, посчитаем цену и напишем вам в Telegram.");
+      })
+      .catch(function (err) {
+        if (window.console) console.warn("Заявка через бота не отправлена:", err);
+        haptic("error");
+        fallbackToChat(text);
+      })
+      .then(function () {
+        sending = false;
+        setBusy(btn, false);
+      });
+  }
+
+  var tgReady = false;
+  function initTelegram() {
+    var t = getTg();
+    if (!t || tgReady) return;
+    tgReady = true;
+    document.documentElement.classList.add("is-tg");
+    try { t.ready(); t.expand(); } catch (e) { /* пусто */ }
+    tgCall(function (w) { if (tgAtLeast(w, "6.1")) { w.setHeaderColor("#0b0a14"); w.setBackgroundColor("#0b0a14"); } });
+    tgCall(function (w) { if (tgAtLeast(w, "7.10")) w.setBottomBarColor("#0b0a14"); });
+    tgCall(function (w) { if (tgAtLeast(w, "7.7")) w.disableVerticalSwipes(); });
+    tgCall(function (w) { if (tgAtLeast(w, "6.1")) w.BackButton.onClick(onTgBack); });
+
+    $("[data-checkout-label]").textContent = "Оформить заказ";
+    $(".drawer__note").textContent = "Заказ сразу придёт нам, ответим в этом чате.";
+    $("[data-request-submit] span").textContent = requestLabel();
+    $(".form__note").textContent = "Заявка сразу придёт нам, ответим в чате с ботом. Фото можно прислать боту следом.";
+
+    var u = t.initDataUnsafe && t.initDataUnsafe.user;
+    if (u && u.first_name && !field("name").value) field("name").value = u.first_name;
+    syncBackButton();
   }
 
   /* ---------- Появление при прокрутке ---------- */
@@ -647,11 +839,23 @@
   /* ---------- События ---------- */
   function bindEvents() {
     document.addEventListener("click", function (e) {
-      var t = e.target.closest("[data-add],[data-inc],[data-dec],[data-remove],[data-open],[data-cat],[data-open-cart],[data-close],[data-overlay],[data-modal-add],[data-copy-order],[data-checkout],[data-example],[data-request-from-search],[data-copy-request]");
+      // В Telegram: заказ уходит боту, а ссылки открываются средствами Telegram
+      if (getTg()) {
+        var checkoutBtn = e.target.closest("[data-checkout]");
+        if (checkoutBtn) { e.preventDefault(); submitOrderViaBot(checkoutBtn); return; }
+        var link = e.target.closest("a[href]");
+        var href = link ? link.getAttribute("href") : "";
+        if (/^https?:\/\//i.test(href)) { e.preventDefault(); openTelegram(href); return; }
+      }
+
+      var t = e.target.closest("[data-add],[data-inc],[data-dec],[data-remove],[data-open],[data-cat],[data-open-cart],[data-close],[data-overlay],[data-modal-add],[data-copy-order],[data-checkout],[data-example],[data-request-from-search],[data-copy-request],[data-success-close]");
       if (!t) {
         if (e.target === modal) closeLayer(modal);
+        else if (e.target === success) closeLayer(success);
         return;
       }
+
+      if (t.hasAttribute("data-success-close")) { closeLayer(success); return; }
 
       if (t.hasAttribute("data-add")) addToCart(t.getAttribute("data-add"), t);
       else if (t.hasAttribute("data-inc")) { var id1 = t.getAttribute("data-inc"); setQty(id1, qty(id1) + 1); }
@@ -717,7 +921,8 @@
 
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") return;
-      if (modal.classList.contains("is-open")) closeLayer(modal);
+      if (success.classList.contains("is-open")) closeLayer(success);
+      else if (modal.classList.contains("is-open")) closeLayer(modal);
       else if (drawer.classList.contains("is-open")) closeCart();
     });
 
@@ -748,4 +953,6 @@
   bindEvents();
   setupTilt();
   $$("body > main .reveal, .hero .reveal").forEach(observe);
+  initTelegram(); // если SDK Telegram уже загрузился
+  window.addEventListener("tg-sdk-ready", initTelegram);
 })();

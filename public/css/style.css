@@ -1505,6 +1505,85 @@ a.contact:hover .contact__arrow { transform: translate(3px, -3px); color: var(--
 
 .toast.is-visible { opacity: 1; translate: -50% 0; }
 
+/* ---------- Кнопка в процессе отправки ---------- */
+.btn.is-loading { pointer-events: none; color: transparent; }
+.btn.is-loading svg { opacity: 0; }
+
+.btn.is-loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2.5px solid var(--ink);
+  border-right-color: transparent;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Окно «Заказ отправлен» ---------- */
+.success {
+  position: fixed;
+  inset: 0;
+  z-index: 75;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(5, 4, 12, 0.72);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.35s, visibility 0.35s;
+}
+
+.success.is-open { opacity: 1; visibility: visible; }
+
+.success__card {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  width: min(420px, 100%);
+  padding: 34px 24px 24px;
+  border-radius: 28px;
+  text-align: center;
+  background: linear-gradient(180deg, #1a1631, #110f1e);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 40px 120px -40px rgba(139, 108, 255, 0.6);
+  scale: 0.9;
+  transition: scale 0.55s var(--ease-spring);
+}
+
+.success.is-open .success__card { scale: 1; }
+
+.success__check {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: var(--rainbow-conic);
+  box-shadow: 0 18px 44px -14px rgba(212, 108, 240, 0.9);
+  animation: spin-angle 6s linear infinite;
+}
+
+.success__check svg { width: 60px; height: 60px; stroke: var(--ink); stroke-width: 4.5; }
+.success__check path { stroke-dasharray: 40; stroke-dashoffset: 40; }
+.success.is-open .success__check path { animation: draw 0.6s var(--ease) 0.25s forwards; }
+
+@keyframes draw { to { stroke-dashoffset: 0; } }
+
+.success__title { font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: -0.02em; }
+.success__text { color: var(--muted); margin-bottom: 8px; }
+
+/* ---------- Мини-апп в Telegram ---------- */
+.is-tg .nav { display: none; }
+.is-tg .cart-btn { margin-left: auto; }
+
 /* ---------- Если в телефоне включено «Уменьшение движения» ---------- */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

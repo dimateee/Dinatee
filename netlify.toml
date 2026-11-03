@@ -1,7 +1,18 @@
-# Сайт статический: собирать ничего не нужно, Netlify просто публикует папку.
+# Сайт лежит в папке public (он же мини-апп в Telegram).
+# Функции бота лежат в netlify/functions и работают, только если сайт подключён к GitHub
+# (перетаскивание папки в Netlify Drop функции не запускает).
 [build]
-  publish = "."
+  publish = "public"
   command = ""
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  directory = "netlify/functions"
+
+# Секретные ключи сюда НЕ пишем. Их добавляют в интерфейсе Netlify:
+# Project configuration → Environment variables (см. README и .env.example).
 
 [[headers]]
   for = "/*"

@@ -14,6 +14,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <script>
+    // Telegram SDK грузим только внутри Telegram (мини-апп), обычный сайт его не ждёт
+    (function () {
+      var inTelegram = /tgWebApp/.test(location.hash);
+      try { inTelegram = inTelegram || !!sessionStorage.getItem("__telegram__initParams"); } catch (e) {}
+      if (!inTelegram) return;
+      var s = document.createElement("script");
+      s.src = "https://telegram.org/js/telegram-web-app.js";
+      s.onload = function () { window.dispatchEvent(new Event("tg-sdk-ready")); };
+      document.head.appendChild(s);
+    })();
+  </script>
 </head>
 <body>
   <!-- Радужные «ауры» на фоне -->
@@ -248,7 +260,7 @@
       <div class="total"><span>Итого</span><strong data-cart-total>0 ₽</strong></div>
       <a class="btn btn--rainbow btn--block" href="#" target="_blank" rel="noopener" data-checkout>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4 3 11l6 2.5L11.5 20 21 4Z"/><path d="m9 13.5 4-3.5"/></svg>
-        Оформить в Telegram
+        <span data-checkout-label>Оформить в Telegram</span>
       </a>
       <button class="btn btn--ghost btn--block" type="button" data-copy-order>Скопировать заказ</button>
       <p class="drawer__note">Откроется Telegram с готовым сообщением: просто отправьте его.</p>
@@ -269,6 +281,18 @@
         <div class="price price--lg" data-modal-price></div>
         <button class="btn btn--rainbow btn--block" type="button" data-modal-add>В корзину</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Окно «Заказ отправлен» (в мини-аппе Telegram) -->
+  <div class="success" data-success role="dialog" aria-modal="true" aria-labelledby="success-title" aria-hidden="true">
+    <div class="success__card">
+      <div class="success__check" aria-hidden="true">
+        <svg viewBox="0 0 52 52"><path d="m15 27 7 7 15-16"/></svg>
+      </div>
+      <h3 class="success__title" id="success-title" data-success-title>Заказ отправлен!</h3>
+      <p class="success__text" data-success-text>Мы получили заказ и скоро напишем вам.</p>
+      <button class="btn btn--rainbow btn--block" type="button" data-success-close>Продолжить покупки</button>
     </div>
   </div>
 
