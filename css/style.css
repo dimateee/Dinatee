@@ -79,7 +79,7 @@ body.is-locked { overflow: hidden; }
 img { display: block; max-width: 100%; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; padding: 0; }
-input { font: inherit; color: inherit; }
+input, textarea { font: inherit; color: inherit; }
 h1, h2, h3, p { margin: 0; }
 ul, ol { margin: 0; padding: 0; list-style: none; }
 svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
@@ -360,7 +360,7 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
   100% { transform: scale(1); }
 }
 
-@media (min-width: 760px) {
+@media (min-width: 900px) {
   .nav { display: flex; }
   .cart-btn { margin-left: 8px; }
 }
@@ -911,7 +911,16 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .stepper--sm button { font-size: 16px; border-radius: 12px; }
 .stepper--sm button:hover { background: rgba(255, 255, 255, 0.1); }
 
-.empty { padding: 40px 0; text-align: center; color: var(--muted); }
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  padding: 40px 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty .btn { white-space: normal; text-align: center; }
 
 @media (min-width: 760px) {
   .card { padding: 10px; }
@@ -919,6 +928,175 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
   .card__title { font-size: 17px; }
   .price strong { font-size: 18px; }
 }
+
+/* ---------- Карточка «Не нашли?» в каталоге ---------- */
+.card--request {
+  grid-column: 1 / -1;
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  padding: 22px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(212, 108, 240, 0.22), transparent 55%),
+    radial-gradient(circle at 100% 100%, rgba(91, 140, 255, 0.2), transparent 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025));
+}
+
+.card--request__icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: var(--rainbow-conic);
+  color: var(--ink);
+  font-size: 26px;
+  animation: spin-angle 8s linear infinite;
+  box-shadow: 0 12px 30px -12px rgba(212, 108, 240, 0.8);
+}
+
+.card--request__text { display: grid; gap: 4px; }
+.card--request__title { font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 1.2; }
+.card--request__sub { color: var(--muted); }
+.card--request__btn { pointer-events: none; }
+
+@media (min-width: 760px) {
+  .card--request {
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 24px;
+    padding: 26px 30px;
+  }
+}
+
+/* ---------- Под заказ ---------- */
+.request {
+  display: grid;
+  gap: 28px;
+  align-items: start;
+}
+
+.request__intro { display: grid; gap: 14px; align-content: start; }
+.request__intro .section__lead { margin-top: 2px; }
+
+.request__steps { display: grid; gap: 10px; margin-top: 10px; }
+
+.request__steps li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-weight: 700;
+}
+
+.request__steps span {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--c);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  box-shadow: 0 8px 22px -10px var(--c);
+}
+
+@media (min-width: 960px) {
+  .request { grid-template-columns: 0.85fr 1.15fr; gap: 56px; }
+  .request__intro { position: sticky; top: calc(var(--header-h) + 32px); }
+}
+
+.form {
+  position: relative;
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border-strong);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 40px 100px -50px rgba(139, 108, 255, 0.6);
+}
+
+.form::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 28px;
+  right: 28px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--rainbow);
+}
+
+.form.is-shaking { animation: shake 0.45s var(--ease); }
+
+@keyframes shake {
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+
+@media (min-width: 760px) { .form { padding: 32px; gap: 18px; } }
+
+.form__row { display: grid; gap: 16px 12px; align-items: end; }
+@media (min-width: 360px) { .form__row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+
+.form__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.chip--sm { height: 34px; padding: 0 14px; font-size: 13px; }
+
+.field { position: relative; display: grid; gap: 8px; min-width: 0; }
+.field__label { font-size: 14px; font-weight: 700; }
+.field__label .req { color: var(--c-coral); }
+.field__hint { font-size: 13px; color: var(--muted); }
+.field__error { font-size: 13px; font-weight: 700; color: var(--c-coral); }
+
+.field__input {
+  width: 100%;
+  min-height: 50px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border-strong);
+  background: rgba(11, 10, 20, 0.55);
+  outline: none;
+  font-size: 16px; /* 16px: iPhone не увеличивает страницу при вводе */
+  line-height: 1.4;
+  transition: border-color 0.25s, box-shadow 0.3s var(--ease), background-color 0.25s;
+}
+
+.field__input::placeholder { color: rgba(169, 165, 199, 0.65); }
+.field__input:hover { border-color: rgba(255, 255, 255, 0.24); }
+
+/* радужная рамка при вводе */
+.field__input:focus {
+  border-color: transparent;
+  background: linear-gradient(#141126, #141126) padding-box, var(--rainbow) border-box;
+  box-shadow: 0 0 0 4px rgba(139, 108, 255, 0.16), 0 12px 30px -16px rgba(212, 108, 240, 0.7);
+}
+
+textarea.field__input { min-height: 120px; resize: vertical; }
+
+.field.is-invalid .field__input {
+  border-color: var(--c-coral);
+  background: rgba(11, 10, 20, 0.55);
+  box-shadow: 0 0 0 4px rgba(255, 138, 122, 0.16);
+}
+
+.form__actions { display: grid; gap: 10px; margin-top: 4px; }
+@media (min-width: 560px) { .form__actions { grid-template-columns: 1.5fr 1fr; } }
+
+.form__note { font-size: 13px; color: var(--muted); text-align: center; }
+
+.btn.is-sent { animation: pop 0.5s var(--ease-spring), shimmer 6s ease-in-out infinite alternate; }
 
 /* ---------- Шаги ---------- */
 .steps {

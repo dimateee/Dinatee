@@ -61,6 +61,9 @@
     plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
     minus: '<svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>',
     arrow: '<svg viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></svg>',
+    next: '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+    search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M11 8v6M8 11h6"/></svg>',
+    check: '<svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
     telegram: '<svg viewBox="0 0 24 24"><path d="M21 4 3 11l6 2.5L11.5 20 21 4Z"/><path d="m9 13.5 4-3.5"/></svg>',
     channel: '<svg viewBox="0 0 24 24"><path d="M4 10v4a1 1 0 0 0 1 1h3l6 4V5L8 9H5a1 1 0 0 0-1 1Z"/><path d="M18 9a4 4 0 0 1 0 6"/></svg>',
     email: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg>',
@@ -203,10 +206,19 @@
     "</article>";
   }
 
+  function requestCardHTML(i) {
+    return '<a class="card card--request reveal" href="#request" style="--d:' + (Math.min(i, 7) * 0.06).toFixed(2) + 's">' +
+      '<span class="card--request__icon" aria-hidden="true">' + ICONS.search + "</span>" +
+      '<span class="card--request__text"><span class="card--request__title">Не нашли нужное?</span>' +
+      '<span class="card--request__sub">Найдём под заказ: опишите вещь, и мы ответим в Telegram.</span></span>' +
+      '<span class="btn btn--ghost card--request__btn">Оставить заявку' + ICONS.next + "</span></a>";
+  }
+
   function renderGrid() {
     var list = visibleProducts();
-    grid.innerHTML = list.map(cardHTML).join("");
+    grid.innerHTML = list.map(cardHTML).join("") + (list.length ? requestCardHTML(list.length) : "");
     $("[data-empty]").hidden = list.length > 0;
+    $("[data-empty-query]").textContent = state.query.trim() || "вещь";
     $$("img", grid).forEach(attachImgFallback);
     $$(".reveal", grid).forEach(observe);
   }
@@ -445,6 +457,152 @@
     });
   }
 
+  /* ---------- Заявка «Под заказ» ---------- */
+  var REQUEST_KEY = "pyexdg-request";
+  var FIELDS = ["item", "brand", "size", "color", "budget", "name", "link", "details"];
+  var form = $("[data-request-form]");
+
+  // namedItem, а не elements[name]: у коллекции есть свой метод item()
+  function field(name) { return form.elements.namedItem(name); }
+
+  function renderRequestExamples() {
+    var words = (Array.isArray(SHOP.requestExamples) ? SHOP.requestExamples : []).concat(["Другое"]);
+    $("[data-request-examples]").innerHTML = words.map(function (w) {
+      return '<button class="chip chip--sm" type="button" data-example="' + esc(w) + '">' + esc(w) + "</button>";
+    }).join("");
+    syncExampleChips();
+  }
+
+  function syncExampleChips() {
+    var v = field("item").value.trim().toLowerCase();
+    $$("[data-example]", form).forEach(function (chip) {
+      chip.classList.toggle("is-active", chip.getAttribute("data-example").toLowerCase() === v);
+    });
+  }
+
+  function requestData() {
+    var d = {};
+    FIELDS.forEach(function (k) { d[k] = String(field(k).value || "").replace(/\s+$/g, "").replace(/^\s+/g, ""); });
+    d.budget = d.budget.replace(/\D/g, "");
+    return d;
+  }
+
+  function requestText() {
+    var d = requestData();
+    var lines = ["Здравствуйте! Хочу заказать вещь в магазине " + shopName + ".", ""];
+    function add(label, value) { if (value) lines.push(label + ": " + value); }
+    add("Что нужно", d.item);
+    add("Бренд / модель", d.brand);
+    add("Размер", d.size);
+    add("Цвет", d.color);
+    if (d.budget) lines.push("Бюджет: до " + money(d.budget));
+    add("Пример", d.link);
+    add("Подробности", d.details);
+    add("Имя", d.name);
+    return lines.join("\n");
+  }
+
+  function saveDraft() {
+    try {
+      var raw = {};
+      FIELDS.forEach(function (k) { raw[k] = field(k).value; });
+      localStorage.setItem(REQUEST_KEY, JSON.stringify(raw));
+    } catch (e) { /* без черновика тоже работает */ }
+  }
+
+  function loadDraft() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(REQUEST_KEY) || "{}");
+      FIELDS.forEach(function (k) { if (typeof raw[k] === "string") field(k).value = raw[k]; });
+    } catch (e) { /* пусто */ }
+  }
+
+  function setItemError(show) {
+    var input = field("item");
+    input.closest(".field").classList.toggle("is-invalid", show);
+    input.setAttribute("aria-invalid", show ? "true" : "false");
+    $('[data-error-for="item"]', form).hidden = !show;
+  }
+
+  function validateRequest() {
+    var ok = field("item").value.trim().length >= 2;
+    setItemError(!ok);
+    if (!ok) {
+      form.classList.remove("is-shaking");
+      void form.offsetWidth;
+      form.classList.add("is-shaking");
+      field("item").focus();
+    }
+    return ok;
+  }
+
+  function openExternal(url) {
+    var a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  var sentTimer;
+  function showSent() {
+    var btn = $("[data-request-submit]");
+    var label = $("span", btn);
+    btn.classList.add("is-sent");
+    label.textContent = "Открываем Telegram";
+    clearTimeout(sentTimer);
+    sentTimer = setTimeout(function () {
+      btn.classList.remove("is-sent");
+      label.textContent = "Отправить заявку в Telegram";
+    }, 2200);
+  }
+
+  function sendRequest() {
+    if (!validateRequest()) return;
+    var text = requestText();
+    var user = telegramUsername(contacts.telegram);
+    if (!user) {
+      copy(text).then(
+        function () { toast("Заявка скопирована. Telegram для заказов скоро появится"); },
+        function () { toast("Telegram для заказов скоро появится"); }
+      );
+      return;
+    }
+    openExternal("https://t.me/" + encodeURIComponent(user) + "?text=" + encodeURIComponent(text));
+    showSent();
+    toast("Заявка готова: отправьте её в Telegram");
+  }
+
+  function requestFromSearch() {
+    field("item").value = state.query.trim();
+    setItemError(false);
+    syncExampleChips();
+    saveDraft();
+    $("#request").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    setTimeout(function () { field("brand").focus({ preventScroll: true }); }, reduceMotion ? 0 : 600);
+  }
+
+  function bindRequest() {
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      sendRequest();
+    });
+    form.addEventListener("input", function (e) {
+      if (e.target === field("budget")) {
+        var digits = e.target.value.replace(/\D/g, "");
+        if (digits !== e.target.value) e.target.value = digits;
+      }
+      if (e.target === field("item")) {
+        if (e.target.value.trim().length >= 2) setItemError(false);
+        syncExampleChips();
+      }
+      saveDraft();
+    });
+    form.addEventListener("animationend", function (e) { if (e.target === form) form.classList.remove("is-shaking"); });
+  }
+
   /* ---------- Появление при прокрутке ---------- */
   var io = "IntersectionObserver" in window && !reduceMotion
     ? new IntersectionObserver(function (entries) {
@@ -470,8 +628,10 @@
       var r = card.getBoundingClientRect();
       var x = (e.clientX - r.left) / r.width;
       var y = (e.clientY - r.top) / r.height;
-      card.style.setProperty("--ry", ((x - 0.5) * 8).toFixed(2) + "deg");
-      card.style.setProperty("--rx", ((0.5 - y) * 8).toFixed(2) + "deg");
+      if (!card.classList.contains("card--request")) { // широкую карточку не наклоняем
+        card.style.setProperty("--ry", ((x - 0.5) * 8).toFixed(2) + "deg");
+        card.style.setProperty("--rx", ((0.5 - y) * 8).toFixed(2) + "deg");
+      }
       card.style.setProperty("--mx", (x * 100).toFixed(1) + "%");
       card.style.setProperty("--my", (y * 100).toFixed(1) + "%");
     });
@@ -487,7 +647,7 @@
   /* ---------- События ---------- */
   function bindEvents() {
     document.addEventListener("click", function (e) {
-      var t = e.target.closest("[data-add],[data-inc],[data-dec],[data-remove],[data-open],[data-cat],[data-open-cart],[data-close],[data-overlay],[data-modal-add],[data-copy-order],[data-checkout]");
+      var t = e.target.closest("[data-add],[data-inc],[data-dec],[data-remove],[data-open],[data-cat],[data-open-cart],[data-close],[data-overlay],[data-modal-add],[data-copy-order],[data-checkout],[data-example],[data-request-from-search],[data-copy-request]");
       if (!t) {
         if (e.target === modal) closeLayer(modal);
         return;
@@ -520,6 +680,22 @@
       }
       else if (t.hasAttribute("data-copy-order")) {
         copy(orderText()).then(function () { toast("Заказ скопирован"); }, function () { toast("Не получилось скопировать"); });
+      }
+      else if (t.hasAttribute("data-example")) {
+        var word = t.getAttribute("data-example");
+        var input = field("item");
+        input.value = word === "Другое" ? "" : word;
+        if (word !== "Другое") setItemError(false);
+        syncExampleChips();
+        saveDraft();
+        input.focus({ preventScroll: true });
+        if (word === "Другое") t.classList.add("is-active");
+      }
+      else if (t.hasAttribute("data-request-from-search")) requestFromSearch();
+      else if (t.hasAttribute("data-copy-request")) {
+        if (validateRequest()) {
+          copy(requestText()).then(function () { toast("Текст заявки скопирован"); }, function () { toast("Не получилось скопировать"); });
+        }
       }
       else if (t.hasAttribute("data-checkout") && t.hasAttribute("data-no-tg")) {
         e.preventDefault();
@@ -565,6 +741,9 @@
   renderFilters();
   renderGrid();
   renderContacts();
+  loadDraft();
+  renderRequestExamples();
+  bindRequest();
   updateCartUI();
   bindEvents();
   setupTilt();

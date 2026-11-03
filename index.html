@@ -32,6 +32,7 @@
       </a>
       <nav class="nav" aria-label="Разделы">
         <a href="#catalog">Каталог</a>
+        <a href="#request">Под заказ</a>
         <a href="#how">Как заказать</a>
         <a href="#contacts">Контакты</a>
       </nav>
@@ -94,7 +95,84 @@
         </div>
 
         <div class="grid" data-grid></div>
-        <p class="empty" data-empty hidden>Ничего не нашлось. Попробуйте другой запрос.</p>
+        <div class="empty" data-empty hidden>
+          <p>Такого пока нет в каталоге. Можем найти под заказ.</p>
+          <button class="btn btn--rainbow" type="button" data-request-from-search>
+            Найти «<span data-empty-query></span>» под заказ
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Под заказ -->
+    <section class="section" id="request">
+      <div class="container request">
+        <div class="request__intro reveal">
+          <p class="eyebrow">Под заказ</p>
+          <h2 class="section__title">Не нашли нужное? <span class="text-rainbow">Найдём</span></h2>
+          <p class="section__lead">Опишите вещь, которую ищете: ремень, сумку, кроссовки или что-то ещё. Мы подберём её, посчитаем цену и ответим в Telegram.</p>
+          <ol class="request__steps">
+            <li style="--c: var(--c-orange)"><span>1</span>Опишите вещь</li>
+            <li style="--c: var(--c-teal)"><span>2</span>Мы подберём и посчитаем цену</li>
+            <li style="--c: var(--c-magenta)"><span>3</span>Ответим в Telegram</li>
+          </ol>
+        </div>
+
+        <form class="form reveal" style="--d: 0.1s" data-request-form novalidate>
+          <div class="field">
+            <label class="field__label" for="rq-item">Что нужно <span class="req" aria-hidden="true">*</span></label>
+            <div class="form__chips" data-request-examples></div>
+            <input class="field__input" id="rq-item" name="item" type="text" maxlength="80" placeholder="Например: кожаный ремень" autocomplete="off" required aria-describedby="rq-item-error">
+            <p class="field__error" id="rq-item-error" data-error-for="item" hidden>Напишите, какая вещь нужна</p>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="rq-brand">Бренд или модель</label>
+            <input class="field__input" id="rq-brand" name="brand" type="text" maxlength="80" placeholder="Если есть пожелания">
+          </div>
+
+          <div class="form__row">
+            <div class="field">
+              <label class="field__label" for="rq-size">Размер</label>
+              <input class="field__input" id="rq-size" name="size" type="text" maxlength="40" placeholder="M, 42, 110 см" title="Например: M, 42 или 110 см">
+            </div>
+            <div class="field">
+              <label class="field__label" for="rq-color">Цвет</label>
+              <input class="field__input" id="rq-color" name="color" type="text" maxlength="40" placeholder="Чёрный">
+            </div>
+          </div>
+
+          <div class="form__row">
+            <div class="field">
+              <label class="field__label" for="rq-budget">Бюджет до, ₽</label>
+              <input class="field__input" id="rq-budget" name="budget" type="text" inputmode="numeric" maxlength="9" placeholder="5000">
+            </div>
+            <div class="field">
+              <label class="field__label" for="rq-name">Ваше имя</label>
+              <input class="field__input" id="rq-name" name="name" type="text" maxlength="40" placeholder="Имя" autocomplete="given-name">
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="rq-link">Ссылка на пример</label>
+            <input class="field__input" id="rq-link" name="link" type="text" inputmode="url" maxlength="300" placeholder="https://..." autocomplete="off">
+            <p class="field__hint">Ссылка на фото или объявление. Фото можно прислать и следом в чате.</p>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="rq-details">Подробности</label>
+            <textarea class="field__input" id="rq-details" name="details" rows="4" maxlength="1000" placeholder="Материал, длина, для чего нужна, к какому сроку..."></textarea>
+          </div>
+
+          <div class="form__actions">
+            <button class="btn btn--rainbow btn--block" type="submit" data-request-submit>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4 3 11l6 2.5L11.5 20 21 4Z"/><path d="m9 13.5 4-3.5"/></svg>
+              <span>Отправить заявку в Telegram</span>
+            </button>
+            <button class="btn btn--ghost btn--block" type="button" data-copy-request>Скопировать текст</button>
+          </div>
+          <p class="form__note">Откроется Telegram с готовой заявкой: просто отправьте её. Фото можно приложить там же.</p>
+        </form>
       </div>
     </section>
 
