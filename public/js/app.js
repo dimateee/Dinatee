@@ -234,9 +234,23 @@
     }, 220);
   }
 
+  // одна и та же карточка может быть и на Главной, и в Каталоге
   function updateCardAction(id) {
-    var card = grid.querySelector('.card[data-id="' + cssEscape(id) + '"]');
-    if (card) $(".card__action", card).innerHTML = actionHTML(byId[id]);
+    $$('.card[data-id="' + cssEscape(id) + '"]').forEach(function (card) {
+      $(".card__action", card).innerHTML = actionHTML(byId[id]);
+    });
+  }
+
+  /* ---------- Главная: хиты и новинки ---------- */
+  var featuredEl = $("[data-featured]");
+
+  function renderFeatured() {
+    var picks = products.filter(function (p) { return !p.soldOut && p.badge; })
+      .concat(products.filter(function (p) { return !p.soldOut && !p.badge; }))
+      .slice(0, 4);
+    featuredEl.innerHTML = picks.map(cardHTML).join("");
+    $$("img", featuredEl).forEach(attachImgFallback);
+    $$(".reveal", featuredEl).forEach(observe);
   }
 
   function cssEscape(s) {
@@ -250,8 +264,6 @@
   }
 
   /* ---------- Корзина: интерфейс ---------- */
-  var drawer = $("[data-drawer]");
-  var overlay = $("[data-overlay]");
   var modal = $("[data-modal]");
   var success = $("[data-success]");
   var lastFocus = null;
@@ -266,12 +278,16 @@
 
   function updateCartUI() {
     var count = cartCount();
-    $("[data-cart-count]").textContent = count;
+    $$("[data-cart-count]").forEach(function (el) {
+      el.textContent = count;
+      el.classList.toggle("is-empty", count === 0);
+    });
     var ids = Object.keys(cart);
     $("[data-cart-empty]").hidden = ids.length > 0;
     $("[data-cart-foot]").hidden = ids.length === 0;
     $("[data-cart-items]").hidden = ids.length === 0;
     $("[data-cart-total]").textContent = money(cartTotal());
+    $("[data-cart-summary]").textContent = count ? plural(count, "товар", "товара", "товаров") : "";
 
     $("[data-cart-items]").innerHTML = ids.map(function (id) {
       var p = byId[id];
@@ -302,17 +318,32 @@
     if (modal.classList.contains("is-open")) syncModalButton();
   }
 
+  function plural(n, one, few, many) {
+    var m10 = n % 10, m100 = n % 100;
+    var word = m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many;
+    return n + " " + word;
+  }
+
+  function isShown(el) { return !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden"; }
+
+  // куда «летит» товар: значок корзины во вкладках (телефон) или кнопка в шапке
+  function cartTarget() {
+    var tab = $('.tabbar [data-tab="cart"] .tabbar__icon');
+    return isShown(tab) ? tab : $(".cart-btn");
+  }
+
   function bumpCart() {
-    var btn = $(".cart-btn");
+    var btn = cartTarget();
+    if (!btn) return;
     btn.classList.remove("is-bump");
     void btn.offsetWidth;
     btn.classList.add("is-bump");
   }
 
   function flyToCart(fromEl) {
-    if (reduceMotion || !fromEl || !fromEl.animate) { bumpCart(); return; }
+    if (reduceMotion || !fromEl || !fromEl.animate || !cartTarget()) { bumpCart(); return; }
     var from = fromEl.getBoundingClientRect();
-    var to = $(".cart-btn__count").getBoundingClientRect();
+    var to = cartTarget().getBoundingClientRect();
     var dot = document.createElement("span");
     dot.className = "fly";
     dot.style.left = from.left + from.width / 2 + "px";
@@ -336,7 +367,7 @@
   }
 
   function anyLayerOpen() {
-    return drawer.classList.contains("is-open") || modal.classList.contains("is-open") || success.classList.contains("is-open");
+    return modal.classList.contains("is-open") || success.classList.contains("is-open");
   }
 
   function openLayer(el) {
@@ -359,13 +390,70 @@
 
   function openCart() {
     if (modal.classList.contains("is-open")) closeLayer(modal);
-    overlay.classList.add("is-open");
-    openLayer(drawer);
+    go("cart");
   }
 
-  function closeCart() {
-    overlay.classList.remove("is-open");
-    closeLayer(drawer);
+  /* ---------- Экраны (вкладки) ----------
+     Главная · Каталог · Заявка · Корзина · Контакты.
+     На сайте экран хранится в адресе (#catalog и т. д.), поэтому работает кнопка «Назад»
+     браузера. В Telegram адрес не трогаем: там в нём параметры запуска мини-аппа. */
+  var SCREENS = ["home", "catalog", "request", "cart", "contacts"];
+  var ALIASES = { "": "home", top: "home", how: "home", featured: "home" };
+  var screenEls = {};
+  $$("[data-screen]").forEach(function (el) { screenEls[el.getAttribute("data-screen")] = el; });
+  var tabbar = $("[data-tabbar]");
+  var currentScreen = null;
+  var scrollMemo = {};
+  var useHash = !window.__PYEXDG_TG;
+
+  function screenOf(target) {
+    var name = Object.prototype.hasOwnProperty.call(ALIASES, target) ? ALIASES[target] : target;
+    return SCREENS.indexOf(name) === -1 ? "home" : name;
+  }
+
+  function screenFromHash() { return screenOf(location.hash.replace(/^#/, "")); }
+
+  function scrollToY(y, smooth) {
+    window.scrollTo({ top: y, behavior: smooth && !reduceMotion ? "smooth" : "auto" });
+  }
+
+  function showScreen(name, opts) {
+    opts = opts || {};
+    name = screenOf(name);
+    if (name === currentScreen && !opts.force) {
+      // повторное нажатие на текущую вкладку: наверх или к нужному блоку
+      if (opts.anchor) $("#" + opts.anchor).scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
+      else scrollToY(0, true);
+      return;
+    }
+    if (currentScreen) scrollMemo[currentScreen] = window.scrollY;
+    SCREENS.forEach(function (key) {
+      var el = screenEls[key];
+      if (!el) return;
+      var on = key === name;
+      el.hidden = !on;
+      el.classList.toggle("is-active", on);
+    });
+    currentScreen = name;
+    document.documentElement.setAttribute("data-active-screen", name);
+    $$("[data-tab]").forEach(function (a) {
+      var on = a.getAttribute("data-tab") === name;
+      a.classList.toggle("is-active", on);
+      if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
+    if (tabbar) tabbar.style.setProperty("--tab-index", SCREENS.indexOf(name));
+    if (opts.anchor) $("#" + opts.anchor).scrollIntoView({ behavior: "auto" });
+    else scrollToY(opts.restore ? scrollMemo[name] || 0 : 0, false);
+    syncBackButton();
+  }
+
+  function go(target) {
+    var name = screenOf(target);
+    var anchor = target === "how" || target === "featured" ? target : null;
+    if (useHash && name !== currentScreen) {
+      history.pushState({ screen: name }, "", name === "home" ? location.pathname + location.search : "#" + name);
+    }
+    showScreen(name, { anchor: anchor, restore: !anchor });
   }
 
   /* ---------- Окно товара ---------- */
@@ -595,8 +683,8 @@
     setItemError(false);
     syncExampleChips();
     saveDraft();
-    $("#request").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
-    setTimeout(function () { field("brand").focus({ preventScroll: true }); }, reduceMotion ? 0 : 600);
+    go("request");
+    setTimeout(function () { field("brand").focus({ preventScroll: true }); }, 350);
   }
 
   function bindRequest() {
@@ -648,14 +736,14 @@
   function syncBackButton() {
     tgCall(function (t) {
       if (!tgAtLeast(t, "6.1")) return;
-      if (anyLayerOpen()) t.BackButton.show(); else t.BackButton.hide();
+      if (anyLayerOpen() || (currentScreen && currentScreen !== "home")) t.BackButton.show(); else t.BackButton.hide();
     });
   }
 
   function onTgBack() {
     if (success.classList.contains("is-open")) closeLayer(success);
     else if (modal.classList.contains("is-open")) closeLayer(modal);
-    else if (drawer.classList.contains("is-open")) closeCart();
+    else go("home");
   }
 
   function openTelegram(url) {
@@ -730,7 +818,6 @@
         saveCart();
         updateCartUI();
         ids.forEach(updateCardAction);
-        closeCart();
         haptic("success");
         showSuccess("Заказ отправлен!", res.buyerNotified
           ? "Мы получили заказ и прислали подтверждение в чат с ботом. Скоро напишем, чтобы уточнить детали."
@@ -786,7 +873,7 @@
     tgCall(function (w) { if (tgAtLeast(w, "6.1")) w.BackButton.onClick(onTgBack); });
 
     $("[data-checkout-label]").textContent = "Оформить заказ";
-    $(".drawer__note").textContent = "Заказ сразу придёт нам, ответим в этом чате.";
+    $(".cart-note").textContent = "Заказ сразу придёт нам, ответим в этом чате.";
     $("[data-request-submit] span").textContent = requestLabel();
     $(".form__note").textContent = "Заявка сразу придёт нам, ответим в чате с ботом. Фото можно прислать боту следом.";
 
@@ -814,7 +901,11 @@
   /* ---------- Наклон карточек за курсором ---------- */
   function setupTilt() {
     if (!finePointer || reduceMotion) return;
-    grid.addEventListener("pointermove", function (e) {
+    [grid, featuredEl].forEach(bindTilt);
+  }
+
+  function bindTilt(container) {
+    container.addEventListener("pointermove", function (e) {
       var card = e.target.closest(".card");
       if (!card) return;
       var r = card.getBoundingClientRect();
@@ -827,7 +918,7 @@
       card.style.setProperty("--mx", (x * 100).toFixed(1) + "%");
       card.style.setProperty("--my", (y * 100).toFixed(1) + "%");
     });
-    grid.addEventListener("pointerout", function (e) {
+    container.addEventListener("pointerout", function (e) {
       var card = e.target.closest(".card");
       if (card && !card.contains(e.relatedTarget)) {
         card.style.setProperty("--rx", "0deg");
@@ -848,14 +939,27 @@
         if (/^https?:\/\//i.test(href)) { e.preventDefault(); openTelegram(href); return; }
       }
 
-      var t = e.target.closest("[data-add],[data-inc],[data-dec],[data-remove],[data-open],[data-cat],[data-open-cart],[data-close],[data-overlay],[data-modal-add],[data-copy-order],[data-checkout],[data-example],[data-request-from-search],[data-copy-request],[data-success-close]");
+      // Внутренние ссылки (#catalog, #cart…) переключают экран
+      var inner = e.target.closest('a[href^="#"]');
+      if (inner && !inner.hasAttribute("data-checkout") && inner.getAttribute("href").length > 1) {
+        e.preventDefault();
+        if (modal.classList.contains("is-open")) closeLayer(modal);
+        go(inner.getAttribute("href").slice(1));
+        return;
+      }
+
+      var t = e.target.closest("[data-add],[data-inc],[data-dec],[data-remove],[data-open],[data-cat],[data-open-cart],[data-close],[data-modal-add],[data-copy-order],[data-checkout],[data-example],[data-request-from-search],[data-copy-request],[data-success-close]");
       if (!t) {
         if (e.target === modal) closeLayer(modal);
         else if (e.target === success) closeLayer(success);
         return;
       }
 
-      if (t.hasAttribute("data-success-close")) { closeLayer(success); return; }
+      if (t.hasAttribute("data-success-close")) {
+        closeLayer(success);
+        go("catalog");
+        return;
+      }
 
       if (t.hasAttribute("data-add")) addToCart(t.getAttribute("data-add"), t);
       else if (t.hasAttribute("data-inc")) { var id1 = t.getAttribute("data-inc"); setQty(id1, qty(id1) + 1); }
@@ -875,10 +979,7 @@
         rerenderGrid();
       }
       else if (t.hasAttribute("data-open-cart")) openCart();
-      else if (t.hasAttribute("data-overlay")) closeCart();
-      else if (t.hasAttribute("data-close")) {
-        if (t.closest("[data-drawer]")) closeCart(); else closeLayer(modal);
-      }
+      else if (t.hasAttribute("data-close")) closeLayer(modal);
       else if (t.hasAttribute("data-modal-add")) {
         if (modalId) addToCart(modalId, t);
       }
@@ -923,7 +1024,13 @@
       if (e.key !== "Escape") return;
       if (success.classList.contains("is-open")) closeLayer(success);
       else if (modal.classList.contains("is-open")) closeLayer(modal);
-      else if (drawer.classList.contains("is-open")) closeCart();
+    });
+
+    // кнопки «Назад» / «Вперёд» браузера переключают экраны
+    window.addEventListener("popstate", function () {
+      if (!useHash) return;
+      if (modal.classList.contains("is-open")) closeLayer(modal);
+      showScreen(screenFromHash(), { restore: true });
     });
 
     var header = $(".header");
@@ -937,12 +1044,15 @@
       cart = loadCart();
       updateCartUI();
       renderGrid();
+      renderFeatured();
     });
   }
 
   /* ---------- Запуск ---------- */
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
   fillTexts();
   renderHeroCards();
+  renderFeatured();
   renderFilters();
   renderGrid();
   renderContacts();
@@ -953,6 +1063,7 @@
   bindEvents();
   setupTilt();
   $$("body > main .reveal, .hero .reveal").forEach(observe);
+  showScreen(useHash ? screenFromHash() : "home", { force: true });
   initTelegram(); // если SDK Telegram уже загрузился
   window.addEventListener("tg-sdk-ready", initTelegram);
 })();

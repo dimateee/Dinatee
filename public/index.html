@@ -19,6 +19,7 @@
     (function () {
       var inTelegram = /tgWebApp/.test(location.hash);
       try { inTelegram = inTelegram || !!sessionStorage.getItem("__telegram__initParams"); } catch (e) {}
+      window.__PYEXDG_TG = inTelegram;
       if (!inTelegram) return;
       var s = document.createElement("script");
       s.src = "https://telegram.org/js/telegram-web-app.js";
@@ -38,25 +39,26 @@
 
   <header class="header" id="top">
     <div class="container header__inner">
-      <a class="logo" href="#top" aria-label="На главную">
+      <a class="logo" href="#home" aria-label="На главную">
         <span class="logo__mark" aria-hidden="true"><span>P</span></span>
         <span class="logo__text" data-shop-name>Pyexdg</span>
       </a>
       <nav class="nav" aria-label="Разделы">
-        <a href="#catalog">Каталог</a>
-        <a href="#request">Под заказ</a>
-        <a href="#how">Как заказать</a>
-        <a href="#contacts">Контакты</a>
+        <a href="#home" data-tab="home">Главная</a>
+        <a href="#catalog" data-tab="catalog">Каталог</a>
+        <a href="#request" data-tab="request">Заявка</a>
+        <a href="#contacts" data-tab="contacts">Контакты</a>
       </nav>
-      <button class="cart-btn" type="button" data-open-cart aria-label="Открыть корзину">
+      <a class="cart-btn" href="#cart" data-tab="cart" aria-label="Корзина">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l-1.2 11.1a2 2 0 0 1-2 1.9H9.2a2 2 0 0 1-2-1.9L6 7Z"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/></svg>
         <span class="cart-btn__label">Корзина</span>
         <span class="cart-btn__count" data-cart-count aria-live="polite">0</span>
-      </button>
+      </a>
     </div>
   </header>
 
   <main>
+    <div class="screen is-active" data-screen="home">
     <!-- Главный экран -->
     <section class="hero">
       <div class="container hero__inner">
@@ -70,7 +72,7 @@
               Смотреть каталог
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             </a>
-            <a class="btn btn--ghost" href="#contacts">Написать нам</a>
+            <a class="btn btn--ghost" href="#request">Найти под заказ</a>
           </div>
           <ul class="hero__chips reveal" style="--d: 0.65s">
             <li><span class="dot" style="--c: var(--c-orange)"></span>Заказ в пару кликов</li>
@@ -90,6 +92,60 @@
       <div class="marquee__track" data-marquee></div>
     </div>
 
+    <!-- Популярное -->
+    <section class="section section--featured" id="featured">
+      <div class="container">
+        <div class="section__head section__head--row reveal">
+          <div>
+            <p class="eyebrow">Популярное</p>
+            <h2 class="section__title">Хиты и <span class="text-rainbow">новинки</span></h2>
+          </div>
+          <a class="btn btn--ghost section__more" href="#catalog">Весь каталог <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+        <div class="grid grid--featured" data-featured></div>
+      </div>
+    </section>
+
+    <!-- Как заказать -->
+    <section class="section" id="how">
+      <div class="container">
+        <div class="section__head reveal">
+          <p class="eyebrow">Как заказать</p>
+          <h2 class="section__title">Три шага до <span class="text-rainbow">покупки</span></h2>
+        </div>
+        <ol class="steps">
+          <li class="step reveal" style="--d: 0s; --c: var(--c-orange)">
+            <span class="step__num">1</span>
+            <h3>Выберите товары</h3>
+            <p>Нажмите «В корзину» у всего, что понравилось.</p>
+          </li>
+          <li class="step reveal" style="--d: 0.1s; --c: var(--c-teal)">
+            <span class="step__num">2</span>
+            <h3>Оформите заказ</h3>
+            <p>Откройте корзину, проверьте количество и нажмите «Оформить».</p>
+          </li>
+          <li class="step reveal" style="--d: 0.2s; --c: var(--c-magenta)">
+            <span class="step__num">3</span>
+            <h3>Получите ответ</h3>
+            <p>Заказ придёт нам в Telegram, мы ответим и уточним детали.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Не нашли? -->
+    <section class="section section--promo">
+      <div class="container">
+        <a class="card card--request reveal" href="#request">
+          <span class="card--request__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M11 8v6M8 11h6"/></svg></span>
+          <span class="card--request__text"><span class="card--request__title">Не нашли нужное?</span><span class="card--request__sub">Найдём под заказ: опишите вещь, и мы ответим в Telegram.</span></span>
+          <span class="btn btn--ghost card--request__btn">Оставить заявку <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>
+      </div>
+    </section>
+    </div>
+
+    <div class="screen" hidden data-screen="catalog">
     <!-- Каталог -->
     <section class="section" id="catalog">
       <div class="container">
@@ -116,6 +172,9 @@
       </div>
     </section>
 
+    </div>
+
+    <div class="screen" hidden data-screen="request">
     <!-- Под заказ -->
     <section class="section" id="request">
       <div class="container request">
@@ -188,33 +247,39 @@
       </div>
     </section>
 
-    <!-- Как заказать -->
-    <section class="section" id="how">
+    </div>
+
+    <div class="screen" hidden data-screen="cart">
+    <!-- Корзина -->
+    <section class="section" id="cart">
       <div class="container">
         <div class="section__head reveal">
-          <p class="eyebrow">Как заказать</p>
-          <h2 class="section__title">Три шага до <span class="text-rainbow">покупки</span></h2>
+          <p class="eyebrow">Корзина</p>
+          <h2 class="section__title">Ваш <span class="text-rainbow">заказ</span></h2>
         </div>
-        <ol class="steps">
-          <li class="step reveal" style="--d: 0s; --c: var(--c-orange)">
-            <span class="step__num">1</span>
-            <h3>Выберите товары</h3>
-            <p>Нажмите «В корзину» у всего, что понравилось.</p>
-          </li>
-          <li class="step reveal" style="--d: 0.1s; --c: var(--c-teal)">
-            <span class="step__num">2</span>
-            <h3>Оформите заказ</h3>
-            <p>В корзине проверьте количество и нажмите «Оформить в Telegram».</p>
-          </li>
-          <li class="step reveal" style="--d: 0.2s; --c: var(--c-magenta)">
-            <span class="step__num">3</span>
-            <h3>Отправьте сообщение</h3>
-            <p>Откроется Telegram с готовым списком. Отправьте его, и мы ответим.</p>
-          </li>
-        </ol>
+        <div class="cart-empty" data-cart-empty>
+          <div class="cart-empty__icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l-1.2 11.1a2 2 0 0 1-2 1.9H9.2a2 2 0 0 1-2-1.9L6 7Z"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/></svg></div>
+          <p>В корзине пока пусто</p>
+          <a class="btn btn--rainbow" href="#catalog">Перейти в каталог <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+        <div class="cart-layout">
+          <div class="cart-list" data-cart-items></div>
+          <div class="cart-summary" data-cart-foot>
+            <div class="total"><span>Итого</span><strong data-cart-total>0 ₽</strong></div>
+            <p class="cart-summary__count" data-cart-summary></p>
+            <a class="btn btn--rainbow btn--block" href="#" target="_blank" rel="noopener" data-checkout>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4 3 11l6 2.5L11.5 20 21 4Z"/><path d="m9 13.5 4-3.5"/></svg>
+              <span data-checkout-label>Оформить в Telegram</span>
+            </a>
+            <button class="btn btn--ghost btn--block" type="button" data-copy-order>Скопировать заказ</button>
+            <p class="cart-note">Откроется Telegram с готовым сообщением: просто отправьте его.</p>
+          </div>
+        </div>
       </div>
     </section>
+    </div>
 
+    <div class="screen" hidden data-screen="contacts">
     <!-- Контакты -->
     <section class="section" id="contacts">
       <div class="container">
@@ -226,11 +291,12 @@
         <div class="contacts" data-contacts></div>
       </div>
     </section>
+    </div>
   </main>
 
   <footer class="footer">
     <div class="container footer__inner">
-      <a class="logo" href="#top" aria-label="Наверх">
+      <a class="logo" href="#home" aria-label="На главную">
         <span class="logo__mark" aria-hidden="true"><span>P</span></span>
         <span class="logo__text" data-shop-name>Pyexdg</span>
       </a>
@@ -239,33 +305,30 @@
     </div>
   </footer>
 
-  <!-- Корзина -->
-  <div class="overlay" data-overlay></div>
-  <aside class="drawer" data-drawer role="dialog" aria-modal="true" aria-labelledby="cart-title" aria-hidden="true">
-    <div class="drawer__head">
-      <h2 id="cart-title">Корзина</h2>
-      <button class="icon-btn" type="button" data-close aria-label="Закрыть корзину">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-      </button>
-    </div>
-    <div class="drawer__body" data-cart-items></div>
-    <div class="drawer__empty" data-cart-empty>
-      <div class="drawer__empty-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M6 7h12l-1.2 11.1a2 2 0 0 1-2 1.9H9.2a2 2 0 0 1-2-1.9L6 7Z"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/></svg>
-      </div>
-      <p>В корзине пока пусто</p>
-      <button class="btn btn--ghost" type="button" data-close>Перейти к товарам</button>
-    </div>
-    <div class="drawer__foot" data-cart-foot>
-      <div class="total"><span>Итого</span><strong data-cart-total>0 ₽</strong></div>
-      <a class="btn btn--rainbow btn--block" href="#" target="_blank" rel="noopener" data-checkout>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4 3 11l6 2.5L11.5 20 21 4Z"/><path d="m9 13.5 4-3.5"/></svg>
-        <span data-checkout-label>Оформить в Telegram</span>
-      </a>
-      <button class="btn btn--ghost btn--block" type="button" data-copy-order>Скопировать заказ</button>
-      <p class="drawer__note">Откроется Telegram с готовым сообщением: просто отправьте его.</p>
-    </div>
-  </aside>
+  <!-- Нижняя панель вкладок (телефон и мини-апп) -->
+  <nav class="tabbar" aria-label="Разделы магазина" data-tabbar>
+    <span class="tabbar__indicator" aria-hidden="true"></span>
+    <a class="tabbar__item" href="#home" data-tab="home">
+      <span class="tabbar__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1v-8.5Z"/></svg></span>
+      <span class="tabbar__label">Главная</span>
+    </a>
+    <a class="tabbar__item" href="#catalog" data-tab="catalog">
+      <span class="tabbar__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg></span>
+      <span class="tabbar__label">Каталог</span>
+    </a>
+    <a class="tabbar__item" href="#request" data-tab="request">
+      <span class="tabbar__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M11 8v6M8 11h6"/></svg></span>
+      <span class="tabbar__label">Заявка</span>
+    </a>
+    <a class="tabbar__item" href="#cart" data-tab="cart">
+      <span class="tabbar__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l-1.2 11.1a2 2 0 0 1-2 1.9H9.2a2 2 0 0 1-2-1.9L6 7Z"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/></svg><span class="tabbar__badge is-empty" data-cart-count>0</span></span>
+      <span class="tabbar__label">Корзина</span>
+    </a>
+    <a class="tabbar__item" href="#contacts" data-tab="contacts">
+      <span class="tabbar__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12Z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/></svg></span>
+      <span class="tabbar__label">Контакты</span>
+    </a>
+  </nav>
 
   <!-- Окно товара -->
   <div class="modal" data-modal role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
