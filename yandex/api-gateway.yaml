@@ -1,0 +1,79 @@
+# Спецификация API-шлюза Pyexdg для Yandex API Gateway.
+# Перед вставкой замените:
+#   ИМЯ_БАКЕТА   → имя бакета Object Storage с файлами сайта (например, pyexdg-shop)
+#   ID_ФУНКЦИИ   → идентификатор функции бота (например, d4e1abc...)
+# Бакет должен быть с публичным доступом на чтение, функция — публичной.
+openapi: 3.0.0
+info:
+  title: pyexdg
+  version: 1.0.0
+paths:
+  /:
+    get:
+      x-yc-apigateway-integration:
+        type: object_storage
+        bucket: ИМЯ_БАКЕТА
+        object: index.html
+  /{file}:
+    get:
+      parameters:
+        - name: file
+          in: path
+          required: true
+          schema:
+            type: string
+      x-yc-apigateway-integration:
+        type: object_storage
+        bucket: ИМЯ_БАКЕТА
+        object: '{file}'
+  /css/{file}:
+    get:
+      parameters:
+        - name: file
+          in: path
+          required: true
+          schema:
+            type: string
+      x-yc-apigateway-integration:
+        type: object_storage
+        bucket: ИМЯ_БАКЕТА
+        object: 'css/{file}'
+  /js/{file}:
+    get:
+      parameters:
+        - name: file
+          in: path
+          required: true
+          schema:
+            type: string
+      x-yc-apigateway-integration:
+        type: object_storage
+        bucket: ИМЯ_БАКЕТА
+        object: 'js/{file}'
+  /images/products/{file}:
+    get:
+      parameters:
+        - name: file
+          in: path
+          required: true
+          schema:
+            type: string
+      x-yc-apigateway-integration:
+        type: object_storage
+        bucket: ИМЯ_БАКЕТА
+        object: 'images/products/{file}'
+  /api/order:
+    post:
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: ID_ФУНКЦИИ
+  /api/telegram-webhook:
+    post:
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: ID_ФУНКЦИИ
+  /api/telegram-setup:
+    get:
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: ID_ФУНКЦИИ
