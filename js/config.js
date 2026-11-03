@@ -34,9 +34,9 @@ window.SHOP = {
      youtube  — "https://www.youtube.com/@имя"
   -------------------------------- */
   contacts: {
-    telegram: "",
+    telegram: "@pyexdg",
     channel: "",
-    email: "",
+    email: "pyexdg@mail.ru",
     tiktok: "",
     youtube: "",
   },
