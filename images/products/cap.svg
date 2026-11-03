@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#1A1630"/><stop offset="1" stop-color="#0D0B18"/>
+  </linearGradient>
+  <radialGradient id="b1" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#FF8A7A" stop-opacity="0.55"/><stop offset="1" stop-color="#FF8A7A" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="b2" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#FF6FB5" stop-opacity="0.5"/><stop offset="1" stop-color="#FF6FB5" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="b3" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#FFA23A" stop-opacity="0.35"/><stop offset="1" stop-color="#FFA23A" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#FF8A7A"/><stop offset="0.55" stop-color="#FF6FB5"/><stop offset="1" stop-color="#FFA23A"/>
+  </linearGradient>
+  <radialGradient id="shine" cx="0.32" cy="0.28" r="0.6">
+    <stop offset="0" stop-color="#fff" stop-opacity="0.55"/><stop offset="0.45" stop-color="#fff" stop-opacity="0.08"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#000" stop-opacity="0.55"/><stop offset="1" stop-color="#000" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<rect width="800" height="1000" fill="url(#bg)"/>
+<circle cx="170" cy="210" r="380" fill="url(#b1)"/>
+<circle cx="660" cy="780" r="420" fill="url(#b2)"/>
+<circle cx="640" cy="160" r="300" fill="url(#b3)"/>
+<ellipse cx="400" cy="800" rx="250" ry="38" fill="url(#shadow)"/>
+<circle cx="400.0" cy="350.0" r="150" fill="#FF8A7A" opacity="0.62"/>
+<circle cx="514.1" cy="432.9" r="150" fill="#FFA23A" opacity="0.62"/>
+<circle cx="470.5" cy="567.1" r="150" fill="#FF6FB5" opacity="0.62"/>
+<circle cx="329.5" cy="567.1" r="150" fill="#D46CF0" opacity="0.62"/>
+<circle cx="285.9" cy="432.9" r="150" fill="#FFE14D" opacity="0.62"/>
+<circle cx="400" cy="470" r="290" fill="url(#shine)"/>
+</svg>

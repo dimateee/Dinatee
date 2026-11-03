@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Pyexdg — магазин</title>
+  <meta name="description" content="Pyexdg — яркий магазин. Выбирайте товары и оформляйте заказ в Telegram.">
+  <meta name="theme-color" content="#0B0A14">
+  <meta property="og:title" content="Pyexdg — магазин">
+  <meta property="og:description" content="Яркие вещи для ярких людей. Заказ в Telegram за пару кликов.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Радужные «ауры» на фоне -->
+  <div class="aurora" aria-hidden="true">
+    <span class="aurora__blob aurora__blob--1"></span>
+    <span class="aurora__blob aurora__blob--2"></span>
+    <span class="aurora__blob aurora__blob--3"></span>
+    <span class="aurora__blob aurora__blob--4"></span>
+  </div>
+
+  <header class="header" id="top">
+    <div class="container header__inner">
+      <a class="logo" href="#top" aria-label="На главную">
+        <span class="logo__mark" aria-hidden="true"><span>P</span></span>
+        <span class="logo__text" data-shop-name>Pyexdg</span>
+      </a>
+      <nav class="nav" aria-label="Разделы">
+        <a href="#catalog">Каталог</a>
+        <a href="#how">Как заказать</a>
+        <a href="#contacts">Контакты</a>
+      </nav>
+      <button class="cart-btn" type="button" data-open-cart aria-label="Открыть корзину">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l-1.2 11.1a2 2 0 0 1-2 1.9H9.2a2 2 0 0 1-2-1.9L6 7Z"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/></svg>
+        <span class="cart-btn__label">Корзина</span>
+        <span class="cart-btn__count" data-cart-count aria-live="polite">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Главный экран -->
+    <section class="hero">
+      <div class="container hero__inner">
+        <div class="hero__text">
+          <p class="eyebrow reveal">Онлайн-магазин</p>
+          <h1 class="hero__title" data-hero-title aria-label="Pyexdg">Pyexdg</h1>
+          <p class="hero__tagline reveal" style="--d: 0.35s" data-tagline></p>
+          <p class="hero__subtitle reveal" style="--d: 0.45s" data-subtitle></p>
+          <div class="hero__actions reveal" style="--d: 0.55s">
+            <a class="btn btn--rainbow" href="#catalog">
+              Смотреть каталог
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a class="btn btn--ghost" href="#contacts">Написать нам</a>
+          </div>
+          <ul class="hero__chips reveal" style="--d: 0.65s">
+            <li><span class="dot" style="--c: var(--c-orange)"></span>Заказ в пару кликов</li>
+            <li><span class="dot" style="--c: var(--c-teal)"></span>Ответим в Telegram</li>
+            <li><span class="dot" style="--c: var(--c-magenta)"></span>Новинки в канале</li>
+          </ul>
+        </div>
+        <div class="hero__visual reveal" style="--d: 0.3s" aria-hidden="true">
+          <div class="orb"><span class="orb__ring"></span><span class="orb__core"></span></div>
+          <div class="float-cards" data-hero-cards></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Бегущая строка -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee__track" data-marquee></div>
+    </div>
+
+    <!-- Каталог -->
+    <section class="section" id="catalog">
+      <div class="container">
+        <div class="section__head reveal">
+          <p class="eyebrow">Каталог</p>
+          <h2 class="section__title">Выберите <span class="text-rainbow">своё</span></h2>
+        </div>
+
+        <div class="toolbar reveal">
+          <div class="chips" role="tablist" aria-label="Категории" data-filters></div>
+          <label class="search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input type="search" placeholder="Поиск товара" aria-label="Поиск товара" data-search>
+          </label>
+        </div>
+
+        <div class="grid" data-grid></div>
+        <p class="empty" data-empty hidden>Ничего не нашлось. Попробуйте другой запрос.</p>
+      </div>
+    </section>
+
+    <!-- Как заказать -->
+    <section class="section" id="how">
+      <div class="container">
+        <div class="section__head reveal">
+          <p class="eyebrow">Как заказать</p>
+          <h2 class="section__title">Три шага до <span class="text-rainbow">покупки</span></h2>
+        </div>
+        <ol class="steps">
+          <li class="step reveal" style="--d: 0s; --c: var(--c-orange)">
+            <span class="step__num">1</span>
+            <h3>Выберите товары</h3>
+            <p>Нажмите «В корзину» у всего, что понравилось.</p>
+          </li>
+          <li class="step reveal" style="--d: 0.1s; --c: var(--c-teal)">
+            <span class="step__num">2</span>
+            <h3>Оформите заказ</h3>
+            <p>В корзине проверьте количество и нажмите «Оформить в Telegram».</p>
+          </li>
+          <li class="step reveal" style="--d: 0.2s; --c: var(--c-magenta)">
+            <span class="step__num">3</span>
+            <h3>Отправьте сообщение</h3>
+            <p>Откроется Telegram с готовым списком. Отправьте его, и мы ответим.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Контакты -->
+    <section class="section" id="contacts">
+      <div class="container">
+        <div class="section__head reveal">
+          <p class="eyebrow">Контакты</p>
+          <h2 class="section__title">Мы <span class="text-rainbow">на связи</span></h2>
+          <p class="section__lead">Пишите в Telegram или на почту, подписывайтесь, чтобы не пропустить новинки.</p>
+        </div>
+        <div class="contacts" data-contacts></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <a class="logo" href="#top" aria-label="Наверх">
+        <span class="logo__mark" aria-hidden="true"><span>P</span></span>
+        <span class="logo__text" data-shop-name>Pyexdg</span>
+      </a>
+      <div class="footer__social" data-footer-social></div>
+      <p class="footer__copy">© <span data-year></span> <span data-shop-name>Pyexdg</span></p>
+    </div>
+  </footer>
+
+  <!-- Корзина -->
+  <div class="overlay" data-overlay></div>
+  <aside class="drawer" data-drawer role="dialog" aria-modal="true" aria-labelledby="cart-title" aria-hidden="true">
+    <div class="drawer__head">
+      <h2 id="cart-title">Корзина</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Закрыть корзину">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="drawer__body" data-cart-items></div>
+    <div class="drawer__empty" data-cart-empty>
+      <div class="drawer__empty-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M6 7h12l-1.2 11.1a2 2 0 0 1-2 1.9H9.2a2 2 0 0 1-2-1.9L6 7Z"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/></svg>
+      </div>
+      <p>В корзине пока пусто</p>
+      <button class="btn btn--ghost" type="button" data-close>Перейти к товарам</button>
+    </div>
+    <div class="drawer__foot" data-cart-foot>
+      <div class="total"><span>Итого</span><strong data-cart-total>0 ₽</strong></div>
+      <a class="btn btn--rainbow btn--block" href="#" target="_blank" rel="noopener" data-checkout>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4 3 11l6 2.5L11.5 20 21 4Z"/><path d="m9 13.5 4-3.5"/></svg>
+        Оформить в Telegram
+      </a>
+      <button class="btn btn--ghost btn--block" type="button" data-copy-order>Скопировать заказ</button>
+      <p class="drawer__note">Откроется Telegram с готовым сообщением: просто отправьте его.</p>
+    </div>
+  </aside>
+
+  <!-- Окно товара -->
+  <div class="modal" data-modal role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
+    <div class="modal__card">
+      <button class="icon-btn modal__close" type="button" data-close aria-label="Закрыть">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+      <div class="modal__media"><img alt="" data-modal-img></div>
+      <div class="modal__info">
+        <p class="eyebrow" data-modal-cat></p>
+        <h3 class="modal__title" id="modal-title" data-modal-title></h3>
+        <p class="modal__desc" data-modal-desc></p>
+        <div class="price price--lg" data-modal-price></div>
+        <button class="btn btn--rainbow btn--block" type="button" data-modal-add>В корзину</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" data-toast role="status" aria-live="polite"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

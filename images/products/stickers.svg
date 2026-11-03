@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#1A1630"/><stop offset="1" stop-color="#0D0B18"/>
+  </linearGradient>
+  <radialGradient id="b1" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#D46CF0" stop-opacity="0.55"/><stop offset="1" stop-color="#D46CF0" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="b2" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#5B8CFF" stop-opacity="0.5"/><stop offset="1" stop-color="#5B8CFF" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="b3" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#FFA23A" stop-opacity="0.35"/><stop offset="1" stop-color="#FFA23A" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#D46CF0"/><stop offset="0.55" stop-color="#5B8CFF"/><stop offset="1" stop-color="#FFA23A"/>
+  </linearGradient>
+  <radialGradient id="shine" cx="0.32" cy="0.28" r="0.6">
+    <stop offset="0" stop-color="#fff" stop-opacity="0.55"/><stop offset="0.45" stop-color="#fff" stop-opacity="0.08"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#000" stop-opacity="0.55"/><stop offset="1" stop-color="#000" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<rect width="800" height="1000" fill="url(#bg)"/>
+<circle cx="170" cy="210" r="380" fill="url(#b1)"/>
+<circle cx="660" cy="780" r="420" fill="url(#b2)"/>
+<circle cx="640" cy="160" r="300" fill="url(#b3)"/>
+<ellipse cx="400" cy="800" rx="250" ry="38" fill="url(#shadow)"/>
+<path d="M 100 620 A 300 300 0 0 1 700 620" fill="none" stroke="#FF8A7A" stroke-width="44" stroke-linecap="round"/>
+<path d="M 150 620 A 250 250 0 0 1 650 620" fill="none" stroke="#FFA23A" stroke-width="44" stroke-linecap="round"/>
+<path d="M 200 620 A 200 200 0 0 1 600 620" fill="none" stroke="#FFE14D" stroke-width="44" stroke-linecap="round"/>
+<path d="M 250 620 A 150 150 0 0 1 550 620" fill="none" stroke="#4FCB7A" stroke-width="44" stroke-linecap="round"/>
+<path d="M 300 620 A 100 100 0 0 1 500 620" fill="none" stroke="#5B8CFF" stroke-width="44" stroke-linecap="round"/>
+<path d="M 350 620 A 50 50 0 0 1 450 620" fill="none" stroke="#8B6CFF" stroke-width="44" stroke-linecap="round"/>
+</svg>
