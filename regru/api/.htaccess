@@ -1,0 +1,19 @@
+# Короткие адреса бота: /api/order → order.php и т. д.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /api/
+  RewriteRule ^order/?$ order.php [L,QSA]
+  RewriteRule ^telegram-webhook/?$ telegram-webhook.php [L,QSA]
+  RewriteRule ^telegram-setup/?$ telegram-setup.php [L,QSA]
+</IfModule>
+
+# Секреты и служебный код снаружи не открываются
+<FilesMatch "^(lib|config|config\.example)\.php$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>

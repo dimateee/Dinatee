@@ -1,2 +1,5 @@
 # Архивы для Yandex Cloud (собирает yandex/build.sh)
 dist/
+
+# Секреты бота на PHP-хостинге (создаётся на хостинге из config.example.php)
+regru/api/config.php
