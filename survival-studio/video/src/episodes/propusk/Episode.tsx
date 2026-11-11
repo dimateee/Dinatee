@@ -26,7 +26,7 @@ const Enter: React.FC<{ type: Shot["enter"]; children: React.ReactNode }> = ({ t
     return <AbsoluteFill style={{ transform: `scale(${s})` }}>{children}</AbsoluteFill>;
   }
   if (type === "wipe") {
-    const k = interpolate(f, [0, 8], [0, 100], { extrapolateRight: "clamp", easing: EASE });
+    const k = interpolate(f, [0, 7], [25, 100], { extrapolateRight: "clamp", easing: EASE }); // с 25%: ни одного пустого кадра
     return <AbsoluteFill style={{ backgroundColor: "#F6F2E7" }}><AbsoluteFill style={{ clipPath: `inset(0 0 ${Math.round(100 - k)}% 0)` }}>{children}</AbsoluteFill></AbsoluteFill>;
   }
   if (type === "lightOn" || type === "darkOut") {
