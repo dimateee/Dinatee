@@ -1,5 +1,6 @@
 // Выгружает статичные SVG героя и собаки в channel/hero и channel/dog: npx tsx scripts/export-rigs.tsx
 import React from "react";
+// @ts-ignore — типы react-dom/server не нужны для утилиты
 import { renderToStaticMarkup } from "react-dom/server";
 import { writeFileSync } from "fs";
 import { Hero, NEUTRAL } from "../src/rig/Hero";

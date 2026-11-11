@@ -132,6 +132,8 @@ export const dogLife = (frame: number, fps = 30, seed = 0) => {
 
 /* ---------- ходьба: латеральная последовательность HL, FL, HR, FR ---------- */
 export const DOG_WALK = { period: 24, stride: 120, stance: 0.62, lift: 14 };
+/** Шаг в темпе героя (WALK: 150 px / 24 кадра = 6,25 px/кадр): 125 / 20. Полушаг 33,75 ≤ досягаемости лап. */
+export const DOG_WALK_MATCH = { period: 20, stride: 125, stance: 0.54, lift: 14 };
 const legTrack = (q: number, g: typeof DOG_WALK, hipToGround: number) => {
   const half = (g.stride * g.stance) / 2;
   if (q < g.stance) {
@@ -142,9 +144,8 @@ const legTrack = (q: number, g: typeof DOG_WALK, hipToGround: number) => {
   return { x: lerp(-half, half, e), y: hipToGround - DD.pawH - Math.sin(Math.PI * u) * g.lift, paw: -20 * Math.sin(Math.PI * u) };
 };
 
-export const dogWalk = (frame: number, seed = 0, twos = true): DogPose => {
+export const dogWalk = (frame: number, seed = 0, twos = true, g: typeof DOG_WALK = DOG_WALK): DogPose => {
   const f = twos ? onTwos(frame) : frame;
-  const g = DOG_WALK;
   const p = (f / g.period) % 1;
   const life = dogLife(frame, 30, seed);
   const bob = 1.5 * Math.cos(4 * Math.PI * p);

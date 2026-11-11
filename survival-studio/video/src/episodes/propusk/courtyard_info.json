@@ -1,0 +1,9 @@
+{
+ "frames": 110,
+ "hero_scale": 1.5,
+ "walk_y": 978.6,
+ "walk_x_center": 540.0,
+ "px_per_m": 269.44,
+ "ground_px_per_frame": 8.668,
+ "hero_px_per_frame": 9.375
+}

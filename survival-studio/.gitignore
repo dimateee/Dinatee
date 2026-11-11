@@ -18,3 +18,6 @@ episodes/*/render/
 __pycache__/
 .env
 episodes/*/voice/*.wav
+episodes/*/3d/*_frames/
+episodes/*/render/
+video/public/3d/

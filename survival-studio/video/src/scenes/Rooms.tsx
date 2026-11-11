@@ -1,6 +1,6 @@
 import React from "react";
 import { Hero, NEUTRAL } from "../rig/Hero";
-import { Dog, dogLie, dogSit } from "../rig/Dog";
+import { Dog, DogPose, dogLie, dogSit } from "../rig/Dog";
 import { POSES } from "../rig/poses";
 import { Bed } from "../rig/props";
 import { GroundShadow, RimDefs, shade } from "../rig/shared";
@@ -51,8 +51,13 @@ const Sneakers: React.FC<{ x: number; tint?: string }> = ({ x, tint }) => (
 );
 
 /* ------------------------------ УТРО · «РЕЖИМ» ------------------------------ */
-export const RoomMorning: React.FC<{ frame: number; cam?: Cam; heroPose?: typeof NEUTRAL; showHero?: boolean }> = ({
-  frame, cam = NO_CAM, heroPose, showHero = true,
+export const RoomMorning: React.FC<{
+  frame: number; cam?: Cam; heroPose?: typeof NEUTRAL; showHero?: boolean;
+  heroOutfit?: "casual" | "sport"; heroX?: number; heroY?: number; heroRotate?: number; dogPose?: DogPose; dogX?: number; dogFlip?: boolean;
+  bed?: boolean; showDog?: boolean;
+}> = ({
+  frame, cam = NO_CAM, heroPose, showHero = true, heroOutfit = "sport", heroX = 300, heroY = 0, heroRotate = 0,
+  dogPose, dogX = 850, dogFlip = true, bed = false, showDog = true,
 }) => {
   const hero = heroPose ?? POSES.laces.pose;
   return (
@@ -97,16 +102,19 @@ export const RoomMorning: React.FC<{ frame: number; cam?: Cam; heroPose?: typeof
       </g>
       {/* CHARS */}
       <g transform={layer(cam, 1)}>
+        {bed && <g transform={`translate(${heroX - 150} ${FLOOR}) scale(${S})`}><Bed w={200} /></g>}
         {showHero && (
-          <g transform={`translate(300 ${FLOOR}) scale(${S})`}>
-            <GroundShadow w={150} opacity={0.25} />
-            <Hero pose={hero} outfit="sport" rimFilter="rimM" />
+          <g transform={`translate(${heroX} ${FLOOR + heroY}) scale(${S})`}>
+            {heroRotate === 0 && <GroundShadow w={150} opacity={0.25} />}
+            <g transform={`rotate(${heroRotate})`}><Hero pose={hero} outfit={heroOutfit} rimFilter="rimM" /></g>
           </g>
         )}
-        <g transform={`translate(850 ${FLOOR}) scale(${-S} ${S})`}>
-          <GroundShadow w={150} opacity={0.25} />
-          <Dog pose={dogSit(frame, 1)} rimFilter="rimM" />
-        </g>
+        {showDog && (
+          <g transform={`translate(${dogX} ${FLOOR}) scale(${dogFlip ? -S : S} ${S})`}>
+            <GroundShadow w={150} opacity={0.25} />
+            <Dog pose={dogPose ?? dogSit(frame, 1)} rimFilter="rimM" />
+          </g>
+        )}
       </g>
       {/* FG: размытый передний план — лист растения и край корзины */}
       <g transform={layer(cam, 1.6)} filter="url(#fgBlurM)">
@@ -119,7 +127,7 @@ export const RoomMorning: React.FC<{ frame: number; cam?: Cam; heroPose?: typeof
 };
 
 /* ------------------------------ НОЧЬ · «СРЫВ» ------------------------------ */
-export const RoomNight: React.FC<{ frame: number; cam?: Cam; glow?: number }> = ({ frame, cam = NO_CAM, glow = 1 }) => {
+export const RoomNight: React.FC<{ frame: number; cam?: Cam; glow?: number; rain?: boolean }> = ({ frame, cam = NO_CAM, glow = 1, rain = false }) => {
   // Артём лежит на кровати на спине, телефон над лицом
   const lying = {
     ...NEUTRAL, x: 0, y: 0, torso: 0, head: 8,
@@ -137,6 +145,7 @@ export const RoomNight: React.FC<{ frame: number; cam?: Cam; glow?: number }> = 
       <defs>
         <filter id="fgBlurN" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation={16} /></filter>
         <filter id="lightBlurN" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation={22} /></filter>
+        <clipPath id="winClipN"><rect x={70} y={250} width={340} height={480} /></clipPath>
         <radialGradient id="screenGlow">
           <stop offset="0" stopColor={SRYV.screen} stopOpacity={0.55} />
           <stop offset="1" stopColor={SRYV.screen} stopOpacity={0} />
@@ -150,6 +159,15 @@ export const RoomNight: React.FC<{ frame: number; cam?: Cam; glow?: number }> = 
         {[[100, 560], [190, 500], [200, 590], [270, 600], [360, 540], [370, 640]].map(([x, y], i) => (
           <rect key={i} x={x} y={y} width={18} height={24} fill={SRYV.lamp} opacity={i % 2 ? 0.55 : 0.85} />
         ))}
+        {rain && (
+          <g clipPath="url(#winClipN)">
+            {Array.from({ length: 34 }, (_, i) => {
+              const x = 74 + ((i * 97) % 336);
+              const y = 250 + (((i * 173) + frame * 26) % 520) - 40;
+              return <line key={i} x1={x} y1={y} x2={x - 6} y2={y + 34} stroke="#8FA3C2" strokeWidth={3} strokeLinecap="round" opacity={0.55} />;
+            })}
+          </g>
+        )}
         <rect x={70} y={250} width={340} height={480} fill="none" stroke="#0A0D13" strokeWidth={16} />
         <line x1={240} x2={240} y1={250} y2={730} stroke="#0A0D13" strokeWidth={10} />
       </g>
