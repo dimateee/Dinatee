@@ -1,0 +1,19 @@
+# Тяжёлое и восстанавливаемое (bash tools/setup.sh)
+.venv/
+video/node_modules/
+video/out/
+video/public/fonts/
+tools/models/
+tools/voices/*.onnx
+tools/voices/*.wav
+tools/blender.log
+tools/checks/*.wav
+# Медиа и ассеты: большие файлы держим вне git
+music/*
+!music/.gitkeep
+assets_3d/*
+!assets_3d/README.md
+episodes/*/render/
+*.blend1
+__pycache__/
+.env
