@@ -17,3 +17,4 @@ episodes/*/render/
 *.blend1
 __pycache__/
 .env
+episodes/*/voice/*.wav
