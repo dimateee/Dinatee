@@ -2,7 +2,7 @@ import React from "react";
 import { AbsoluteFill, Img, interpolate, staticFile } from "remotion";
 import { RoomMorning, RoomNight } from "../../scenes/Rooms";
 import { DoorNight, FaceClose, LunaClose, Street } from "../../scenes/Extra";
-import { Hero, NEUTRAL } from "../../rig/Hero";
+import { Hero, HeroHead, NEUTRAL } from "../../rig/Hero";
 import { Dog, dogLie, DOG_WALK_MATCH, dogWalk } from "../../rig/Dog";
 import { heroGait, WALK } from "../../rig/gait";
 import { POSES } from "../../rig/poses";
@@ -34,7 +34,7 @@ const S02: React.FC<ShotProps> = ({ f, dur, shot }) => {
   return (
     <>
       <SchemaBg pal="S" />
-      <Push f={f} dur={dur} amount={0.04}>
+      <Push f={f} dur={dur} amount={0.03} origin="50% 36%">
         <Calendar f={f} pal="S" chainUpTo={3} dim={ap(f, end, 8)} cells={[
           { state: "green", at: 0 }, { state: "green", at: 2 }, { state: "green", at: 4 },
           { state: f >= miss ? "miss" : "empty", at: 6 }, { state: "empty", at: 8 }, { state: "empty", at: 10 }, { state: "empty", at: 12 },
@@ -112,8 +112,9 @@ const S09: React.FC<ShotProps> = ({ f, shot }) => {
     <>
       <SchemaBg pal="S" />
       <svg width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
-        <circle cx={540} cy={330} r={120} fill="none" stroke="#3A4560" strokeWidth={8} opacity={ap(f, head, 6)} />
-        <path d="M 478 300 L 520 290 M 560 290 L 602 300" stroke="#8FA3C2" strokeWidth={10} strokeLinecap="round" opacity={ap(f, head, 6)} />
+        <g transform={`translate(540 ${330 + (1 - ap(f, head, 6)) * 30}) scale(2.6)`} opacity={ap(f, head, 6)}>
+          <HeroHead expr={{ brow: -0.2, browTilt: f >= brk ? 1 : 0.4, mouth: f >= brk ? "sad" : "flat", blink: 0 }} glow={0.6} />
+        </g>
       </svg>
       <Chain f={f} at={0} breakAt={brk} />
       <Ribbon f={f} start={lf(shot, at("всё,", 15.3))} text="Пропуск = конец?" y={880} />
@@ -223,7 +224,7 @@ const S20: React.FC<ShotProps> = ({ f, shot }) => (
 const S21: React.FC<ShotProps> = ({ f, shot }) => (
   <>
     <SchemaBg pal="R" />
-    <TimerCard f={f} at={lf(shot, at("десять", 47.3))} text="10:00" color={SRYV.progress} strike={{ text: "5 КМ", at: lf(shot, at("а", 47.2)) - 2 }} y={720} />
+    <TimerCard f={f} at={lf(shot, at("а", 47.2))} text="10:00" color={SRYV.progress} strike={{ text: "5 КМ", at: lf(shot, at("а", 47.2)) - 3 }} y={720} />
   </>
 );
 

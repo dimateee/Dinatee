@@ -28,16 +28,21 @@ export const SchemaBg: React.FC<{ pal: "R" | "S" }> = ({ pal }) => (
       <>
         <rect width={1080} height={1920} fill={SRYV.bg1} />
         <rect y={FLOOR_Y} width={1080} height={1920 - FLOOR_Y} fill={SRYV.bg0} />
+        {[70, 170, 300, 470, 680].map((d) => <line key={d} x1={0} x2={1080} y1={FLOOR_Y + d} y2={FLOOR_Y + d} stroke="#1C2331" strokeWidth={3} />)}
+        {/* тот же мир: полоска тёплого света из-под двери у правого края */}
+        <rect x={760} y={FLOOR_Y - 8} width={320} height={8} fill={SRYV.lamp} opacity={0.8} />
+        <path d={`M 760 ${FLOOR_Y} L 1080 ${FLOOR_Y} L 1080 ${FLOOR_Y + 150} L 560 ${FLOOR_Y + 150} Z`} fill={SRYV.lamp} opacity={0.07} />
+        <rect y={1520} width={1080} height={400} fill="#000" opacity={0.25} />
       </>
     )}
   </svg>
 );
 
 /** Живая камера для слоя: наезд на `amount` за `dur` кадров. */
-export const Push: React.FC<{ f: number; dur: number; amount?: number; origin?: string; children: React.ReactNode }> = ({
-  f, dur, amount = 0.03, origin = "50% 40%", children,
+export const Push: React.FC<{ f: number; dur: number; amount?: number; origin?: string; base?: number; children: React.ReactNode }> = ({
+  f, dur, amount = 0.03, origin = "50% 40%", base = 1, children,
 }) => (
-  <div style={{ position: "absolute", inset: 0, transform: `scale(${1 + amount * Math.min(1, f / Math.max(1, dur))})`, transformOrigin: origin }}>
+  <div style={{ position: "absolute", inset: 0, transform: `scale(${base * (1 + amount * Math.min(1, f / Math.max(1, dur)))})`, transformOrigin: origin }}>
     {children}
   </div>
 );
@@ -76,7 +81,7 @@ export const Ribbon: React.FC<{ f: number; start: number; text: string; y?: numb
 export type Cell = "empty" | "green" | "miss" | "paw" | "lock" | "pulse";
 export const Calendar: React.FC<{
   f: number; pal: "R" | "S"; cells: { state: Cell; at: number }[]; dim?: number; y?: number; chainUpTo?: number; labels?: boolean; size?: number;
-}> = ({ f, pal, cells, dim = 0, y = 640, chainUpTo = -1, labels = true, size = 112 }) => {
+}> = ({ f, pal, cells, dim = 0, y = 680, chainUpTo = -1, labels = true, size = 124 }) => {
   const n = cells.length, gap = 18, W = n * size + (n - 1) * gap, x0 = (1080 - W) / 2;
   const ink = INK[pal], empty = pal === "R" ? "#E4DCC8" : "#1F2636";
   return (
@@ -122,7 +127,7 @@ export const Calendar: React.FC<{
 const SUBY = "#F5C518";
 
 /* ===================== шкала дней ===================== */
-export const RULER = { x0: 90, x1: 990, y: 640, max: 270 };
+export const RULER = { x0: 80, x1: 1000, y: 700, max: 270 };
 export const dayX = (d: number) => RULER.x0 + (d / RULER.max) * (RULER.x1 - RULER.x0);
 
 export const Ruler: React.FC<{ f: number; drawAt: number; pal: "R" | "S" }> = ({ f, drawAt, pal }) => {
@@ -182,7 +187,7 @@ export const RangeBand: React.FC<{ f: number; from: number; to: number; at: numb
         <rect x={x0} y={RULER.y - 26} width={x1 - x0} height={52} rx={26} fill={color} opacity={0.35} />
         <rect x={x0} y={RULER.y - 26} width={x1 - x0} height={52} rx={26} fill="none" stroke={color} strokeWidth={4} />
       </svg>
-      <Caption x={(x0 + x1) / 2} y={RULER.y - 120} w={700} text={label} color={color} size={72} font="head" opacity={k} />
+      <Caption x={540} y={RULER.y - 300} w={900} text={label} color={color} size={80} font="head" opacity={k} />
     </>
   );
 };
@@ -194,12 +199,12 @@ export const PeopleDots: React.FC<{ f: number; at: number; scatter: number; pal:
     <svg width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
       {Array.from({ length: n }, (_, i) => {
         const k = ap(f, at + i * 0.25, 5);
-        const gx = 180 + (i % 12) * 66, gy = 820 + Math.floor(i / 12) * 26;
+        const gx = 180 + (i % 12) * 66, gy = 790 + Math.floor(i / 12) * 26;
         // лог-нормальное распределение вокруг медианы 66, в пределах 18–254
         const u = random(`d${i}`), v = random(`e${i}`);
         const z = Math.sqrt(-2 * Math.log(u + 1e-6)) * Math.cos(2 * Math.PI * v);
         const day = Math.min(254, Math.max(18, Math.exp(Math.log(66) + 0.55 * z)));
-        const tx = dayX(day), ty = RULER.y - 60 - random(`h${i}`) * 220;
+        const tx = dayX(day), ty = RULER.y + 110 + random(`h${i}`) * 200;
         const x = gx + (tx - gx) * scatter, y = gy + (ty - gy) * scatter;
         return <circle key={i} cx={px(x)} cy={px(y)} r={9} fill={pal === "S" ? "#8FA3C2" : REGIME.olive} opacity={0.85 * k} />;
       })}

@@ -176,7 +176,7 @@ export const LunaClose: React.FC<{ frame: number; tilt?: number }> = ({ frame, t
       <rect x={60} y={120} width={960} height={900} rx={16} fill="none" stroke={shade(REGIME.sage, -0.35)} strokeWidth={10} />
       <rect y={1040} width={W} height={H - 1040} fill={REGIME.sage} />
       <rect y={1026} width={W} height={14} fill={REGIME.olive} />
-      <g transform="translate(560 1250) scale(-5.2 5.2)">
+      <g transform="translate(520 1030) scale(-4.2 4.2)">
         <Dog pose={{ ...p, head: p.head + tilt }} rimFilter="rimL" />
       </g>
     </svg>
