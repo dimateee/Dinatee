@@ -264,8 +264,8 @@ const S25: React.FC<ShotProps> = ({ f, shot }) => {
       <ServiceLabel x={64} y={110} text="ЧТО ДЕЛАТЬ · 3" {...LIGHT_LABEL} />
       <Leader from={[300, 330]} to={[sn[0], sn[1]]} kind="good" progress={ks} />
       <Plate x={64} y={250} kind="good" icon="sneaker" title="Кроссовки" sub="с вечера у двери" dark={false} opacity={ks} scale={0.94 + 0.06 * ks} />
-      <Leader from={[760, 900]} to={[ph[0], ph[1]]} kind="resource" progress={kd} />
-      <Plate x={560} y={850} kind="resource" icon="phone" title="Телефон" sub="в коридоре" dark={false} opacity={kd} scale={0.94 + 0.06 * kd} />
+      <Leader from={[820, 470]} to={[ph[0], ph[1]]} kind="resource" progress={kd} />
+      <Plate x={620} y={400} kind="resource" icon="phone" title="Телефон" sub="в коридоре" dark={false} opacity={kd} scale={0.94 + 0.06 * kd} />
     </>
   );
 };
