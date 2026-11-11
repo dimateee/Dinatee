@@ -59,7 +59,12 @@ export const RoomMorning: React.FC<{
   frame, cam = NO_CAM, heroPose, showHero = true, heroOutfit = "sport", heroX = 300, heroY = 0, heroRotate = 0,
   dogPose, dogX = 850, dogFlip = true, bed = false, showDog = true,
 }) => {
-  const hero = heroPose ?? POSES.laces.pose;
+  const base = heroPose ?? POSES.laces.pose;
+  // «живой» герой: дыхание корпусом, лёгкое движение головы, моргание
+  const hero = {
+    ...base, torso: base.torso + 1.2 * Math.sin(frame / 16), head: base.head + 1.5 * Math.sin(frame / 23 + 1),
+    expr: { ...base.expr, blink: frame % 75 < 3 ? 1 : base.expr.blink },
+  };
   return (
     <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", left: 0, top: 0 }}>
       <RimDefs id="rimM" side={-1} color="#FFD7A0" strength={0.9} />
@@ -130,11 +135,11 @@ export const RoomMorning: React.FC<{
 export const RoomNight: React.FC<{ frame: number; cam?: Cam; glow?: number; rain?: boolean }> = ({ frame, cam = NO_CAM, glow = 1, rain = false }) => {
   // Артём лежит на кровати на спине, телефон над лицом
   const lying = {
-    ...NEUTRAL, x: 0, y: 0, torso: 0, head: 8,
+    ...NEUTRAL, x: 0, y: 0, torso: 0.8 * Math.sin(frame / 18), head: 8 + 1.2 * Math.sin(frame / 25),
     legL: { hip: -2, knee: 10, foot: -70 }, legR: { hip: 3, knee: 8, foot: -72 },
-    armL: { sh: -72, el: -64, wr: 0 }, armR: { sh: -40, el: -70, wr: 0 },
-    holdL: "phone" as const, phoneGlow: glow,
-    expr: { brow: -0.3, browTilt: 0.6, mouth: "flat" as const, blink: 0 },
+    armL: { sh: -72, el: -64, wr: 4 * Math.sin(frame / 11) }, armR: { sh: -40, el: -70, wr: 0 },
+    holdL: "phone" as const, phoneGlow: glow * (0.92 + 0.08 * Math.sin(frame / 7)),
+    expr: { brow: -0.3, browTilt: 0.6, mouth: "flat" as const, blink: frame % 90 < 3 ? 1 : 0 },
   };
   const bedX = 380, bedTop = FLOOR - 70 * S;
   const phone = { x: bedX + 70, y: bedTop - 150 }; // экран телефона в кадре (подобрано по рендеру)

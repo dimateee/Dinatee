@@ -6,6 +6,7 @@ import { CycleTest } from "./sheets/CycleTest";
 import { TestFrame } from "./sheets/TestFrames";
 import { KaraokeTest } from "./sheets/KaraokeTest";
 import { EPISODE_FRAMES, PropuskEpisode } from "./episodes/propusk/Episode";
+import { Cover } from "./episodes/propusk/Cover";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -20,6 +21,8 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="FrameSryv" component={TestFrame} defaultProps={{ variant: "sryv" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="KaraokeTest" component={KaraokeTest} durationInFrames={150} fps={30} width={1080} height={1920} />
       <Composition id="Propusk" component={PropuskEpisode} durationInFrames={EPISODE_FRAMES} fps={30} width={1080} height={1920} />
+      <Composition id="PropuskCover" component={Cover} defaultProps={{ variant: "cover" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
+      <Composition id="PropuskThumb" component={Cover} defaultProps={{ variant: "thumb" as const }} durationInFrames={1} fps={30} width={1280} height={720} />
     </>
   );
 };
