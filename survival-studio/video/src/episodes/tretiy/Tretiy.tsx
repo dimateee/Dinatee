@@ -88,7 +88,7 @@ const SHOTS: Shot[] = [
   // 2. Дело не в лени. Это Артём.
   { from: 2.52, to: 4.64, enter: "lightOn", C: ({ f, lf }) => {
     const k1 = kIn(f, 0), k2 = kIn(f, lf(at("артём.", 3.5)));
-    const hero = { ...NEUTRAL, holdL: "leash" as const, expr: { ...NEUTRAL.expr, mouth: "smile" as const, blink: f % 60 < 3 ? 1 : 0 } };
+    const hero = { ...NEUTRAL, expr: { ...NEUTRAL.expr, mouth: "smile" as const, blink: f % 60 < 3 ? 1 : 0 } };
     return (<>
       <RoomMorning frame={f + 200} heroPose={hero} heroOutfit="casual" heroX={340} />
       {f < lf(at("артём.", 3.5)) ? (<>

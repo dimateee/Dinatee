@@ -85,6 +85,12 @@ const Head: React.FC<{ p: DogPose }> = ({ p }) => {
   );
 };
 
+/** Точка ошейника в координатах собаки — куда крепится поводок. */
+export const dogCollar = (p: DogPose) => {
+  const a = (p.body * Math.PI) / 180, nx = DD.neck.x + 8, ny = DD.neck.y - (p.sit ?? 0) * 6 - 10;
+  return { x: p.x + nx * Math.cos(a) - ny * Math.sin(a), y: p.y + nx * Math.sin(a) + ny * Math.cos(a) };
+};
+
 export const Dog: React.FC<{ pose: DogPose; rimFilter?: string }> = ({ pose: p, rimFilter }) => {
   const sit = p.sit ?? 0;
   return (

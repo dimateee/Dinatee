@@ -29,3 +29,4 @@ episodes/*/voice/samples/*.mp3
 # промежуточные дорожки сведения
 episodes/*/voice/mixparts/
 episodes/*/draft/full.mp4
+episodes/*/final.mp4

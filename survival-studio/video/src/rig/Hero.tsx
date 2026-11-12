@@ -201,6 +201,20 @@ const Torso: React.FC<{ outfit: Outfit }> = ({ outfit }) => {
   );
 };
 
+/** Точка хвата ближней (левой) руки в координатах героя — для поводка и предметов вне рига. */
+const rotP = (p: { x: number; y: number }, deg: number) => {
+  const a = (deg * Math.PI) / 180;
+  return { x: p.x * Math.cos(a) - p.y * Math.sin(a), y: p.x * Math.sin(a) + p.y * Math.cos(a) };
+};
+export const heroHandL = (pose: HeroPose) => {
+  const { sh, el, wr } = pose.armL;
+  const hand = rotP({ x: 0, y: 8 }, wr);
+  const fore = rotP({ x: hand.x, y: hand.y + DIM.foreArm }, el);
+  const arm = rotP({ x: fore.x, y: fore.y + DIM.upperArm }, sh);
+  const t = rotP({ x: arm.x + DIM.shoulder.x + 4, y: arm.y + DIM.shoulder.y + 4 }, pose.torso);
+  return { x: pose.x + t.x, y: pose.y + t.y };
+};
+
 export const Hero: React.FC<{ pose: HeroPose; outfit?: Outfit; rimFilter?: string }> = ({
   pose, outfit = "casual", rimFilter,
 }) => {

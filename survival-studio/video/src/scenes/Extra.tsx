@@ -1,6 +1,6 @@
 import React from "react";
-import { Hero, HeroHead, NEUTRAL, Expr } from "../rig/Hero";
-import { Dog, DOG_WALK_MATCH, dogLie, dogSit, dogWalk, DogPose } from "../rig/Dog";
+import { Hero, HeroHead, heroHandL, NEUTRAL, Expr } from "../rig/Hero";
+import { Dog, dogCollar, DOG_WALK_MATCH, dogLie, dogSit, dogWalk, DogPose } from "../rig/Dog";
 import { heroGait, RUN, WALK } from "../rig/gait";
 import { GroundShadow, RimDefs, shade } from "../rig/shared";
 import { HERO, REGIME, SRYV } from "../style/palette";
@@ -22,6 +22,14 @@ export const Street: React.FC<{
     : { sky: REGIME.sky, far: REGIME.fog, mid: shade(REGIME.sage, 0.1), walk: "#E6DCC4", joint: "#CFC4A8", grass: REGIME.sage, win: REGIME.paper, ink: REGIME.olive };
   const wrap = (x: number, period: number) => ((x % period) + period) % period;
   const dpose = dog ? dogWalk(frame, 3, true, DOG_WALK_MATCH) : null;
+  // единый поводок: от кисти Артёма до ошейника Луны, с провисом; идёт за корпусом собаки
+  const leash = hero && dpose ? (() => {
+    const h = heroHandL(hero), c = dogCollar(dpose);
+    const ax = heroX + scale * (h.x - hero.x), ay = G + 40 + scale * h.y;
+    const bx = heroX + 280 + scale * (c.x - dpose.x), by = G + 40 + scale * c.y;
+    const sag = 30 + 5 * Math.sin(frame / 7);
+    return { bx, by, d: `M ${ax.toFixed(1)} ${ay.toFixed(1)} Q ${((ax + bx) / 2).toFixed(1)} ${(Math.max(ay, by) + sag).toFixed(1)} ${bx.toFixed(1)} ${by.toFixed(1)}` };
+  })() : null;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ position: "absolute", inset: 0 }}>
       <RimDefs id="rimS" side={-1} color={night ? SRYV.lamp : "#FFD7A0"} strength={night ? 0.7 : 0.9} />
@@ -70,16 +78,25 @@ export const Street: React.FC<{
       </g>
       <rect x={0} y={G + 142} width={W} height={12} fill={pal.joint} />
       {/* персонажи */}
+      {leash && (<g>
+        <path d={leash.d} stroke={shade("#E8833A", -0.45)} strokeWidth={6.5} fill="none" strokeLinecap="round" />
+        <path d={leash.d} stroke="#E8833A" strokeWidth={4.5} fill="none" strokeLinecap="round" />
+      </g>)}
       {dpose && (
         <g transform={`translate(${heroX + 280} ${G + 40}) scale(${scale})`}>
           <GroundShadow w={150} opacity={0.22} />
           <g transform={`translate(${-dpose.x} 0)`}><Dog pose={dpose} rimFilter="rimS" /></g>
         </g>
       )}
+      {leash && (<g>
+        {/* ошейник и кольцо */}
+        <line x1={leash.bx - 10} y1={leash.by - 16} x2={leash.bx + 8} y2={leash.by + 14} stroke="#E8833A" strokeWidth={9} strokeLinecap="round" />
+        <circle cx={leash.bx} cy={leash.by} r={5} fill="#C9CED6" stroke="#5A6070" strokeWidth={2} />
+      </g>)}
       {hero && (
         <g transform={`translate(${heroX} ${G + 40}) scale(${scale})`}>
           <GroundShadow w={130} opacity={0.22} />
-          <g transform={`translate(${-hero.x} 0)`}><Hero pose={{ ...hero, holdL: dog ? "leash" : null }} outfit={mode === "run" ? "sport" : "casual"} rimFilter="rimS" /></g>
+          <g transform={`translate(${-hero.x} 0)`}><Hero pose={{ ...hero, holdL: null }} outfit={mode === "run" ? "sport" : "casual"} rimFilter="rimS" /></g>
         </g>
       )}
       {night && <rect width={W} height={H} fill="#26324D" style={{ mixBlendMode: "multiply" }} opacity={0.45} />}
