@@ -2,6 +2,7 @@ import React from "react";
 import { random } from "remotion";
 import { Hero, HeroPose, NEUTRAL } from "../rig/Hero";
 import { Dog, dogLie } from "../rig/Dog";
+import { heroGait, RUN } from "../rig/gait";
 import { GroundShadow, RimDefs, shade } from "../rig/shared";
 import { SRYV } from "../style/palette";
 
@@ -326,8 +327,8 @@ export { shade };
  * потом зарево. Ударная волна: тряска, трещины, осколки у окна. Пол поднят до y=920 (выше субтитров).
  * hero: "stand" — стоит у кровати лицом к окну; "prone" — лежит на полу лицом вниз, ногами к окну.
  */
-export const HomeRoom: React.FC<{ frame: number; flash?: number; glow?: number; shake?: number; crack?: number; hero?: "stand" | "prone"; eyesShut?: boolean; zoom?: number }> = ({
-  frame, flash = 0, glow = 0, shake = 0, crack = 0, hero = "stand", eyesShut = false, zoom = 1,
+export const HomeRoom: React.FC<{ frame: number; flash?: number; glow?: number; shake?: number; crack?: number; hero?: "phone" | "stand" | "prone"; eyesShut?: boolean; zoom?: number; siren?: number; radio?: number }> = ({
+  frame, flash = 0, glow = 0, shake = 0, crack = 0, hero = "stand", eyesShut = false, zoom = 1, siren = 0, radio = 0,
 }) => {
   const FL = 920;
   const sx = shake ? Math.round((random(`hx${frame}`) - 0.5) * 26 * shake) : 0;
@@ -337,6 +338,10 @@ export const HomeRoom: React.FC<{ frame: number; flash?: number; glow?: number; 
     ...NEUTRAL, torso: 1 + Math.sin(frame / 18), head: Math.sin(frame / 27) * 1.5,
     armL: { sh: 8, el: -14, wr: 0 }, armR: { sh: -6, el: -12, wr: 0 },
     expr: { brow: eyesShut ? -0.6 : 0.2, browTilt: eyesShut ? 1 : 0, mouth: "flat", blink: eyesShut ? 1 : frame % 80 < 3 ? 1 : 0 },
+  };
+  const phone: HeroPose = {
+    ...stand, head: 16 + Math.sin(frame / 27), armL: { sh: -58, el: -84, wr: 6 * Math.sin(frame / 13) }, holdL: "phone", phoneGlow: 0.95,
+    expr: { brow: 0, browTilt: 0, mouth: "flat", blink: frame % 80 < 3 ? 1 : 0 },
   };
   const windowFill = flash > 0.05 ? "#FFF8EA" : SRYV.bg0;
   return (
@@ -355,6 +360,24 @@ export const HomeRoom: React.FC<{ frame: number; flash?: number; glow?: number; 
           {glow > 0 && <ellipse cx={330} cy={610} rx={300} ry={220} fill={GLOW} opacity={0.75 * glow} />}
           <path d={`M ${W0} 590 L 140 590 L 140 530 L 220 530 L 220 620 L 300 620 L 300 550 L ${W1} 550 L ${W1} ${T1} L ${W0} ${T1} Z`} fill={flash > 0.05 ? "#D9CFC0" : "#0B0E14"} />
           {glow < 0.3 && flash < 0.05 && [[100, 620], [180, 560], [250, 650], [340, 590], [390, 670]].map(([x, y], i) => <rect key={i} x={x} y={y} width={16} height={22} fill={SRYV.lamp} opacity={0.8} />)}
+          {siren > 0 && flash < 0.05 && (
+            <g opacity={siren}>
+              <rect x={296} y={430} width={10} height={320} fill="#2B3241" />
+              <g transform="translate(301 420)">
+                <path d="M -4 -12 L -56 -34 L -56 18 L -4 -2 Z" fill="#3A4560" />
+                <path d="M 4 -12 L 56 -34 L 56 18 L 4 -2 Z" fill="#3A4560" />
+                {[0, 1, 2].map((i) => {
+                  const ph = (frame / 18 + i / 3) % 1;
+                  return (
+                    <g key={i} opacity={1 - ph}>
+                      <path d={`M ${-64 - ph * 70} ${-44 - ph * 26} Q ${-90 - ph * 90} -8 ${-64 - ph * 70} ${28 + ph * 26}`} stroke={SRYV.fail} strokeWidth={5} fill="none" strokeLinecap="round" />
+                      <path d={`M ${64 + ph * 70} ${-44 - ph * 26} Q ${90 + ph * 90} -8 ${64 + ph * 70} ${28 + ph * 26}`} stroke={SRYV.fail} strokeWidth={5} fill="none" strokeLinecap="round" />
+                    </g>
+                  );
+                })}
+              </g>
+            </g>
+          )}
         </g>
         {/* трещины по стеклу */}
         {crack > 0 && (
@@ -374,6 +397,17 @@ export const HomeRoom: React.FC<{ frame: number; flash?: number; glow?: number; 
           <rect x={-10} y={-60} width={230} height={60} fill="#1E2535" />
           <rect x={-22} y={-160} width={22} height={160} fill="#1E2535" />
         </g>
+        {/* столик с радио */}
+        <g transform={`translate(470 ${FL})`}>
+          <rect x={-4} y={-150} width={110} height={14} fill="#2B3241" />
+          <rect x={6} y={-136} width={10} height={136} fill="#1E2535" /><rect x={86} y={-136} width={10} height={136} fill="#1E2535" />
+          <g transform="translate(50 -150)">
+            <rect x={-42} y={-46} width={84} height={46} rx={6} fill="#2B3241" stroke="#0A0D13" strokeWidth={3} />
+            <circle cx={-18} cy={-23} r={13} fill="#1A1F28" stroke="#4E5868" strokeWidth={2} />
+            <rect x={4} y={-34} width={28} height={10} rx={2} fill={SRYV.progress} opacity={0.2 + 0.8 * radio} />
+            <line x1={22} y1={-46} x2={44} y2={-90} stroke="#4E5868" strokeWidth={3} />
+          </g>
+        </g>
         {/* пол */}
         <rect x={-300} y={FL} width={1680} height={1300} fill={SRYV.bg0} />
         {[50, 130, 240, 380, 560].map((d) => <line key={d} x1={-300} x2={1380} y1={FL + d} y2={FL + d} stroke="#1C2331" strokeWidth={3} />)}
@@ -384,10 +418,10 @@ export const HomeRoom: React.FC<{ frame: number; flash?: number; glow?: number; 
           return <path key={i} d="M 0 0 L 18 -6 L 10 10 Z" transform={`translate(${x} ${y}) rotate(${r})`} fill="#C9D6E6" opacity={0.8 * crack} />;
         })}
         {/* герой */}
-        {hero === "stand" ? (
-          <g transform={`translate(640 ${FL}) scale(${-S} ${S})`}>
+        {hero !== "prone" ? (
+          <g transform={`translate(660 ${FL}) scale(${-S} ${S})`}>
             <GroundShadow w={130} opacity={0.4} color="#000" />
-            <Hero pose={stand} outfit="casual" rimFilter="rimWin" />
+            <Hero pose={hero === "phone" ? phone : stand} outfit="casual" rimFilter="rimWin" />
           </g>
         ) : (
           <g transform={`translate(330 ${FL - 34}) scale(${S}) rotate(90)`}>
@@ -397,6 +431,8 @@ export const HomeRoom: React.FC<{ frame: number; flash?: number; glow?: number; 
       </g>
       {/* ночная тонировка; свет окна — поверх */}
       <rect width={1080} height={1920} fill="#26324D" style={{ mixBlendMode: "multiply" }} opacity={0.5} />
+      {radio > 0 && <circle cx={520} cy={FL - 190} r={80} fill={SRYV.progress} opacity={0.14 * radio} style={{ mixBlendMode: "screen" }} filter="url(#beamBlur)" />}
+      {siren > 0 && <rect x={W0} y={T0} width={W1 - W0} height={T1 - T0} fill={SRYV.fail} opacity={siren * (0.12 + 0.1 * Math.sin(frame / 4.5))} style={{ mixBlendMode: "screen" }} />}
       {(flash > 0 || glow > 0) && (
         <g transform={`translate(${sx} ${sy})`} style={{ mixBlendMode: "screen" }}>
           <path d={`M ${W0} ${T0} L ${W1} ${T0} L 980 ${FL + 260} L 300 ${FL + 260} Z`} fill={flash > 0.05 ? "#FFF3D6" : GLOW}
@@ -404,6 +440,85 @@ export const HomeRoom: React.FC<{ frame: number; flash?: number; glow?: number; 
         </g>
       )}
       {flash > 0 && <rect width={1080} height={1920} fill="#FFF8EA" opacity={0.5 * flash} />}
+    </svg>
+  );
+};
+
+/* ============================ ДВОР: машина и кирпичный дом ============================ */
+/** Ночь после вспышки: зарево, оседает пыль. Слева машина, справа кирпичная пятиэтажка с подъездом. Земля y=930. */
+export const Yard: React.FC<{ frame: number; carMark?: number; doorLit?: number; runAt?: number; zoom?: number }> = ({
+  frame, carMark = 0, doorLit = 0, runAt = 1e9, zoom = 1,
+}) => {
+  const FL = 930, DOOR = 800;
+  // Артём: стоит у машины, потом бежит к подъезду и скрывается в двери
+  const running = frame >= runAt;
+  const p0 = heroGait(0, RUN);
+  const g = running ? heroGait(frame - runAt, RUN, { expr: { brow: 0.2, browTilt: -0.4, mouth: "flat", blink: 0 } }) : null;
+  const dx = g ? Math.min(DOOR - 170, (g.x - p0.x) * 1.7) : 0;
+  const inDoor = dx >= DOOR - 170 - 1;
+  const heroOp = inDoor ? Math.max(0, 1 - (frame - runAt - Math.ceil((DOOR - 170) / (17.5 * 1.7))) / 6) : 1;
+  const standPose: HeroPose = { ...NEUTRAL, torso: 2 + Math.sin(frame / 18), head: -4, expr: { brow: -0.3, browTilt: 0.8, mouth: "flat", blink: frame % 80 < 3 ? 1 : 0 } };
+  return (
+    <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+      <RimDefs id="rimYard" side={-1} color={GLOW} strength={0.8} width={5} />
+      <defs>
+        <radialGradient id="yardGlow"><stop offset="0" stopColor={GLOW} stopOpacity={0.7} /><stop offset="1" stopColor={GLOW} stopOpacity={0} /></radialGradient>
+        <filter id="doorBlur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation={20} /></filter>
+      </defs>
+      <g transform={`translate(540 ${FL}) scale(${zoom}) translate(-540 ${-FL})`}>
+        <rect x={-300} y={-300} width={1680} height={FL + 300} fill={SRYV.bg0} />
+        <ellipse cx={160} cy={560} rx={560} ry={380} fill="url(#yardGlow)" />
+        {/* дальние дома без света */}
+        {[[-40, 520, 180], [150, 600, 160], [300, 470, 150]].map(([x, top, w], i) => <rect key={i} x={x} y={top} width={w} height={FL - top} fill="#10141D" />)}
+        {/* кирпичная пятиэтажка */}
+        <rect x={600} y={240} width={520} height={FL - 240} fill="#4A2E27" />
+        {Array.from({ length: 34 }, (_, r) => (
+          <line key={r} x1={600} x2={1120} y1={252 + r * 20} y2={252 + r * 20} stroke="#3A231E" strokeWidth={3} />
+        ))}
+        {[0, 1, 2, 3].map((r) => [0, 1, 2].map((c) => (
+          <rect key={`${r}${c}`} x={640 + c * 150} y={280 + r * 130} width={80} height={80} fill="#0E1118" stroke="#2A1A16" strokeWidth={6} />
+        )))}
+        {/* подъезд */}
+        <rect x={DOOR - 70} y={FL - 210} width={140} height={210} fill={doorLit > 0 ? "#3A2E1E" : "#0E1118"} stroke="#2A1A16" strokeWidth={8} />
+        <rect x={DOOR - 90} y={FL - 230} width={180} height={20} fill="#2A1A16" />
+        {doorLit > 0 && <rect x={DOOR - 62} y={FL - 202} width={124} height={202} fill={SRYV.lamp} opacity={0.35 * doorLit} />}
+        {/* земля */}
+        <rect x={-300} y={FL} width={1680} height={1200} fill="#07090D" />
+        <rect x={-300} y={FL} width={1680} height={8} fill="#1C2331" />
+        {/* машина */}
+        <g transform={`translate(300 ${FL})`}>
+          <path d="M -170 -24 L -170 -70 Q -166 -86 -140 -90 L -90 -96 L -50 -140 L 70 -140 L 120 -96 L 160 -90 Q 176 -84 176 -64 L 176 -24 Z" fill="#232A36" stroke="#0A0D13" strokeWidth={5} />
+          <path d="M -40 -132 L 64 -132 L 104 -98 L -76 -98 Z" fill="#141924" />
+          <circle cx={-100} cy={-22} r={30} fill="#0A0D13" stroke="#3A4560" strokeWidth={5} />
+          <circle cx={110} cy={-22} r={30} fill="#0A0D13" stroke="#3A4560" strokeWidth={5} />
+          {/* пыль на крыше и капоте */}
+          <path d="M -50 -142 L 70 -142" stroke="#B9B2A6" strokeWidth={5} opacity={0.7} />
+          <path d="M -168 -72 L -96 -94 M 124 -94 L 172 -88" stroke="#B9B2A6" strokeWidth={4} opacity={0.7} />
+          {carMark > 0 && (
+            <g opacity={carMark} stroke={SRYV.fail} strokeWidth={14} strokeLinecap="round">
+              <line x1={-150} y1={-170} x2={150} y2={0} /><line x1={150} y1={-170} x2={-150} y2={0} />
+            </g>
+          )}
+        </g>
+        {/* Артём */}
+        <g opacity={heroOp}>
+          <g transform={`translate(${120 + dx} ${FL}) scale(1.7)`}>
+            <GroundShadow w={120} opacity={0.4} color="#000" />
+            <g transform={`translate(${g ? -g.x : 0} 0)`}><Hero pose={g ?? standPose} outfit="casual" rimFilter="rimYard" /></g>
+          </g>
+        </g>
+      </g>
+      <rect width={1080} height={1920} fill="#26324D" style={{ mixBlendMode: "multiply" }} opacity={0.35} />
+      {doorLit > 0 && <rect x={720} y={FL - 220} width={160} height={260} fill={SRYV.lamp} opacity={0.25 * doorLit} filter="url(#doorBlur)" style={{ mixBlendMode: "screen" }} />}
+      {/* оседающая пыль */}
+      <g>
+        {Array.from({ length: 110 }, (_, i) => {
+          const near = i % 4 === 0;
+          const x = random(`yx${i}`) * 1080 + Math.sin(frame / 30 + i) * 10;
+          const y = ((random(`yy${i}`) * 2100 + frame * (near ? 2.6 : 1.4)) % 2100) - 120;
+          return <circle key={i} cx={Math.round(x)} cy={Math.round(y)} r={near ? 6 : 3} fill="#B9B2A6" opacity={near ? 0.45 : 0.7} />;
+        })}
+      </g>
     </svg>
   );
 };

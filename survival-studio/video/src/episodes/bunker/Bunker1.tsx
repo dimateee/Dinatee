@@ -6,8 +6,7 @@ import { Grain } from "../../ui/Grain";
 import { Plate, ServiceLabel } from "../../ui/Hud";
 import { useFonts } from "../../useFonts";
 import { SRYV } from "../../style/palette";
-import { RoomNight } from "../../scenes/Rooms";
-import { BuildingSection, Countdown, HomeRoom, NightCity, Shelter, SirenPole, SirenPulse } from "../../scenes/Bunker";
+import { BuildingSection, Countdown, HomeRoom, NightCity, Shelter, SirenPulse, Yard } from "../../scenes/Bunker";
 import { ap, Caption, EASE, Push, SchemaBg, TimerCard } from "../propusk/parts";
 
 /*
@@ -63,7 +62,10 @@ const T_FLASH = 13.96, T_SAFE = 45.84, SPEED = 14;
 const secLeft = (t: number) => 900 - Math.max(0, t - T_FLASH) * SPEED;
 
 type ShotP = { f: number; dur: number; lf: (s: number) => number; t: (f: number) => number };
-type Shot = { from: number; to: number; enter?: "cut" | "scale" | "wipe" | "lightOn" | "flash"; timer?: boolean; C: React.FC<ShotP> };
+type Shot = { from: number; to: number; enter?: "cut" | "scale" | "wipe" | "lightOn" | "dissolve"; timer?: boolean; C: React.FC<ShotP> };
+const DISSOLVE = 10; // кадров перекрытия
+/** Непрерывный наезд камеры в комнате (планы 2–4 — одна сцена). */
+const roomZoom = (t: number) => 1 + 0.1 * Math.min(1, Math.max(0, (t - 4.24) / (16.18 - 4.24)));
 const kIn = (f: number, s: number) => ap(f, s, 6);
 const Rule: React.FC<{ n: number }> = ({ n }) => <ServiceLabel x={64} y={226} text={`ПРАВИЛО ${n}`} color={SRYV.fail} />;
 const decay = (f: number, s: number, len = 24) => interpolate(f, [s, s + 3, s + len], [0, 0.95, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
@@ -76,34 +78,37 @@ const SHOTS: Shot[] = [
       <TimerCard f={f} at={lf(at("пятнадцать", 1.5))} text="15:00" color={SRYV.fail} y={520} />
     </>);
   } },
-  // 2. Обычный вечер — и сирена
-  { from: 4.24, to: 7.48, enter: "lightOn", C: ({ f, dur, lf }) => (<>
-    <RoomNight frame={f + 40} cam={{ zoom: 1 + 0.04 * f / dur, x: 0, y: 0 }} />
-    <ServiceLabel x={64} y={110} text="ОБЫЧНЫЙ ВЕЧЕР · 21:40" />
-    <Plate x={64} y={240} kind="bad" icon="siren" title="Сирена" opacity={kIn(f, lf(at("сирена.", 6.5)))} />
-    <SirenPulse f={f} from={lf(at("сирена.", 6.5))} />
-  </>) },
-  // 3. Сирена = «Внимание всем» → радио, ТВ
-  { from: 7.48, to: 12.02, enter: "scale", C: ({ f, lf }) => (<>
-    <SchemaBg pal="S" />
-    <SirenPole f={f} y={820} />
-    <Plate x={170} y={150} kind="bad" icon="warn" title="«Внимание всем!»" opacity={kIn(f, lf(at("внимание", 8.5)))} />
-    <Plate x={110} y={870} kind="good" icon="radio" title="Радио" opacity={kIn(f, lf(at("радио", 10)))} />
-    <Plate x={590} y={870} kind="good" icon="tv" title="ТВ" opacity={kIn(f, lf(at("телевизор.", 10.8)))} />
-    <SirenPulse f={f + 30} from={0} amount={0.6} />
-  </>) },
+  // 2–3. Одна комната: обычный вечер с телефоном → за окном воет сирена → включает радио
+  { from: 4.24, to: 7.48, enter: "dissolve", C: ({ f, lf, t }) => {
+    const sOn = interpolate(f, [lf(at("сирена.", 6.5)) - 4, lf(at("сирена.", 6.5)) + 8], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+    return (<>
+      <HomeRoom frame={Math.round(t(f) * FPS)} hero={sOn > 0.5 ? "stand" : "phone"} siren={sOn} zoom={roomZoom(t(f))} />
+      <ServiceLabel x={64} y={110} text="ОБЫЧНЫЙ ВЕЧЕР · 21:40" />
+      <Plate x={440} y={224} kind="bad" icon="siren" title="Сирена" opacity={kIn(f, lf(at("сирена.", 6.5)))} />
+      <SirenPulse f={f} from={lf(at("сирена.", 6.5))} amount={0.7} />
+    </>);
+  } },
+  { from: 7.48, to: 12.02, C: ({ f, lf, t }) => {
+    const kr = kIn(f, lf(at("включи", 9.9)));
+    return (<>
+      <HomeRoom frame={Math.round(t(f) * FPS)} hero="stand" siren={1} radio={ap(f, lf(at("радио", 10.3)), 6)} zoom={roomZoom(t(f))} />
+      <Plate x={440} y={224} kind="bad" icon="warn" title="«Внимание всем!»" opacity={kIn(f, lf(at("внимание", 8.5))) * (1 - kr)} />
+      <Plate x={440} y={224} kind="good" icon="radio" title="Радио · ТВ" sub="слушай сообщение" opacity={kr} />
+      <SirenPulse f={f + 30} from={0} amount={0.5} />
+    </>);
+  } },
   // 4. Правило 1 — дома: вспышка в окне, не смотри
-  { from: 12.02, to: 16.18, enter: "lightOn", timer: true, C: ({ f, dur, lf }) => {
+  { from: 12.02, to: 16.18, timer: true, C: ({ f, lf, t }) => {
     const fl = lf(at("вспышку", 13.8));
     return (<>
-      <HomeRoom frame={f + 200} flash={0.9 * decay(f, fl, 18)} glow={f >= fl ? 1 : 0} eyesShut={f >= fl} shake={f >= fl && f < fl + 8 ? 0.4 : 0} zoom={1 + 0.04 * f / dur} />
+      <HomeRoom frame={Math.round(t(f) * FPS)} siren={f < fl ? 1 : 0} radio={1} flash={0.9 * decay(f, fl, 18)} glow={f >= fl ? 1 : 0} eyesShut={f >= fl} shake={f >= fl && f < fl + 8 ? 0.4 : 0} zoom={roomZoom(t(f))} />
       <Rule n={1} />
       <Plate x={440} y={224} kind="bad" icon="eye" title="Не смотри" sub="на вспышку" opacity={kIn(f, lf(at("не", 14.6)))} />
     </>);
   } },
   // 5. Ложись на пол лицом вниз
   { from: 16.18, to: 18.82, enter: "cut", timer: true, C: ({ f, dur }) => (<>
-    <HomeRoom frame={f + 330} glow={0.9} hero="prone" zoom={1.04 + 0.03 * f / dur} />
+    <HomeRoom frame={f + 330} glow={0.9} radio={1} hero="prone" zoom={1.04 + 0.03 * f / dur} />
     <Rule n={1} />
     <Plate x={440} y={224} kind="good" icon="check" title="Лицом вниз" sub="руки под себя" opacity={kIn(f, 4)} />
   </>) },
@@ -111,36 +116,30 @@ const SHOTS: Shot[] = [
   { from: 18.82, to: 23.36, enter: "cut", timer: true, C: ({ f, lf }) => {
     const w = lf(at("волна", 19));
     return (<>
-      <HomeRoom frame={f + 410} glow={0.8} hero="prone" zoom={1.07}
+      <HomeRoom frame={f + 410} glow={0.8} radio={1} hero="prone" zoom={1.07}
         shake={f >= w && f < w + 40 ? interpolate(f, [w, w + 40], [1, 0]) : 0} crack={ap(f, w, 3)} />
       <Rule n={1} />
       <Plate x={440} y={224} kind="bad" icon="warn" title="Подальше от окон" opacity={kIn(f, lf(at("держись", 21.3)))} />
     </>);
   } },
   // 7. Радиоактивная пыль: через 10–20 минут
-  { from: 23.36, to: 28.64, enter: "scale", timer: true, C: ({ f, dur, lf }) => (<>
+  { from: 23.36, to: 28.64, enter: "dissolve", timer: true, C: ({ f, dur, lf }) => (<>
     <NightCity frame={f + 560} glow={0.55} zoom={1 + 0.04 * f / dur} dust={interpolate(f, [lf(at("радиоактивная", 24.5)) - 6, lf(at("радиоактивная", 24.5)) + 30], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })} />
     <Plate x={64} y={240} kind="bad" icon="warn" title="Радиоактивная пыль" opacity={kIn(f, lf(at("радиоактивная", 24.5)))} />
     <Plate x={64} y={400} kind="resource" icon="hourglass" title="Через 10–20 мин" opacity={kIn(f, lf(at("минут", 27)))} />
   </>) },
-  // 8. Правило 2: не машина, а кирпич/бетон
-  { from: 28.64, to: 35.72, enter: "wipe", timer: true, C: ({ f, dur, lf }) => {
-    const kc = kIn(f, lf(at("машине:", 30.3))), kh = kIn(f, lf(at("кирпичное", 33.5)));
+  // 8. Правило 2 — двор: машина не защищает, бегом в кирпичный подъезд
+  { from: 28.64, to: 35.72, enter: "dissolve", timer: true, C: ({ f, dur, lf }) => {
+    const run = lf(at("заходи", 32.4));
     return (<>
-      <NightCity frame={f + 720} glow={0.6} dust={1} zoom={1.05 + 0.03 * f / dur} />
-      <div style={{ position: "absolute", inset: 0, background: "rgba(7,9,13,0.45)" }} />
+      <Yard frame={f} carMark={ap(f, lf(at("машине:", 30.3)), 6)} runAt={run} doorLit={ap(f, run + 22, 8)} zoom={1 + 0.03 * f / dur} />
       <Rule n={2} />
-      <Push f={f} dur={dur} amount={0.03}>
-        <Plate x={140} y={360} kind="bad" icon="car" title="Машина" sub="почти не защищает" opacity={kc} scale={0.94 + 0.06 * kc} />
-        <svg width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
-          <line x1={232} y1={402} x2={232 + 230 * ap(f, lf(at("защищает.", 31.6)), 8)} y2={396} stroke={SRYV.fail} strokeWidth={10} strokeLinecap="round" opacity={kc} />
-        </svg>
-        <Plate x={140} y={640} kind="good" icon="house" title="Кирпич · бетон" sub="ближайшее здание" opacity={kh} scale={0.94 + 0.06 * kh} />
-      </Push>
+      <Plate x={64} y={310} kind="bad" icon="car" title="Машина" sub="почти не защищает" opacity={kIn(f, lf(at("машине:", 30.3)))} />
+      <Plate x={500} y={470} kind="good" icon="house" title="Кирпич · бетон" opacity={kIn(f, lf(at("кирпичное", 33.5)))} />
     </>);
   } },
   // 9. Правило 3: подвал или центр здания; чем больше бетона и земли — тем меньше доза
-  { from: 35.72, to: 45.2, enter: "scale", timer: true, C: ({ f, lf }) => (<>
+  { from: 35.72, to: 45.2, enter: "dissolve", timer: true, C: ({ f, lf }) => (<>
     <SchemaBg pal="S" />
     <BuildingSection f={f} dust={1} basement={ap(f, lf(at("подвал", 37.4)), 8)} center={ap(f, lf(at("центр", 38.2)), 8)}
       edges={ap(f, lf(at("подальше", 39.2)), 8)} dose={ap(f, lf(at("чем", 40.8)), 8)} />
@@ -148,7 +147,7 @@ const SHOTS: Shot[] = [
     <Caption x={900} y={262} w={240} text="ДОЗА" color="#C9D2E0" size={34} opacity={ap(f, lf(at("чем", 40.8)), 8)} />
   </>) },
   // 10. Луну — с собой: в укрытии
-  { from: 45.2, to: 46.64, enter: "lightOn", timer: true, C: ({ f }) => (<>
+  { from: 45.2, to: 46.64, enter: "dissolve", timer: true, C: ({ f }) => (<>
     <Shelter frame={f} lamp={1} zoom={1.05} />
     <Plate x={64} y={240} kind="good" icon="paw" title="Луну — с собой" opacity={kIn(f, 4)} />
   </>) },
@@ -209,6 +208,7 @@ const Enter: React.FC<{ type?: Shot["enter"]; children: React.ReactNode }> = ({ 
   const f = useCurrentFrame();
   if (type === "scale") return <AbsoluteFill style={{ transform: `scale(${interpolate(f, [0, 6], [1.06, 1], { extrapolateRight: "clamp", easing: EASE })})` }}>{children}</AbsoluteFill>;
   if (type === "wipe") { const k = interpolate(f, [0, 7], [25, 100], { extrapolateRight: "clamp", easing: EASE }); return <AbsoluteFill style={{ backgroundColor: "#07090D" }}><AbsoluteFill style={{ clipPath: `inset(0 0 ${Math.round(100 - k)}% 0)` }}>{children}</AbsoluteFill></AbsoluteFill>; }
+  if (type === "dissolve") return <AbsoluteFill style={{ opacity: interpolate(f, [0, DISSOLVE], [0, 1], { extrapolateRight: "clamp" }) }}>{children}</AbsoluteFill>;
   if (type === "lightOn") return <AbsoluteFill>{children}<AbsoluteFill style={{ backgroundColor: "#07090D", opacity: interpolate(f, [0, 8], [0.9, 0], { extrapolateRight: "clamp" }) }} /></AbsoluteFill>;
   return <AbsoluteFill>{children}</AbsoluteFill>;
 };
@@ -229,7 +229,7 @@ export const Bunker1: React.FC<{ withAudio?: boolean }> = ({ withAudio = true })
   return (
     <AbsoluteFill style={{ backgroundColor: "#07090D" }}>
       {SHOTS.map((s, i) => {
-        const a = Math.round(s.from * FPS), b = Math.round(s.to * FPS);
+        const a = Math.round(s.from * FPS) - (s.enter === "dissolve" && s.from > 0 ? DISSOLVE : 0), b = Math.round(s.to * FPS);
         return <Sequence key={i} from={a} durationInFrames={b - a} name={`План ${i + 1}`}><ShotView s={s} start={a} dur={b - a} /></Sequence>;
       })}
       <Karaoke words={CW} accents={ACCENTS} pendingColor="#C3C8D2" />
