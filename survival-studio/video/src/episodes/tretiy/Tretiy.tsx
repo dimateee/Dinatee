@@ -12,7 +12,7 @@ import { NEUTRAL } from "../../rig/Hero";
 import { POSES } from "../../rig/poses";
 import { RitmInsert } from "../../series66/Inserts";
 import {
-  ap, Calendar, EASE, FiveToOne, Marker, MotivationBar, Push, RangeBand, Ribbon, Ruler, SchemaBg, StudyCard, TimerCard, TwoCurves,
+  ap, Calendar, EASE, px, FiveToOne, Marker, MotivationBar, Push, RangeBand, Ribbon, Ruler, SchemaBg, StudyCard, TimerCard, TwoCurves,
 } from "../propusk/parts";
 
 /*
@@ -81,8 +81,9 @@ const SHOTS: Shot[] = [
       <Calendar f={f} pal="S" chainUpTo={2} cells={[
         { state: "green", at: 0 }, { state: "green", at: 2 }, { state: f >= lf(at("третий", 1)) ? "miss" : "empty", at: 4 },
         { state: "empty", at: 6 }, { state: "empty", at: 8 }, { state: "empty", at: 10 }, { state: "empty", at: 12 },
-      ]} dim={ap(f, lf(at("день?", 1.5)), 8) * 0.6} />
+      ]} dim={ap(f, lf(at("день?", 1.5)), 8) * 0.6} size={128} />
     </Push>
+    <Plate x={330} y={380} kind="bad" icon="warn" title="День 3" sub="и всё бросил" opacity={kIn(f, lf(at("третий", 1)))} scale={0.9 + 0.1 * kIn(f, lf(at("третий", 1)))} />
   </>) },
   // 2. Дело не в лени. Это Артём.
   { from: 2.52, to: 4.64, enter: "lightOn", C: ({ f, lf }) => {
@@ -106,7 +107,7 @@ const SHOTS: Shot[] = [
     return (<>
       <RoomMorning frame={f + 260} heroPose={hero} heroOutfit="casual" heroX={340} showDog={false} cam={{ zoom: 1 + 0.03 * f / dur, x: 0, y: 0 }} />
       <ServiceLabel x={64} y={110} text="ДЕНЬ 1 — 06:30" {...LL} />
-      {items.map(([t, ic, w], i) => { const k = kIn(f, lf(at(w, 7))); return <Plate key={t} x={460} y={230 + i * 150} kind="good" icon={ic} title={t} dark={false} opacity={k} scale={0.94 + 0.06 * k} />; })}
+      {items.map(([t, ic, w], i) => { const k = kIn(f, lf(at(w, 7))); return <Plate key={t} x={460} y={410 + i * 140} kind="good" icon={ic} title={t} dark={false} opacity={k} scale={0.94 + 0.06 * k} />; })}
       <Ribbon f={f} start={lf(at("сразу.", 9))} text="Всё и сразу" y={830} />
     </>);
   } },
@@ -127,7 +128,7 @@ const SHOTS: Shot[] = [
   // 7. Исследование: 66 дней
   { from: 22.14, to: 28.18, enter: "scale", C: ({ f, lf }) => (<>
     <SchemaBg pal="S" />
-    <StudyCard f={f} at={0} />
+    <div style={{ position: "absolute", inset: 0, opacity: 1 - ap(f, lf(at("привычка", 24.5)), 8), transform: `translateY(${px(-60 * ap(f, lf(at("привычка", 24.5)), 8))}px)` }}><StudyCard f={f} at={0} /></div>
     <Ruler f={f} drawAt={lf(at("привычка", 24.5))} pal="S" />
     <Marker f={f} day={66} at={lf(at("шестьдесят", 26.5))} label="66 ДНЕЙ" color={SRYV.progress} roll />
   </>) },
@@ -150,7 +151,7 @@ const SHOTS: Shot[] = [
   // 10. Мотивация помогает начать, продолжать — система
   { from: 34.6, to: 38.32, enter: "scale", C: ({ f, lf }) => (<>
     <Street frame={f + 20} mode="walk" dog heroX={360} />
-    <Ribbon f={f} start={lf(at("система.", 37))} text="Мотивация ≠ дисциплина" y={300} />
+    <Ribbon f={f} start={lf(at("система.", 37))} text="Держит система" y={300} />
   </>) },
   // 11. Первое: одно дело, а не пять
   { from: 38.32, to: 41.22, enter: "wipe", C: ({ f, lf }) => (<>
@@ -183,6 +184,7 @@ const SHOTS: Shot[] = [
       { state: "green", at: -20 }, { state: "green", at: -20 }, { state: "green", at: -20 }, { state: "empty", at: -20 },
       { state: f >= lf(at("страшно.", 55)) ? "green" : "empty", at: 0 }, { state: f >= lf(at("дважды.", 56.8)) ? "lock" : "empty", at: 4 }, { state: "green", at: 10 },
     ]} />
+    <Plate x={200} y={330} kind="bad" icon="warn" title="Не 2 пропуска подряд" dark={false} opacity={kIn(f, lf(at("главное", 55.5)))} />
   </>) },
   // 16. День 66 — не ждёт настроения
   { from: 57.92, to: 61.64, enter: "lightOn", C: ({ f }) => (<>
