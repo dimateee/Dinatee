@@ -14,6 +14,7 @@ ap.add_argument("script"); ap.add_argument("out")
 ap.add_argument("--voice", default="JBFqnCBsd6RMkjVDRZzb")  # George
 ap.add_argument("--speed", type=float, default=0.84)
 ap.add_argument("--stability", type=float, default=0.7)
+ap.add_argument("--style", type=float, default=0.0)
 ap.add_argument("--engine", choices=["elevenlabs", "piper"], default="elevenlabs")
 ap.add_argument("--piper-model", default=os.path.join(os.path.dirname(__file__), "voices", "ru_RU-denis-medium.onnx"))
 ap.add_argument("--length-scale", type=float, default=1.12)
@@ -54,12 +55,12 @@ def tts(text, prev, nxt):
     text = text.replace("RITM", "Ритм")  # произношение; на экране остаётся RITM
     if a.engine == "piper":
         return tts_piper(text)
-    h = hashlib.md5(f"{a.voice}{a.speed}{a.stability}{text}{prev}{nxt}".encode()).hexdigest()[:12]
+    h = hashlib.md5(f"{a.voice}{a.speed}{a.stability}{a.style}{text}{prev}{nxt}".encode()).hexdigest()[:12]
     path = os.path.join(a.out, "phrases", f"{h}.mp3")
     if not os.path.exists(path):
         body = {"text": text, "model_id": "eleven_multilingual_v2", "language_code": "ru",
                 "previous_text": prev, "next_text": nxt,
-                "voice_settings": {"stability": a.stability, "similarity_boost": 0.75, "style": 0.0,
+                "voice_settings": {"stability": a.stability, "similarity_boost": 0.75, "style": a.style,
                                    "use_speaker_boost": True, "speed": a.speed}}
         r = requests.post(f"https://api.elevenlabs.io/v1/text-to-speech/{a.voice}?output_format=mp3_44100_128",
                           headers={"xi-api-key": "proxy-injected"}, json=body, timeout=120)
