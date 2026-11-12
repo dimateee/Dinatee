@@ -6,7 +6,7 @@ import { Grain } from "../../ui/Grain";
 import { Plate, ServiceLabel } from "../../ui/Hud";
 import { useFonts } from "../../useFonts";
 import { SRYV } from "../../style/palette";
-import { BuildingSection, Countdown, HomeRoom, NightCity, Shelter, SirenPulse, Yard } from "../../scenes/Bunker";
+import { BuildingSection, Countdown, HomeRoom, HookTimer, NightCity, Shelter, SirenPulse, Yard } from "../../scenes/Bunker";
 import { ap, Caption, EASE, Push, SchemaBg, TimerCard } from "../propusk/parts";
 
 /*
@@ -71,11 +71,18 @@ const Rule: React.FC<{ n: number }> = ({ n }) => <ServiceLabel x={64} y={226} te
 const decay = (f: number, s: number, len = 24) => interpolate(f, [s, s + 3, s + len], [0, 0.95, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
 const SHOTS: Shot[] = [
-  // 1. Крючок: вспышка над городом, 15:00
+  // 1. Крючок: вспышка → ядерный гриб над городом, ударное кольцо, тряска; огромный таймер «15:00» бежит
   { from: 0, to: 4.24, C: ({ f, dur, lf }) => {
+    const t = f / FPS;
+    const shake = interpolate(t, [0.25, 0.45, 1.6], [0, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
     return (<>
-      <NightCity frame={f} flash={0.8 * decay(f, 0, 14)} glow={interpolate(f, [0, 20], [1, 0.8], { extrapolateRight: "clamp" })} zoom={1 + 0.05 * f / dur} />
-      <TimerCard f={f} at={lf(at("пятнадцать", 1.5))} text="15:00" color={SRYV.fail} y={520} />
+      <NightCity frame={f} boom={t} flash={interpolate(f, [0, 2, 13], [0, 1, 0], { extrapolateRight: "clamp" })} glow={0.6} shake={shake}
+        zoom={1.02 + 0.1 * f / dur} />
+      <div style={{ position: "absolute", inset: 0, background: "rgba(7,9,13,0.25)", opacity: interpolate(f, [lf(at("пятнадцать", 1.5)) - 4, lf(at("пятнадцать", 1.5)) + 6], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) }} />
+      <HookTimer f={f} at={lf(at("пятнадцать", 1.5))} tickAt={lf(at("сделаешь?", 3.4))} y={880} />
+      <div style={{ position: "absolute", inset: 0, opacity: interpolate(f, [dur - 14, dur - 6], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) }}>
+        <ServiceLabel x={64} y={110} text="БУНКЕР · СЕРИЯ 1" color={SRYV.fail} />
+      </div>
     </>);
   } },
   // 2–3. Одна комната: обычный вечер с телефоном → за окном воет сирена → включает радио

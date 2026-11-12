@@ -25,11 +25,12 @@ type CityProps = {
   hero?: React.ReactNode;
   zoom?: number;
   lift?: number;   // поднять мир (чтобы лежащий герой был выше субтитров)
+  boom?: number;   // секунды после взрыва — ядерный гриб над городом
 };
 const FAR = [[0, 640, 150], [140, 560, 120], [250, 700, 170], [410, 520, 110], [510, 610, 160], [660, 470, 130], [780, 650, 150], [920, 560, 170]];
 const NEAR = [[-20, 760, 230], [200, 840, 180], [690, 800, 200], [880, 720, 230]];
 
-export const NightCity: React.FC<CityProps> = ({ frame, flash = 0, glow = 0, shake = 0, dust = 0, wave = 0, hero, zoom = 1, lift = 0 }) => {
+export const NightCity: React.FC<CityProps> = ({ frame, flash = 0, glow = 0, shake = 0, dust = 0, wave = 0, hero, zoom = 1, lift = 0, boom }) => {
   const sx = shake ? Math.round((random(`sx${frame}`) - 0.5) * 26 * shake) : 0;
   const sy = shake ? Math.round((random(`sy${frame}`) - 0.5) * 18 * shake) : 0;
   const hz = 760; // линия горизонта дальних домов
@@ -47,6 +48,7 @@ export const NightCity: React.FC<CityProps> = ({ frame, flash = 0, glow = 0, sha
         <rect x={-300} y={-300} width={1680} height={2600} fill={SRYV.bg0} />
         {/* зарево за домами */}
         {glow > 0 && <ellipse cx={720} cy={hz - 40} rx={620} ry={420} fill="url(#cityGlow)" opacity={glow} />}
+        {boom !== undefined && <Mushroom t={boom} />}
         {/* дальние дома */}
         {FAR.map(([x, top, w], i) => (
           <g key={i}>
@@ -89,6 +91,18 @@ export const NightCity: React.FC<CityProps> = ({ frame, flash = 0, glow = 0, sha
           </g>
         )}
       </g>
+      {/* искры и пепел, летящие вверх от взрыва */}
+      {boom !== undefined && (
+        <g>
+          {Array.from({ length: 70 }, (_, i) => {
+            const sp = 60 + random(`es${i}`) * 140;
+            const y = GROUND + 200 - ((random(`ey${i}`) * 1400 + boom * sp) % 1500);
+            const x = 360 + random(`ex${i}`) * 720 + Math.sin(boom * 2 + i) * 14;
+            const hot = i % 3 === 0;
+            return <circle key={i} cx={Math.round(x)} cy={Math.round(y)} r={hot ? 3.5 : 2.5} fill={hot ? "#FFD08A" : GLOW} opacity={hot ? 0.9 : 0.6} />;
+          })}
+        </g>
+      )}
       {/* оседающая пыль — поверх всего, медленно и крупно ближе к камере */}
       {dust > 0 && (
         <g opacity={dust}>
@@ -520,5 +534,81 @@ export const Yard: React.FC<{ frame: number; carMark?: number; doorLit?: number;
         })}
       </g>
     </svg>
+  );
+};
+
+/* ============================ ЯДЕРНЫЙ ГРИБ ============================ */
+/** Стилизованный гриб: огненный шар поднимается и тускнеет, «шапка» из клубов катится, ствол тянется, у земли — вал.
+ *  Ударное кольцо и кольцо конденсации — в первые секунды. t — секунды после взрыва. */
+const lerpC = (a: string, b: string, k: number) => {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16)), pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  return "#" + pa.map((v, i) => Math.round(v + (pb[i] - v) * Math.min(1, Math.max(0, k))).toString(16).padStart(2, "0")).join("");
+};
+export const Mushroom: React.FC<{ t: number; gx?: number; gy?: number }> = ({ t, gx = 640, gy = 780 }) => {
+  const rise = 1 - Math.exp(-t / 1.8);
+  const r = 80 + 190 * (1 - Math.exp(-t / 0.6));
+  const cy = gy - 150 - 380 * rise;
+  const heat = Math.min(1, t / 5.5);
+  const core = lerpC("#FFF6E0", "#FF7A2E", heat);
+  const PUFFS = 22;
+  const stemTop = cy + r * 0.45, wTop = r * 0.22, wBot = r * 0.34 + 30 * rise;
+  const surge = 140 + 520 * (1 - Math.exp(-t / 1.3));
+  const shockK = Math.min(1, t / 1.1);
+  return (
+    <g>
+      <defs>
+        <radialGradient id="mushGlow"><stop offset="0" stopColor="#FFE2B0" stopOpacity={0.9} /><stop offset="0.4" stopColor={GLOW} stopOpacity={0.55} /><stop offset="1" stopColor={GLOW} stopOpacity={0} /></radialGradient>
+        <filter id="mushSoft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation={6} /></filter>
+      </defs>
+      {/* свечение неба вокруг */}
+      <circle cx={gx} cy={cy} r={r * 3.2} fill="url(#mushGlow)" opacity={0.9 - 0.35 * heat} />
+      {/* ударное кольцо по горизонту */}
+      {t < 1.3 && <ellipse cx={gx} cy={gy - 20} rx={60 + 1100 * shockK} ry={(60 + 1100 * shockK) * 0.12} fill="none" stroke="#FFF1D6" strokeWidth={8 * (1 - shockK) + 2} opacity={1 - shockK} />}
+      {/* вал пыли у земли */}
+      <ellipse cx={gx} cy={gy} rx={surge} ry={surge * 0.2} fill="#6B3E2A" opacity={0.85} filter="url(#mushSoft)" />
+      <ellipse cx={gx} cy={gy - 10} rx={surge * 0.7} ry={surge * 0.13} fill="#8E5536" opacity={0.8} filter="url(#mushSoft)" />
+      {/* ствол */}
+      <path d={`M ${gx - wBot} ${gy} C ${gx - wBot * 0.5} ${(gy + stemTop) / 2} ${gx - wTop * 1.4} ${stemTop + 40} ${gx - wTop} ${stemTop}
+        L ${gx + wTop} ${stemTop} C ${gx + wTop * 1.4} ${stemTop + 40} ${gx + wBot * 0.5} ${(gy + stemTop) / 2} ${gx + wBot} ${gy} Z`} fill="#6E3B26" />
+      <path d={`M ${gx - wTop * 0.45} ${gy} L ${gx - wTop * 0.35} ${stemTop} L ${gx + wTop * 0.35} ${stemTop} L ${gx + wTop * 0.45} ${gy} Z`} fill={lerpC("#FFD9A0", "#B25A2E", heat)} opacity={0.75} />
+      {/* шапка: клубы по тору, катятся */}
+      {Array.from({ length: PUFFS }, (_, i) => {
+        const a = (i / PUFFS) * Math.PI * 2 + t * 0.35;
+        const px = gx + Math.cos(a) * r * 0.95;
+        const py = cy + Math.sin(a) * r * 0.42;
+        const pr = r * (0.36 + 0.14 * random(`pr${i}`));
+        const front = Math.sin(a) > 0;
+        return <circle key={i} cx={px} cy={py} r={pr} fill={front ? lerpC("#F08A44", "#8A4A2C", heat) : lerpC("#C0602F", "#5E3324", heat)} />;
+      })}
+      <ellipse cx={gx} cy={cy - r * 0.15} rx={r * 0.95} ry={r * 0.7} fill={lerpC("#D8763C", "#6E3B26", heat)} />
+      {/* огненное ядро и подсветка снизу */}
+      <ellipse cx={gx} cy={cy + r * 0.12} rx={r * 0.62} ry={r * 0.46} fill={core} filter="url(#mushSoft)" />
+      <ellipse cx={gx} cy={cy + r * 0.2} rx={r * 0.34} ry={r * 0.22} fill="#FFF8EA" opacity={1 - heat * 0.8} />
+      {/* кольцо конденсации */}
+      {t > 0.3 && t < 2.6 && <ellipse cx={gx} cy={cy + r * 0.1} rx={r * 1.9} ry={r * 0.42} fill="none" stroke="#E8ECF2" strokeWidth={10} opacity={0.55 * Math.sin(Math.PI * (t - 0.3) / 2.3)} filter="url(#mushSoft)" />}
+    </g>
+  );
+};
+
+/* Большой таймер крючка: появляется с «глитчем», каждый тик — пульс. */
+export const HookTimer: React.FC<{ f: number; at: number; tickAt: number; fps?: number; y?: number }> = ({ f, at, tickAt, fps = 30, y = 900 }) => {
+  if (f < at) return null;
+  const k = Math.min(1, (f - at) / 5);
+  const ticks = f >= tickAt ? Math.floor((f - tickAt) / 6) + 1 : 0;   // тик каждые 0,2 с — время побежало
+  const s = 900 - ticks;
+  const txt = `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  const sincTick = f >= tickAt ? (f - tickAt) % 6 : 99;
+  const pulse = sincTick < 3 ? 1.04 - sincTick * 0.013 : 1;
+  const glitch = f - at < 5 ? Math.round((random(`g${f}`) - 0.5) * 30) : 0;
+  return (
+    <div style={{ position: "absolute", left: 0, right: 0, top: y - 150, display: "flex", flexDirection: "column", alignItems: "center", gap: 10, opacity: k }}>
+      <div style={{ fontFamily: "JetBrains Mono", fontWeight: 700, fontSize: 38, letterSpacing: 10, color: "#FF6B5E", lineHeight: 1 }}>У ТЕБЯ ОСТАЛОСЬ</div>
+      <div style={{ position: "relative", transform: `scale(${(0.9 + 0.1 * k) * pulse}) translateX(${glitch}px)`, padding: "10px 46px", borderRadius: 28,
+        background: "rgba(10,6,6,0.78)", border: "6px solid #FF3B30", boxShadow: "0 0 40px rgba(255,59,48,.55), inset 0 0 30px rgba(255,59,48,.25)" }}>
+        {glitch !== 0 && <div style={{ position: "absolute", left: 46 + 8, top: 10, fontFamily: "JetBrains Mono", fontWeight: 700, fontSize: 200, lineHeight: 1, color: "#3FD0FF", opacity: 0.6 }}>{txt}</div>}
+        <div style={{ position: "relative", fontFamily: "JetBrains Mono", fontWeight: 700, fontSize: 200, lineHeight: 1, color: "#FFFFFF", letterSpacing: 4,
+          textShadow: "0 0 24px rgba(255,59,48,.9), 0 0 6px rgba(255,255,255,.6)" }}>{txt}</div>
+      </div>
+    </div>
   );
 };
