@@ -56,8 +56,8 @@ const SHADOW = [
  * Караоке-субтитры: фраза целиком, несказанные слова — белый 50%, слово белеет в кадр своего начала.
  * accents: индекс слова → "yellow" | "red" (не больше одного на фразу — проверяется).
  */
-export const Karaoke: React.FC<{ words: Word[]; accents?: Record<number, "yellow" | "red">; centerY?: number; fontSize?: number }> = ({
-  words, accents = {}, centerY = 1229, fontSize = 84,
+export const Karaoke: React.FC<{ words: Word[]; accents?: Record<number, "yellow" | "red">; centerY?: number; fontSize?: number; pendingColor?: string }> = ({
+  words, accents = {}, centerY = 1229, fontSize = 84, pendingColor = "rgba(255,255,255,0.5)",
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -78,7 +78,7 @@ export const Karaoke: React.FC<{ words: Word[]; accents?: Record<number, "yellow
           {line.map((i) => {
             const spoken = frame >= Math.round(words[i].start * fps);
             const acc = accents[i];
-            const color = !spoken ? "rgba(255,255,255,0.5)" : acc ? SUB[acc] : "#FFFFFF";
+            const color = !spoken ? pendingColor : acc ? SUB[acc] : "#FFFFFF";
             return (
               <span key={i} style={{
                 fontFamily: "Inter Display", fontWeight: 900, fontSize, color, textTransform: "uppercase",

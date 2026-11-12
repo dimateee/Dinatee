@@ -226,7 +226,7 @@ export const Tretiy: React.FC<{ withAudio?: boolean }> = ({ withAudio = true }) 
         const a = Math.round(s.from * FPS), b = Math.round(s.to * FPS);
         return <Sequence key={i} from={a} durationInFrames={b - a} name={`План ${i + 1}`}><ShotView s={s} start={a} dur={b - a} /></Sequence>;
       })}
-      <Karaoke words={CW} accents={ACCENTS} />
+      <Karaoke words={CW} accents={ACCENTS} pendingColor="#C3C8D2" />
       <Grain />
       {withAudio && <Audio src={staticFile("audio/tretiy_mix.wav")} />}
     </AbsoluteFill>
