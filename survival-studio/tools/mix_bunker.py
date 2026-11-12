@@ -6,7 +6,8 @@
 """
 import json, os, subprocess, sys, wave
 import numpy as np
-EP = int(sys.argv[1]) if len(sys.argv) > 1 else 1
+ARG = sys.argv[1] if len(sys.argv) > 1 else "1"
+EP = int(ARG) if ARG.isdigit() else ARG
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SR = 48000
@@ -21,6 +22,10 @@ CFG = {
     3: dict(end=55.54, tail=5.0, beat=(0.0, 0.0), tick=(0.0, 0.0), radio=(1.3, 2.4),
             mood=[(0.0, "dread"), (6.6, "shelter"), (13.0, "calm"), (28.0, "dread"), (37.8, "shelter"), (46.8, "end")],
             sfx=[(1.40, "static"), (2.30, "creak"), (43.80, "knock")]),
+    # «Подвал на восьмерых», серия 1: сирена с начала, сердцебиение под таймер, дверь, стук
+    "podval-1": dict(end=77.59, tail=1.6, beat=(19.3, 64.0), tick=(19.3, 64.0), radio=(60.6, 63.0),
+            mood=[(0.0, "alarm"), (10.4, "run"), (63.0, "silence"), (64.1, "dread"), (71.0, "end")],
+            sfx=[(0.00, "siren"), (27.2, "tape"), (63.10, "door"), (64.40, "knock")]),
 }[EP]
 VOICE_END, TAIL = CFG["end"], CFG.get("tail", 1.0)
 TOTAL = VOICE_END + TAIL
@@ -145,13 +150,13 @@ def write(path, x):
         w.setnchannels(data.shape[1] if data.ndim == 2 else 1); w.setsampwidth(2); w.setframerate(SR); w.writeframes(data.tobytes())
 
 
-tmp = os.path.join(ROOT, "episodes", f"bunker-{EP}", "voice", "mixparts"); os.makedirs(tmp, exist_ok=True)
+tmp = os.path.join(ROOT, "episodes", (f"bunker-{EP}" if isinstance(EP, int) else EP), "voice", "mixparts"); os.makedirs(tmp, exist_ok=True)
 write(f"{tmp}/music.wav", mus * 0.5)
 write(f"{tmp}/fx.wav", np.stack([fx, fx], 1) * 0.7)
-vsrc = os.path.join(ROOT, "episodes", f"bunker-{EP}", "voice", "voice_final.wav")
+vsrc = os.path.join(ROOT, "episodes", (f"bunker-{EP}" if isinstance(EP, int) else EP), "voice", "voice_final.wav")
 subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", vsrc, "-af", f"apad=whole_dur={TOTAL},aformat=channel_layouts=stereo,aresample={SR}",
                 f"{tmp}/voice_ep.wav"], check=True)
-out = os.path.join(ROOT, "video", "public", "audio", f"bunker{EP}_mix.wav")
+out = os.path.join(ROOT, "video", "public", "audio", (f"bunker{EP}_mix.wav" if isinstance(EP, int) else EP.replace("-", "") + "_mix.wav"))
 graph = (
     "[1]equalizer=f=350:t=o:w=1:g=-6,loudnorm=I=-24:TP=-4:LRA=11[m0];"
     "[2]loudnorm=I=-20:TP=-3:LRA=15[f0];"

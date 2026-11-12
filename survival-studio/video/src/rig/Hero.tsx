@@ -50,9 +50,21 @@ export const NEUTRAL: HeroPose = {
 
 type Outfit = "casual" | "sport";
 
+/* ---------- Внешность: Артём по умолчанию; другие персонажи — через look ---------- */
+export type Look = { [K in keyof typeof HERO]: string } & {
+  head: "cap" | "scarf" | "hair" | "bald";
+  hairColor?: string; longHair?: boolean; scarfColor?: string;
+  glasses?: boolean; beard?: string; bristle?: boolean; bracelet?: boolean; hood?: boolean; strings?: boolean; skirt?: string;
+};
+export const ARTYOM: Look = { ...HERO, head: "cap", bristle: true, bracelet: true, hood: true, strings: true };
+const LookCtx = React.createContext<Look>(ARTYOM);
+const useLook = () => React.useContext(LookCtx);
+
+
 const Boot: React.FC<{ outfit: Outfit; far?: boolean }> = ({ outfit, far }) => {
-  const upper = outfit === "sport" ? HERO.sneakers : HERO.boots;
-  const sole = outfit === "sport" ? HERO.sneakerAccent : HERO.sole;
+  const L = useLook();
+  const upper = outfit === "sport" ? L.sneakers : L.boots;
+  const sole = outfit === "sport" ? L.sneakerAccent : L.sole;
   const f = far ? shade(upper, -0.18) : upper;
   return (
     <g>
@@ -61,13 +73,14 @@ const Boot: React.FC<{ outfit: Outfit; far?: boolean }> = ({ outfit, far }) => {
         fill={f} stroke={shade(upper, -0.5)} strokeWidth={1.6} strokeLinejoin="round"
       />
       <path d="M -12 8 L 28 8 Q 31 8 31 11 L -12 11 Q -14 10 -12 8 Z" fill={far ? shade(sole, -0.2) : sole} />
-      {outfit === "sport" && <path d="M 2 -4 L 18 -3" stroke={HERO.sneakerAccent} strokeWidth={2.4} strokeLinecap="round" />}
+      {outfit === "sport" && <path d="M 2 -4 L 18 -3" stroke={L.sneakerAccent} strokeWidth={2.4} strokeLinecap="round" />}
     </g>
   );
 };
 
 const Leg: React.FC<{ p: LegPose; outfit: Outfit; far?: boolean }> = ({ p, outfit, far }) => {
-  const cloth = outfit === "sport" ? HERO.joggers : HERO.jeans;
+  const L = useLook();
+  const cloth = outfit === "sport" ? L.joggers : L.jeans;
   const c = far ? shade(cloth, -0.2) : cloth;
   const shinAbs = p.hip + p.knee;
   return (
@@ -90,10 +103,12 @@ const Phone: React.FC<{ glow?: number }> = ({ glow = 0 }) => (
   </g>
 );
 
-const Hand: React.FC<{ hold?: HeroPose["holdL"]; glow?: number; band?: boolean; far?: boolean }> = ({ hold, glow, band, far }) => (
+const Hand: React.FC<{ hold?: HeroPose["holdL"]; glow?: number; band?: boolean; far?: boolean }> = ({ hold, glow, band, far }) => {
+  const L = useLook();
+  return (
   <g>
-    {band && <rect x={-9} y={-6} width={18} height={6} rx={2.5} fill={HERO.band} stroke={shade(HERO.band, -0.45)} strokeWidth={1.2} />}
-    <circle r={DIM.handR} cy={5} fill={far ? HERO.skinShade : HERO.skin} stroke={shade(HERO.skin, -0.45)} strokeWidth={1.6} />
+    {band && L.bracelet && <rect x={-9} y={-6} width={18} height={6} rx={2.5} fill={L.band} stroke={shade(L.band, -0.45)} strokeWidth={1.2} />}
+    <circle r={DIM.handR} cy={5} fill={far ? L.skinShade : L.skin} stroke={shade(L.skin, -0.45)} strokeWidth={1.6} />
     {hold === "phone" && <Phone glow={glow} />}
     {hold === "pen" && <path d="M 2 4 L 20 22" stroke="#2B2B33" strokeWidth={3} strokeLinecap="round" />}
     {hold === "leash" && <path d="M 0 8 q 30 40 70 30" stroke="#E8833A" strokeWidth={3.2} fill="none" strokeLinecap="round" />}
@@ -107,19 +122,21 @@ const Hand: React.FC<{ hold?: HeroPose["holdL"]; glow?: number; band?: boolean; 
       </g>
     )}
   </g>
-);
+  );
+};
 
 const Arm: React.FC<{ p: ArmPose; outfit: Outfit; far?: boolean; hold?: HeroPose["holdL"]; glow?: number; band?: boolean }> = ({
   p, outfit, far, hold, glow, band,
 }) => {
-  const sleeve = outfit === "sport" ? HERO.tee : HERO.hoodie;
+  const L = useLook();
+  const sleeve = outfit === "sport" ? L.tee : L.hoodie;
   const c = far ? shade(sleeve, -0.22) : sleeve;
   return (
     <g transform={`rotate(${p.sh})`}>
       <Capsule y2={DIM.upperArm} w={22} fill={c} />
       <g transform={`translate(0 ${DIM.upperArm}) rotate(${p.el})`}>
         {outfit === "sport" ? (
-          <Capsule y2={DIM.foreArm} w={17} fill={far ? HERO.skinShade : HERO.skin} />
+          <Capsule y2={DIM.foreArm} w={17} fill={far ? L.skinShade : L.skin} />
         ) : (
           <Capsule y2={DIM.foreArm} w={20} fill={c} />
         )}
@@ -132,17 +149,19 @@ const Arm: React.FC<{ p: ArmPose; outfit: Outfit; far?: boolean; hold?: HeroPose
 };
 
 const Mouth: React.FC<{ m: Expr["mouth"] }> = ({ m }) => {
-  const s = { stroke: HERO.line, strokeWidth: 3, strokeLinecap: "round" as const, fill: "none" };
+  const L = useLook();
+  const s = { stroke: L.line, strokeWidth: 3, strokeLinecap: "round" as const, fill: "none" };
   switch (m) {
     case "smile": return <path d="M 30 22 Q 38 28 46 21" {...s} />;
     case "sad": return <path d="M 31 26 Q 38 20 45 25" {...s} />;
-    case "open": return <ellipse cx={39} cy={24} rx={5} ry={4} fill={HERO.line} />;
-    case "o": return <circle cx={40} cy={24} r={3.2} fill={HERO.line} />;
+    case "open": return <ellipse cx={39} cy={24} rx={5} ry={4} fill={L.line} />;
+    case "o": return <circle cx={40} cy={24} r={3.2} fill={L.line} />;
     default: return <path d="M 32 24 L 45 23" {...s} />;
   }
 };
 
 export const HeroHead: React.FC<{ expr: Expr; glow?: number }> = ({ expr, glow = 0 }) => {
+  const L = useLook();
   const R = DIM.headR;
   const eyeY = -4 - expr.brow * 0;
   const browY = -20 - expr.brow * 5;
@@ -150,37 +169,60 @@ export const HeroHead: React.FC<{ expr: Expr; glow?: number }> = ({ expr, glow =
   return (
     <g>
       {/* ухо и затылок */}
-      <circle r={R} fill={HERO.skin} stroke={shade(HERO.skin, -0.45)} strokeWidth={2} />
+      <circle r={R} fill={L.skin} stroke={shade(L.skin, -0.45)} strokeWidth={2} />
       <path d={`M ${-R * 0.2} ${-R * 0.98} A ${R} ${R} 0 0 0 ${-R * 0.55} ${R * 0.84} Q ${-R * 0.9} ${0} ${-R * 0.2} ${-R * 0.98}`}
-        fill={HERO.skinShade} opacity={0.35} />
-      <ellipse cx={-6} cy={6} rx={9} ry={12} fill={HERO.skinShade} stroke={shade(HERO.skin, -0.45)} strokeWidth={1.6} />
+        fill={L.skinShade} opacity={0.35} />
+      <ellipse cx={-6} cy={6} rx={9} ry={12} fill={L.skinShade} stroke={shade(L.skin, -0.45)} strokeWidth={1.6} />
       {/* щетина точками */}
-      {[[22, 30], [30, 34], [38, 35], [46, 31], [18, 24], [26, 39], [34, 40], [42, 38], [50, 26]].map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r={1.4} fill={HERO.stubble} opacity={0.75} />
+      {L.bristle && [[22, 30], [30, 34], [38, 35], [46, 31], [18, 24], [26, 39], [34, 40], [42, 38], [50, 26]].map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r={1.4} fill={L.stubble} opacity={0.75} />
       ))}
+      {L.beard && <path d={`M ${-6} 18 Q 4 52 30 50 Q 52 46 ${R - 4} 22 Q 40 36 30 32 Q 14 30 ${-6} 18 Z`} fill={L.beard} stroke={shade(L.beard, -0.4)} strokeWidth={1.4} />}
       {/* глаз, бровь, рот — отдельные элементы */}
-      <ellipse cx={34} cy={eyeY} rx={4.2} ry={5.2 * lid} fill={HERO.line} />
-      <path d={`M 26 ${browY + expr.browTilt * 3} L 42 ${browY - expr.browTilt * 3}`} stroke={HERO.line} strokeWidth={4} strokeLinecap="round" />
+      <ellipse cx={34} cy={eyeY} rx={4.2} ry={5.2 * lid} fill={L.line} />
+      <path d={`M 26 ${browY + expr.browTilt * 3} L 42 ${browY - expr.browTilt * 3}`} stroke={L.line} strokeWidth={4} strokeLinecap="round" />
       <Mouth m={expr.mouth} />
       {/* нос — маленький выступ профиля */}
-      <path d={`M ${R - 1} 2 Q ${R + 7} 9 ${R - 2} 13`} fill={HERO.skin} stroke={shade(HERO.skin, -0.45)} strokeWidth={1.6} />
-      {/* кепка */}
-      <path d={`M ${-R - 1} -6 Q ${-R} ${-R - 6} 4 ${-R - 6} Q ${R + 2} ${-R - 4} ${R + 1} -14 L ${-R - 1} -6 Z`}
-        fill={HERO.cap} stroke={shade(HERO.cap, -0.5)} strokeWidth={2} strokeLinejoin="round" />
-      <path d={`M ${R - 14} -16 Q ${R + 16} -20 ${R + 30} -10 Q ${R + 12} -6 ${R - 10} -8 Z`} fill={HERO.capBrim} />
-      <circle cx={2} cy={-R - 4} r={4} fill="#E8833A" />
+      <path d={`M ${R - 1} 2 Q ${R + 7} 9 ${R - 2} 13`} fill={L.skin} stroke={shade(L.skin, -0.45)} strokeWidth={1.6} />
+      {L.glasses && (
+        <g fill="none" stroke="#23262E" strokeWidth={2.6}>
+          <circle cx={34} cy={-4} r={10} /><path d={`M 44 -6 L ${R - 2} -2 M 24 -6 L 2 -10`} />
+        </g>
+      )}
+      {L.head === "cap" && (<>
+        {/* кепка */}
+        <path d={`M ${-R - 1} -6 Q ${-R} ${-R - 6} 4 ${-R - 6} Q ${R + 2} ${-R - 4} ${R + 1} -14 L ${-R - 1} -6 Z`}
+          fill={L.cap} stroke={shade(L.cap, -0.5)} strokeWidth={2} strokeLinejoin="round" />
+        <path d={`M ${R - 14} -16 Q ${R + 16} -20 ${R + 30} -10 Q ${R + 12} -6 ${R - 10} -8 Z`} fill={L.capBrim} />
+        <circle cx={2} cy={-R - 4} r={4} fill="#E8833A" />
+      </>)}
+      {L.head === "scarf" && (
+        <g>
+          <path d={`M ${-R - 6} 20 Q ${-R - 10} ${-R - 4} 6 ${-R - 8} Q ${R + 4} ${-R - 4} ${R - 2} -18 Q 30 -26 10 -22 Q -10 -14 -16 30 Q -30 46 ${-R - 6} 20 Z`}
+            fill={L.scarfColor} stroke={shade(L.scarfColor ?? "#B23A48", -0.45)} strokeWidth={2} strokeLinejoin="round" />
+          {[[-30, -30], [-8, -44], [14, -46], [-36, 0], [-20, -12]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r={3.2} fill="#F6F2E7" opacity={0.85} />)}
+          <path d="M -16 30 Q -22 46 -12 52 M -16 30 Q -4 44 -2 52" stroke={L.scarfColor} strokeWidth={7} strokeLinecap="round" fill="none" />
+        </g>
+      )}
+      {L.head === "hair" && (
+        <g fill={L.hairColor} stroke={shade(L.hairColor ?? "#3A2A20", -0.4)} strokeWidth={1.6} strokeLinejoin="round">
+          <path d={`M ${-R - 3} 4 Q ${-R - 8} ${-R - 2} 0 ${-R - 6} Q ${R} ${-R - 6} ${R + 2} -18 Q ${R - 10} -30 ${R - 24} -28 Q 34 -40 20 -30 Q 10 -40 -4 -30 Q -14 -26 -18 -6 Q -30 8 ${-R - 3} 4 Z`} />
+          {L.longHair && <path d={`M ${-R - 2} 0 Q ${-R - 14} 50 ${-R + 4} 92 Q -24 96 -16 60 Q -20 30 -18 -2 Z`} />}
+        </g>
+      )}
       {glow > 0 && <ellipse cx={30} cy={14} rx={30} ry={30} fill="#5AA9FF" opacity={0.2 * glow} style={{ mixBlendMode: "screen" }} />}
     </g>
   );
 };
 
 const Torso: React.FC<{ outfit: Outfit }> = ({ outfit }) => {
-  const c = outfit === "sport" ? HERO.tee : HERO.hoodie;
+  const L = useLook();
+  const c = outfit === "sport" ? L.tee : L.hoodie;
   return (
     <g>
-      {outfit === "casual" && (
+      {outfit === "casual" && L.hood && (
         // капюшон за шеей
-        <path d="M -30 -84 Q -42 -104 -18 -108 Q 2 -100 -4 -86 Z" fill={HERO.hoodieShade} stroke={shade(c, -0.5)} strokeWidth={1.8} />
+        <path d="M -30 -84 Q -42 -104 -18 -108 Q 2 -100 -4 -86 Z" fill={L.hoodieShade} stroke={shade(c, -0.5)} strokeWidth={1.8} />
       )}
       <path
         d="M -26 6 Q -32 -40 -28 -78 Q -22 -96 4 -96 Q 30 -96 34 -76 Q 38 -40 32 6 Q 4 14 -26 6 Z"
@@ -191,8 +233,8 @@ const Torso: React.FC<{ outfit: Outfit }> = ({ outfit }) => {
       {outfit === "casual" ? (
         <>
           <path d="M 8 -30 L 32 -30 L 33 -4 L 10 -4 Z" fill={shade(c, -0.12)} stroke={shade(c, -0.45)} strokeWidth={1.4} />
-          <path d="M 22 -86 L 24 -62 M 28 -84 L 29 -64" stroke="#EDE6D6" strokeWidth={2} strokeLinecap="round" />
-          <path d="M -26 0 Q 4 8 32 0 L 32 6 Q 4 14 -26 6 Z" fill={HERO.hoodieShade} />
+          {L.strings && <path d="M 22 -86 L 24 -62 M 28 -84 L 29 -64" stroke="#EDE6D6" strokeWidth={2} strokeLinecap="round" />}
+          <path d="M -26 0 Q 4 8 32 0 L 32 6 Q 4 14 -26 6 Z" fill={L.hoodieShade} />
         </>
       ) : (
         <path d="M 6 -94 Q 16 -86 24 -94" stroke={shade(c, -0.4)} strokeWidth={2.4} fill="none" strokeLinecap="round" />
@@ -215,9 +257,13 @@ export const heroHandL = (pose: HeroPose) => {
   return { x: pose.x + t.x, y: pose.y + t.y };
 };
 
-export const Hero: React.FC<{ pose: HeroPose; outfit?: Outfit; rimFilter?: string }> = ({
-  pose, outfit = "casual", rimFilter,
-}) => {
+export const Hero: React.FC<{ pose: HeroPose; outfit?: Outfit; rimFilter?: string; look?: Look }> = ({
+  pose, outfit = "casual", rimFilter, look = ARTYOM,
+}) => (
+  <LookCtx.Provider value={look}><HeroBody pose={pose} outfit={outfit} rimFilter={rimFilter} /></LookCtx.Provider>
+);
+const HeroBody: React.FC<{ pose: HeroPose; outfit: Outfit; rimFilter?: string }> = ({ pose, outfit, rimFilter }) => {
+  const L = useLook();
   const { x, y } = pose;
   const sh = DIM.shoulder, nk = DIM.neck;
   return (
@@ -242,6 +288,11 @@ export const Hero: React.FC<{ pose: HeroPose; outfit?: Outfit; rimFilter?: strin
       <g transform="translate(4 0)">
         <Leg p={pose.legL} outfit={outfit} />
       </g>
+      {L.skirt && (
+        <g transform={`rotate(${pose.torso})`}>
+          <path d="M -30 -12 L 36 -12 L 48 64 Q 6 74 -38 64 Z" fill={L.skirt} stroke={shade(L.skirt, -0.45)} strokeWidth={2} strokeLinejoin="round" />
+        </g>
+      )}
       {/* ближняя рука с браслетом */}
       <g transform={`rotate(${pose.torso})`}>
         <g transform={`translate(${sh.x + 4} ${sh.y + 4})`}>
