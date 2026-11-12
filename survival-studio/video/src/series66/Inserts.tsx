@@ -27,10 +27,15 @@ export const ChapterTitle: React.FC<{ f: number; text: string; hold?: number }> 
   const o = Math.min(ap66(f, 0, 10), 1 - ap66(f, hold - 10, 10));
   if (o <= 0) return null;
   return (
+    <>
+    {/* мягкая тёмная подложка: белый титр читается и на снегу */}
+    <div style={{ position: "absolute", left: 0, top: 1520, width: 1080, height: 400, opacity: o * 0.85,
+      background: "radial-gradient(ellipse 70% 70% at 15% 60%, rgba(20,16,14,0.8) 0%, rgba(20,16,14,0) 72%)" }} />
     <div style={{ position: "absolute", left: 72, top: 1640, opacity: o, transform: `translateY(${r((1 - ap66(f, 0, 10)) * 20)}px)` }}>
       <div style={{ ...OS, fontSize: 78, color: "#FFFFFF", letterSpacing: 3, textShadow: "0 2px 14px rgba(0,0,0,.55)" }}>{text}</div>
       <div style={{ marginTop: 14, width: r(150 * ap66(f, 4, 10)), height: 6, background: RED_LINE }} />
     </div>
+    </>
   );
 };
 

@@ -101,16 +101,16 @@ export const Frame66: React.FC<{ v: "yard" | "interior" | "night" | "fog" | "win
 export const Test15: React.FC = () => {
   useFonts();
   const f = useCurrentFrame();
-  const S = 2.0;
+  const S = 1.7;
   // два полных цикла шага (48 кадров = 280 px рига), потом стоит; Луна садится
-  const wf = Math.max(0, Math.min(f - 20, 48));
-  const walking = f >= 20 && f < 68;
+  const wf = Math.max(0, Math.min(f - 20, 24));
+  const walking = f >= 20 && f < 44;
   const face = { mouth: "smile" as const, blink: f % 80 < 3 ? 1 : 0 };
   const g = gait2(wf, WALK2, { holdN: "leash", face });
   const hero = walking ? g : { ...STAND, x: g.x, holdN: "leash" as const, torso: 1 + Math.sin(f / 18), face: { ...STAND.face, ...face } };
   const d = dogWalk(wf, 2, true, DOG_WALK2);
   const dog = walking || f < 20 ? d : { ...dogSit(f, 2), x: d.x };
-  const startX = 80;
+  const startX = 250;
   const cam = { zoom: interpolate(f, [0, 300], [1, 1.06]), x: 0 };
   const fade = interpolate(f, [270, 300, 318, 345], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const chapter2 = f >= 309;
@@ -119,7 +119,7 @@ export const Test15: React.FC = () => {
       {!chapter2 ? (
         <Yard frame={f} season={0} cam={cam}>
           <g transform={`translate(${startX} ${G}) scale(${S})`}><Person pose={hero} o={ARTYOM_AUTUMN} /></g>
-          <g transform={`translate(${startX + 230} ${G}) scale(${S * 0.95})`}><Collie pose={dog} /></g>
+          <g transform={`translate(${startX + 310} ${G}) scale(${S * 0.95})`}><Collie pose={dog} /></g>
         </Yard>
       ) : (
         <Yard frame={f} season={1} cam={{ zoom: 1 + 0.03 * (f - 309) / 141, x: 0 }}>
