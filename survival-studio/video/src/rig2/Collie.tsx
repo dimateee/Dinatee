@@ -11,7 +11,7 @@ export const COL = { black: "#262427", top: "#3A3739", white: "#ECE6DA", whiteSh
 /** Шаг в темпе героя серии (WALK2: 140 px / 24 кадра). Полушаг 35 ≤ досягаемости лап. */
 export const DOG_WALK2 = { period: 24, stride: 140, stance: 0.5, lift: 13 };
 
-const Leg: React.FC<{ p: DogLeg; far?: boolean; front?: boolean }> = ({ p, far, front }) => {
+const Leg: React.FC<{ p: DogLeg; far?: boolean; front?: boolean; bandage?: boolean }> = ({ p, far, front, bandage }) => {
   const k = far ? 0.82 : 1;
   const dark = far ? "#1B1A1C" : COL.black;
   return (
@@ -19,6 +19,7 @@ const Leg: React.FC<{ p: DogLeg; far?: boolean; front?: boolean }> = ({ p, far, 
       <line x1={0} y1={0} x2={0} y2={DD.upper} stroke={dark} strokeWidth={front ? 15 : 18} strokeLinecap="round" />
       <g transform={`translate(0 ${DD.upper}) rotate(${p.low})`}>
         <line x1={0} y1={0} x2={0} y2={DD.lower} stroke={far ? COL.whiteSh : COL.white} strokeWidth={10} strokeLinecap="round" />
+        {bandage && <rect x={-8} y={DD.lower - 22} width={16} height={22} rx={5} fill="#F6F2E7" stroke="#C9C2B2" strokeWidth={1.5} />}
         <g transform={`translate(0 ${DD.lower}) rotate(${-(p.up + p.low) + p.paw})`}>
           <ellipse cx={5} cy={1} rx={9} ry={5} fill={far ? COL.whiteSh : COL.white} />
         </g>
@@ -51,7 +52,7 @@ const Head: React.FC<{ p: DogPose; leash?: boolean }> = ({ p, leash }) => {
   );
 };
 
-export const Collie: React.FC<{ pose: DogPose; leashInMouth?: boolean; collar?: boolean }> = ({ pose: p, leashInMouth, collar = true }) => (
+export const Collie: React.FC<{ pose: DogPose; leashInMouth?: boolean; collar?: boolean; bandage?: boolean }> = ({ pose: p, leashInMouth, collar = true, bandage }) => (
   <g transform={`translate(${p.x} ${p.y})`}>
     <g transform={`rotate(${p.body})`}>
       <g transform={`translate(${DD.hindAt.x + 6} ${DD.hindAt.y})`}><Leg p={p.HR} far /></g>
@@ -73,7 +74,7 @@ export const Collie: React.FC<{ pose: DogPose; leashInMouth?: boolean; collar?: 
         <Head p={p} leash={leashInMouth ?? p.mouth === "leash"} />
       </g>
       <g transform={`translate(${DD.hindAt.x} ${DD.hindAt.y})`}><Leg p={p.HL} /></g>
-      <g transform={`translate(${DD.frontAt.x} ${DD.frontAt.y})`}><Leg p={p.FL} front /></g>
+      <g transform={`translate(${DD.frontAt.x} ${DD.frontAt.y})`}><Leg p={p.FL} front bandage={bandage} /></g>
     </g>
   </g>
 );

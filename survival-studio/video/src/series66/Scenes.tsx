@@ -20,7 +20,8 @@ const mix = (a: string, b: string, t: number) => {
 
 export const Yard: React.FC<{
   frame: number; season?: number; mode?: "day" | "night" | "fog"; cam?: Cam; children?: React.ReactNode; gateOpen?: number; river?: boolean;
-}> = ({ frame, season = 0, mode = "day", cam = { zoom: 1, x: 0 }, children, gateOpen = 0, river = false }) => {
+  rain?: boolean; behind?: React.ReactNode;
+}> = ({ frame, season = 0, mode = "day", cam = { zoom: 1, x: 0 }, children, gateOpen = 0, river = false, rain = false, behind }) => {
   const w = Math.max(0, Math.min(1, season)); // 0 осень → 1 зима
   const night = mode === "night", fog = mode === "fog";
   const sky = night ? NIGHT.bg : fog ? FOG.c : mix(AUTUMN.sky, "#B9BCC4", w);
@@ -79,6 +80,8 @@ export const Yard: React.FC<{
             <ellipse key={i} cx={x} cy={y} rx={r} ry={r * 0.8} fill={leaf} opacity={leafAmount * (night ? 0.4 : 0.95)} />
           ))}
         </g>
+        {/* за забором (сосед) */}
+        {behind}
         {/* забор и калитка */}
         <g>
           {Array.from({ length: 16 }, (_, i) => -100 + i * 74).map((x, i) => {
@@ -114,6 +117,11 @@ export const Yard: React.FC<{
         const y = ((frame * sp + random(`sy${i}`) * 1920) % 1980) - 30;
         return <circle key={i} cx={x + 14 * Math.sin(frame / 20 + i)} cy={y} r={2 + random(`sr${i}`) * 3} fill="#FFFFFF" opacity={Math.min(1, (w - 0.55) / 0.2) * 0.85} />;
       })}
+      {/* дождь */}
+      {rain && <g opacity={0.55}>{Array.from({ length: 90 }, (_, i) => {
+        const x = random(`rx${i}`) * 1180 - 50, y = ((frame * 38 + random(`ry${i}`) * 1980) % 1980) - 60;
+        return <line key={i} x1={x} y1={y} x2={x - 10} y2={y + 46} stroke="#C9D2DA" strokeWidth={2.5} strokeLinecap="round" />;
+      })}</g>}
       {/* туман: полосы дымки ползут, фигуры проступают и тают */}
       {fog && [0, 1, 2].map((i) => (
         <rect key={i} x={-200 + Math.sin(frame / 60 + i) * 120} y={G - 520 + i * 220} width={1500} height={340} fill={[FOG.a, FOG.b, FOG.c][i]} opacity={0.32 + 0.12 * Math.sin(frame / 45 + i * 2)} filter="url(#blurFg66)" />
@@ -128,7 +136,7 @@ export const Yard: React.FC<{
 };
 
 /** Интерьер с лампой: стол, тетрадь, печка; пятно тёплого света, вокруг темно. */
-export const Interior: React.FC<{ frame: number; cam?: Cam; children?: React.ReactNode; stoveFire?: boolean }> = ({ frame, cam = { zoom: 1, x: 0 }, children, stoveFire = true }) => {
+export const Interior: React.FC<{ frame: number; cam?: Cam; children?: React.ReactNode; stoveFire?: boolean; rain?: boolean; bed?: boolean; phoneBuzz?: number; dim?: number; table?: boolean }> = ({ frame, cam = { zoom: 1, x: 0 }, children, stoveFire = true, rain = false, bed = false, phoneBuzz = 0, dim = 0, table = true }) => {
   const flicker = 0.9 + 0.1 * Math.sin(frame / 5) * Math.sin(frame / 13);
   return (
     <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
@@ -140,7 +148,9 @@ export const Interior: React.FC<{ frame: number; cam?: Cam; children?: React.Rea
         <rect x={-200} y={300} width={1500} height={G - 300} fill={INTERIOR.wood} />
         {Array.from({ length: 14 }, (_, i) => <rect key={i} x={-200 + i * 110} y={300} width={6} height={G - 300} fill={INTERIOR.wood2} />)}
         {/* окно с ночью */}
-        <rect x={620} y={560} width={260} height={320} fill={NIGHT.bg} /><path d={`M 620 720 L 880 720 M 750 560 L 750 880`} stroke={INTERIOR.wood2} strokeWidth={12} />
+        <rect x={620} y={560} width={260} height={320} fill={NIGHT.bg} />
+        {rain && Array.from({ length: 22 }, (_, i) => { const x = 624 + random(`wr${i}`) * 252, y = 560 + ((frame * 22 + random(`wy${i}`) * 320) % 320); return <line key={i} x1={x} y1={y} x2={x - 3} y2={Math.min(880, y + 22)} stroke="#8FA3C2" strokeWidth={2.5} opacity={0.7} />; })}
+        <path d={`M 620 720 L 880 720 M 750 560 L 750 880`} stroke={INTERIOR.wood2} strokeWidth={12} />
       </g>
       <g transform={L(cam, 1)}>
         <rect x={-200} y={G} width={1500} height={700} fill={shade(INTERIOR.wood, -0.25)} />
@@ -149,17 +159,70 @@ export const Interior: React.FC<{ frame: number; cam?: Cam; children?: React.Rea
           <rect x={0} y={G - 420} width={230} height={420} fill="#5B5550" /><rect x={0} y={G - 420} width={60} height={420} fill="#4A4541" />
           <rect x={70} y={G - 170} width={100} height={80} fill={stoveFire ? "#C1622D" : "#2B2626"} opacity={stoveFire ? flicker : 1} />
         </g>
+        {bed && <g transform="translate(330 0)">
+          <rect x={0} y={G - 150} width={420} height={90} rx={10} fill="#DAD0BD" /><rect x={0} y={G - 160} width={300} height={40} rx={10} fill="#829299" />
+          <rect x={10} y={G - 190} width={90} height={40} rx={14} fill="#ECE6DA" /><rect x={-14} y={G - 250} width={20} height={250} fill={INTERIOR.wood2} />
+          <rect x={0} y={G - 60} width={420} height={20} fill={INTERIOR.wood2} />
+          {/* табурет с телефоном-будильником */}
+          <rect x={450} y={G - 110} width={90} height={14} fill={INTERIOR.wood2} /><rect x={460} y={G - 96} width={10} height={96} fill={INTERIOR.wood2} /><rect x={520} y={G - 96} width={10} height={96} fill={INTERIOR.wood2} />
+          <g transform={`translate(${495 + (phoneBuzz > 0 ? Math.sin(frame * 2.2) * 3 : 0)} ${G - 118})`}><rect x={-22} y={-8} width={44} height={10} rx={3} fill="#1D2835" /><rect x={-18} y={-7} width={36} height={6} rx={2} fill="#5AA9FF" opacity={0.25 + 0.75 * phoneBuzz} /></g>
+        </g>}
         {/* стол с лампой и тетрадью */}
-        <g transform="translate(640 0)">
+        {table && <g transform="translate(640 0)">
           <rect x={0} y={G - 250} width={420} height={22} fill={INTERIOR.wood2} />
           <rect x={20} y={G - 228} width={18} height={228} fill={INTERIOR.wood2} /><rect x={382} y={G - 228} width={18} height={228} fill={INTERIOR.wood2} />
           <rect x={250} y={G - 262} width={110} height={12} fill="#DAD0BD" />
           <path d={`M 100 ${G - 250} L 120 ${G - 330} L 160 ${G - 330} L 180 ${G - 250} Z`} fill="#7F8275" />
           <ellipse cx={140} cy={G - 345} rx={22} ry={26} fill="#F0D99A" opacity={flicker} />
-        </g>
+        </g>}
       </g>
-      <circle cx={780} cy={G - 345} r={620} fill="url(#lamp66)" opacity={flicker} style={{ mixBlendMode: "screen" }} />
+      {table && <circle cx={780} cy={G - 345} r={620} fill="url(#lamp66)" opacity={flicker} style={{ mixBlendMode: "screen" }} />}
       <g transform={L(cam, 1)}>{children}</g>
+      {dim > 0 && <rect width={1080} height={1920} fill="#0E1118" opacity={dim} />}
     </svg>
   );
 };
+
+/** Общий план у реки: тропа вдоль берега к мосту (справа). Для проходов через весь кадр. */
+export const RiverWide: React.FC<{ frame: number; season?: number; mode?: "day" | "night" | "fog"; cam?: Cam; children?: React.ReactNode }> = ({
+  frame, season = 0, mode = "day", cam = { zoom: 1, x: 0 }, children,
+}) => {
+  const w = Math.max(0, Math.min(1, season));
+  const night = mode === "night";
+  const sky = night ? NIGHT.bg : mix(AUTUMN.sky, "#B9BCC4", w);
+  const bank = night ? "#1C2430" : mix(AUTUMN.earth, WINTER.snow, w);
+  const water = night ? "#141C26" : w > 0.8 ? "#C9D2DA" : "#6F7C80";
+  const forest = night ? "#121820" : mix("#5C5A49", WINTER.forest, w);
+  const P = 1380; // линия тропы
+  return (
+    <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+      <defs><filter id="blurRv"><feGaussianBlur stdDeviation={9} /></filter></defs>
+      <rect width={1080} height={1920} fill={sky} />
+      <g transform={`translate(${cam.x * 0.3} 0)`}>
+        <path d={`M -200 ${P - 300} ${Array.from({ length: 26 }, (_, i) => `L ${-200 + i * 60} ${P - 330 - 60 * random(`rw${i}`)} L ${-170 + i * 60} ${P - 300}`).join(" ")} L 1400 ${P - 240} L -200 ${P - 240} Z`} fill={forest} />
+        <rect x={-200} y={0} width={1600} height={P - 240} fill={night ? "#000" : AUTUMN.sky} opacity={night ? 0.15 : 0.3} />
+      </g>
+      <g transform={`translate(540 ${P}) scale(${cam.zoom}) translate(-540 ${-P}) translate(${cam.x} 0)`}>
+        {/* дальний берег, река, мост справа */}
+        <rect x={-300} y={P - 240} width={1700} height={70} fill={shade(bank, -0.08)} />
+        <rect x={-300} y={P - 170} width={1700} height={130} fill={water} />
+        {Array.from({ length: 8 }, (_, i) => <rect key={i} x={((i * 230 + frame * 0.9) % 1700) - 300} y={P - 150 + (i % 3) * 30} width={80} height={4} rx={2} fill="#FFFFFF" opacity={0.22} />)}
+        <g transform="translate(860 0)">
+          <path d={`M -150 ${P - 120} Q 60 ${P - 230} 270 ${P - 120}`} stroke={night ? "#2B2420" : YARD.boards} strokeWidth={22} fill="none" />
+          {[-110, -40, 30, 100, 170, 230].map((x) => <rect key={x} x={x} y={P - 205 + Math.abs(x - 60) * 0.35} width={8} height={70} fill={night ? "#2B2420" : YARD.boards} />)}
+          {w > 0.6 && <path d={`M -150 ${P - 132} Q 60 ${P - 242} 270 ${P - 132}`} stroke={WINTER.snow} strokeWidth={8} fill="none" opacity={(w - 0.6) / 0.4} />}
+        </g>
+        {/* ближний берег с тропой */}
+        <rect x={-300} y={P - 40} width={1700} height={700} fill={bank} />
+        <rect x={-300} y={P - 12} width={1700} height={24} fill={shade(bank, w > 0.6 ? -0.06 : 0.1)} />
+        {children}
+      </g>
+      {w > 0.55 && Array.from({ length: 60 }, (_, i) => {
+        const x = random(`wsx${i}`) * 1080, sp = 1.5 + random(`wss${i}`) * 2.5, y = ((frame * sp + random(`wsy${i}`) * 1920) % 1980) - 30;
+        return <circle key={i} cx={x + 12 * Math.sin(frame / 20 + i)} cy={y} r={2 + random(`wsr${i}`) * 3} fill="#FFFFFF" opacity={0.8} />;
+      })}
+      <g filter="url(#blurRv)">{Array.from({ length: 16 }, (_, i) => <path key={i} d={`M ${i * 72} 1920 q 10 -110 ${-6 + (i % 4) * 7} -${150 + (i % 5) * 26}`} stroke={night ? "#141B24" : w > 0.6 ? WINTER.snowShadow : "#4F4A3A"} strokeWidth={14} fill="none" strokeLinecap="round" />)}</g>
+    </svg>
+  );
+};
+export const RIVER_PATH_Y = 1380;

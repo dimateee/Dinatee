@@ -105,7 +105,7 @@ export const HowTo2: React.FC<{ f: number; frame: number; title: string; items: 
       <div style={{ width: 160, height: 6, background: HOWTO.no }} />
     </div>
     <svg width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
-      <g transform="translate(250 1180) scale(1.6)"><Person pose={{ ...STAND, torso: 1 + Math.sin(frame / 18), face: { ...STAND.face, blink: frame % 80 < 3 ? 1 : 0 } }} o={ARTYOM_WINTER} /></g>
+      <g transform="translate(240 1560) scale(2.4)"><Person pose={{ ...STAND, torso: 1 + Math.sin(frame / 18), face: { ...STAND.face, blink: frame % 80 < 3 ? 1 : 0 } }} o={ARTYOM_WINTER} /></g>
     </svg>
     <div style={{ position: "absolute", top: 640, left: 470, width: 540, display: "flex", flexDirection: "column", gap: 34 }}>
       {items.map((it, i) => {
@@ -123,11 +123,11 @@ export const HowTo2: React.FC<{ f: number; frame: number; title: string; items: 
 );
 
 /* ---------- вставка RITM: рука держит телефон с приложением ---------- */
-export const RitmInsert: React.FC<{ f: number; frame: number; done: number; total?: number; nextPulse?: boolean; missAt?: number; counter?: [number, number, number] }> = ({
-  f, frame, done, total = 21, missAt = -1, counter,
+export const RitmInsert: React.FC<{ f: number; frame: number; done: number; total?: number; nextPulse?: boolean; missAt?: number; counter?: [number, number, number]; streak?: number }> = ({
+  f, frame, done, total = 21, missAt = -1, counter, streak,
 }) => {
   const ACC = "#FF2D55"; // акцент из приложения
-  const shown = counter ? Math.round(interpolate(f, [counter[2], counter[2] + 14], [counter[0], counter[1]], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: EASE66 })) : done;
+  const shown = streak !== undefined ? streak : counter ? Math.round(interpolate(f, [counter[2], counter[2] + 14], [counter[0], counter[1]], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: EASE66 })) : done;
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       <svg width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
@@ -205,6 +205,58 @@ export const NotebookMap: React.FC<{ f: number; frame: number; drawAt: number; l
           <div style={{ position: "absolute", left: 470, top: 860, fontFamily: "Caveat", fontWeight: 700, fontSize: 72, color: "#B93F3B", opacity: ap66(f, drawAt + 20, 8), lineHeight: 1, transform: "rotate(-8deg)" }}>2 км</div>
         </>
       )}
+    </AbsoluteFill>
+  );
+};
+
+/* ---------- страница тетради: дни-клетки с галочками и подписи от руки ---------- */
+export const DaysPage: React.FC<{ f: number; entries: { label: string; at: number; tick?: boolean }[]; header?: { text: string; at: number }[] }> = ({ f, entries, header = [] }) => (
+  <AbsoluteFill style={{ background: "#2A2724" }}>
+    <svg width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+      <g transform="rotate(2 540 900)">
+        <rect x={110} y={240} width={860} height={1240} rx={12} fill="#E9E4D6" />
+        {Array.from({ length: 33 }, (_, i) => <line key={`h${i}`} x1={110} x2={970} y1={240 + i * 38} y2={240 + i * 38} stroke="#B8C3CC" strokeWidth={1.6} />)}
+        {Array.from({ length: 23 }, (_, i) => <line key={`v${i}`} x1={110 + i * 38} x2={110 + i * 38} y1={240} y2={1480} stroke="#B8C3CC" strokeWidth={1.6} />)}
+        {entries.map((e, i) => {
+          const k = ap66(f, e.at, 6), x = 200 + (i % 4) * 190, y = 560 + Math.floor(i / 4) * 230;
+          return (
+            <g key={i} opacity={k} transform={`translate(${x} ${y})`}>
+              <rect x={0} y={0} width={130} height={130} fill="none" stroke="#3B2D28" strokeWidth={5} />
+              {e.tick !== false && <path d={`M 22 70 l 28 28 l 60 -70`} stroke="#3B2D28" strokeWidth={10} fill="none" strokeLinecap="round" strokeLinejoin="round"
+                strokeDasharray="160" strokeDashoffset={r(160 * (1 - ap66(f, e.at + 3, 8)))} />}
+            </g>
+          );
+        })}
+      </g>
+    </svg>
+    {header.map((h, i) => (
+      <div key={i} style={{ position: "absolute", left: 200, top: 330 + i * 0, opacity: Math.min(ap66(f, h.at, 6), header[i + 1] ? 1 - ap66(f, header[i + 1].at, 4) : 1),
+        fontFamily: "Caveat", fontWeight: 700, fontSize: 110, color: "#292628", lineHeight: 1, transform: "rotate(2deg)" }}>{h.text}</div>
+    ))}
+    {entries.map((e, i) => (
+      <div key={i} style={{ position: "absolute", left: 205 + (i % 4) * 190, top: 700 + Math.floor(i / 4) * 230, width: 130, textAlign: "center", opacity: ap66(f, e.at, 6),
+        fontFamily: "Caveat", fontWeight: 700, fontSize: 48, color: "#3B2D28", lineHeight: 1, transform: "rotate(2deg)" }}>{e.label}</div>
+    ))}
+  </AbsoluteFill>
+);
+
+/* ---------- записка крупно (ветеринар, сосед) ---------- */
+export const NoteCard: React.FC<{ f: number; lines: string[]; at?: number; stamp?: boolean }> = ({ f, lines, at = 0, stamp }) => {
+  const k = ap66(f, at, 10);
+  return (
+    <AbsoluteFill style={{ background: "#2A2724" }}>
+      <div style={{ position: "absolute", left: 160, top: r(560 + (1 - k) * 40), width: 760, padding: "70px 60px", background: "#EFE8D6", borderRadius: 8, opacity: k,
+        transform: "rotate(-3deg)", boxShadow: "0 16px 40px rgba(0,0,0,.45)", display: "flex", flexDirection: "column", gap: 36 }}>
+        {lines.map((t, i) => (
+          <div key={i} style={{ fontFamily: "Caveat", fontWeight: 700, fontSize: i === 0 ? 96 : 76, color: "#292628", lineHeight: 1, opacity: ap66(f, at + 8 + i * 10, 8) }}>{t}</div>
+        ))}
+        {stamp && (
+          <svg width={180} height={180} style={{ position: "absolute", right: 40, bottom: 30, opacity: 0.75 * ap66(f, at + 30, 8) }}>
+            <circle cx={90} cy={90} r={76} stroke="#B93F3B" strokeWidth={7} fill="none" />
+            <g fill="#B93F3B"><ellipse cx={90} cy={104} rx={24} ry={20} /><circle cx={60} cy={74} r={10} /><circle cx={80} cy={58} r={10} /><circle cx={100} cy={58} r={10} /><circle cx={120} cy={74} r={10} /></g>
+          </svg>
+        )}
+      </div>
     </AbsoluteFill>
   );
 };

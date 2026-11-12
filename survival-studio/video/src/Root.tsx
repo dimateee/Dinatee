@@ -10,6 +10,10 @@ import { Cover } from "./episodes/propusk/Cover";
 import { RigTest2 } from "./series66/RigTest2";
 import { CastSheet, Frame66, Test15 } from "./series66/Sheets66";
 import { Cycles66 } from "./series66/Cycles66";
+import { Ep66_1, Ep66_2 } from "./series66/Episodes66";
+import { EP1 } from "./series66/ep1";
+import { EP2 } from "./series66/ep2";
+import { epFrames } from "./series66/engine";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -39,6 +43,8 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="F66-notebook" component={Frame66} defaultProps={{ v: "notebook" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="Walk66Man" component={Cycles66} defaultProps={{ who: "man" as const }} durationInFrames={72} fps={30} width={1080} height={720} />
       <Composition id="Walk66Dog" component={Cycles66} defaultProps={{ who: "dog" as const }} durationInFrames={72} fps={30} width={1080} height={720} />
+      <Composition id="Ep66-1" component={Ep66_1} defaultProps={{ withAudio: false }} durationInFrames={epFrames(EP1)} fps={30} width={1080} height={1920} />
+      <Composition id="Ep66-2" component={Ep66_2} defaultProps={{ withAudio: false }} durationInFrames={epFrames(EP2)} fps={30} width={1080} height={1920} />
     </>
   );
 };
