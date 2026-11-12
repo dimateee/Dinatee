@@ -24,3 +24,4 @@ video/public/3d/
 episodes/*/voice/takes/
 episodes/*/voice/phrases/
 episodes/*/voice/samples/*.mp3
+.venv-xtts/
