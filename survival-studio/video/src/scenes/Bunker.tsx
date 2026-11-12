@@ -1,7 +1,7 @@
 import React from "react";
 import { random } from "remotion";
 import { Hero, HeroPose, NEUTRAL } from "../rig/Hero";
-import { Dog, dogLie } from "../rig/Dog";
+import { Dog, dogLie, dogSit } from "../rig/Dog";
 import { heroGait, RUN } from "../rig/gait";
 import { GroundShadow, RimDefs, shade } from "../rig/shared";
 import { SRYV } from "../style/palette";
@@ -211,9 +211,11 @@ export const lerpCam = (a: ShelterCam, b: ShelterCam, k: number): ShelterCam => 
 export const Shelter: React.FC<{
   frame: number; radio?: number; lamp?: number; zoom?: number; hero?: boolean; dog?: boolean; enter?: number; cam?: ShelterCam;
   vent?: number; taped?: number; jugs?: number; bucket?: number; torch?: number; candle?: number; dustFall?: number; static_?: number; cansMark?: number;
+  doorOpen?: number; standAtDoor?: boolean; wash?: number;
 }> = ({
   frame, radio = 0, lamp = 1, zoom = 1, hero = true, dog = true, enter = 1, cam,
   vent = 0, taped = 0, jugs = 0, bucket = 0, torch = 0, candle = 0, dustFall = 0, static_ = 0, cansMark = 0,
+  doorOpen = 0, standAtDoor = false, wash = 0,
 }) => {
   const swing = Math.sin(frame / 40) * 3 + (dustFall > 0 ? Math.sin(frame / 9) * 3 * dustFall : 0);
   const flick = lamp * (random(`fl${Math.floor(frame / 3)}`) < (dustFall > 0 ? 0.18 : 0.04) ? 0.55 : 1);
@@ -229,6 +231,7 @@ export const Shelter: React.FC<{
   return (
     <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
       <RimDefs id="rimLamp" side={-1} color={SRYV.lamp} strength={0.9} width={6} />
+      <RimDefs id="rimDoor" side={-1} color="#F2EEE6" strength={1} width={7} />
       <defs>
         <radialGradient id="lampGlow"><stop offset="0" stopColor={SRYV.lamp} stopOpacity={0.55} /><stop offset="1" stopColor={SRYV.lamp} stopOpacity={0} /></radialGradient>
         <radialGradient id="radioGlow"><stop offset="0" stopColor={SRYV.progress} stopOpacity={0.5} /><stop offset="1" stopColor={SRYV.progress} stopOpacity={0} /></radialGradient>
@@ -246,9 +249,12 @@ export const Shelter: React.FC<{
         {[120, 600, 980].map((x) => <rect key={x} x={x} y={192} width={22} height={50} fill="#353D4E" />)}
         {/* железная дверь слева */}
         <g>
-          <rect x={-10} y={GROUND - 430} width={190} height={430} fill="#2B3241" stroke="#0A0D13" strokeWidth={8} />
-          {[0, 1, 2].map((i) => <rect key={i} x={10} y={GROUND - 410 + i * 140} width={150} height={120} fill="none" stroke="#3A4560" strokeWidth={4} />)}
-          <rect x={150} y={GROUND - 240} width={14} height={50} rx={4} fill="#4E5868" />
+          <rect x={-10} y={GROUND - 430} width={190} height={430} fill="#0A0D13" />
+          <g transform={`translate(-10 0) scale(${1 - 0.78 * doorOpen} 1) translate(10 0)`}>
+            <rect x={-10} y={GROUND - 430} width={190} height={430} fill="#2B3241" stroke="#0A0D13" strokeWidth={8} />
+            {[0, 1, 2].map((i) => <rect key={i} x={10} y={GROUND - 410 + i * 140} width={150} height={120} fill="none" stroke="#3A4560" strokeWidth={4} />)}
+            <rect x={150} y={GROUND - 240} width={14} height={50} rx={4} fill="#4E5868" />
+          </g>
           <rect x={-10} y={GROUND - 8} width={190} height={6} fill={SRYV.lamp} opacity={0.35} />
         </g>
         {/* решётка вентиляции над дверью */}
@@ -379,6 +385,35 @@ export const Shelter: React.FC<{
         {radio > 0 && <circle cx={580} cy={GROUND - 150} r={200} fill="url(#radioGlow)" opacity={radio} style={{ mixBlendMode: "screen" }} />}
         {candle > 0 && <circle cx={516} cy={GROUND - 190} r={220} fill="url(#candleGlow)" opacity={candle * (0.85 + 0.15 * Math.sin(frame / 3))} style={{ mixBlendMode: "screen" }} />}
         {torch > 0 && <path d={`M 652 ${GROUND - 122} L 1100 ${GROUND - 330} L 1100 ${GROUND + 60} Z`} fill="url(#torchBeam)" opacity={torch} style={{ mixBlendMode: "screen" }} />}
+        {/* дневной свет из открытой двери */}
+        {doorOpen > 0 && (
+          <g>
+            <rect x={-10 + 190 * (1 - 0.78 * doorOpen)} y={GROUND - 426} width={190 * 0.78 * doorOpen} height={426} fill="#E9E4DA" opacity={0.95} />
+            <path d={`M ${180} ${GROUND - 426} L ${180} ${GROUND} L ${180 + 700 * doorOpen} ${GROUND + 260} L ${180 + 260 * doorOpen} ${GROUND - 120} Z`} fill="#E9E4DA" opacity={0.18 * doorOpen} style={{ mixBlendMode: "screen" }} />
+            {Array.from({ length: 26 }, (_, i) => {
+              const k = (frame * 0.01 + random(`dm${i}`)) % 1;
+              return <circle key={i} cx={190 + random(`dmx${i}`) * 420 * doorOpen} cy={GROUND - 380 + k * 420} r={2.5} fill="#F2EEE6" opacity={0.5 * doorOpen * Math.sin(Math.PI * k)} />;
+            })}
+          </g>
+        )}
+        {standAtDoor && (
+          <g>
+            <g transform={`translate(330 ${GROUND}) scale(${-S} ${S})`}>
+              <GroundShadow w={130} opacity={0.4} color="#000" />
+              <Hero pose={{ ...NEUTRAL, torso: 1 + Math.sin(frame / 18), head: -2 + Math.sin(frame / 27), expr: { brow: 0, browTilt: 0.2, mouth: "flat", blink: frame % 80 < 3 ? 1 : 0 } }} outfit="casual" rimFilter="rimDoor" />
+            </g>
+            <g transform={`translate(470 ${GROUND}) scale(-1.9 1.9)`}>
+              <GroundShadow w={150} opacity={0.45} color="#000" />
+              <Dog pose={dogSit(frame, 7)} rimFilter="rimDoor" />
+            </g>
+          </g>
+        )}
+        {/* мытьё Луны: капли воды */}
+        {wash > 0 && Array.from({ length: 30 }, (_, i) => {
+          const k = (frame * 0.05 + random(`wd${i}`)) % 1;
+          const x = 640 + random(`wx${i}`) * 300, y = 880 + k * 260;
+          return <line key={i} x1={x} y1={y} x2={x - 2} y2={y + 18} stroke="#8FC8FF" strokeWidth={4} strokeLinecap="round" opacity={wash * (1 - k)} />;
+        })}
         {/* пыль, сыплющаяся с потолка */}
         {dustFall > 0 && Array.from({ length: 50 }, (_, i) => {
           const x = random(`cf${i}`) * 1080;

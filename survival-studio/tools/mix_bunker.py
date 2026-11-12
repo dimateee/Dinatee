@@ -18,8 +18,11 @@ CFG = {
     2: dict(end=66.25, beat=(0.0, 0.0), tick=(12.9, 24.2), radio=(8.7, 12.9),
             mood=[(0.0, "dread"), (5.6, "shelter"), (12.8, "calm"), (24.2, "shelter"), (56.6, "end")],
             sfx=[(0.05, "rumble"), (8.74, "static"), (27.14, "tape"), (52.70, "click")]),
+    3: dict(end=55.54, tail=5.0, beat=(0.0, 0.0), tick=(0.0, 0.0), radio=(1.3, 2.4),
+            mood=[(0.0, "dread"), (6.6, "shelter"), (13.0, "calm"), (28.0, "dread"), (37.8, "shelter"), (46.8, "end")],
+            sfx=[(1.40, "static"), (2.30, "creak"), (43.80, "knock")]),
 }[EP]
-VOICE_END, TAIL = CFG["end"], 1.0
+VOICE_END, TAIL = CFG["end"], CFG.get("tail", 1.0)
 TOTAL = VOICE_END + TAIL
 N = int(TOTAL * SR)
 t = np.arange(N) / SR
@@ -113,6 +116,17 @@ def sfx(kind):
     if kind == "click":  # щелчок фонарика
         n = int(0.12 * SR); x = np.arange(n) / SR
         return (np.sin(2 * np.pi * 1800 * x) * np.exp(-x * 90) + rng.standard_normal(n) * np.exp(-x * 140) * 0.3) * 0.9
+    if kind == "creak":  # скрип тяжёлой двери
+        n = int(1.6 * SR); x = np.arange(n) / SR
+        f = 140 + 90 * np.sin(np.pi * x / 1.6) + 25 * np.sin(2 * np.pi * 9 * x)
+        ph = 2 * np.pi * np.cumsum(f) / SR
+        return 0.5 * (np.sin(ph) + 0.5 * np.sin(2 * ph) + 0.3 * np.sin(3 * ph)) * ramp(n, 3000, 9000) * (0.7 + 0.3 * rng.random(n))
+    if kind == "knock":  # три стука в дверь
+        out = np.zeros(int(1.0 * SR))
+        for k0 in (0.0, 0.22, 0.44):
+            n0 = int(k0 * SR); n = int(0.12 * SR); x = np.arange(n) / SR; w = rng.standard_normal(n)
+            out[n0:n0 + n] += (np.sin(2 * np.pi * 160 * x) * 0.8 + lp(w, 900) * 2) * np.exp(-x * 45)
+        return out
     if kind == "door":  # тяжёлая дверь подвала
         n = int(1.2 * SR); x = np.arange(n) / SR; w = rng.standard_normal(n)
         return (np.sin(2 * np.pi * 70 * x) * np.exp(-x * 9) * 0.9 + lp(w, 600) * 2 * np.exp(-x * 14) + np.sin(2 * np.pi * 410 * x) * np.exp(-x * 20) * 0.2)

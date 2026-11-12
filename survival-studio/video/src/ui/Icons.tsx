@@ -3,7 +3,8 @@ import React from "react";
 /* Иконки HUD: 48×48, линия 3.5, без букв. */
 const P = { fill: "none", strokeWidth: 3.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
 export type IconName = "alarm" | "sneaker" | "phone" | "check" | "warn" | "paw" | "calendar" | "hourglass" | "dumbbell" | "book" | "lang" | "run"
-  | "siren" | "radio" | "tv" | "eye" | "car" | "house" | "bag" | "shirt" | "soap" | "bottle" | "door" | "stairs";
+  | "siren" | "radio" | "tv" | "eye" | "car" | "house" | "bag" | "shirt" | "soap" | "bottle" | "door" | "stairs"
+  | "hat" | "glove" | "mask" | "share";
 export const Icon: React.FC<{ name: IconName; color: string; size?: number }> = ({ name, color, size = 48 }) => (
   <svg width={size} height={size} viewBox="0 0 48 48" style={{ display: "block" }}>
     <g stroke={color} {...P}>
@@ -30,6 +31,10 @@ export const Icon: React.FC<{ name: IconName; color: string; size?: number }> = 
       {name === "bottle" && <><path d="M19 6h10v8l5 6v22H14V20l5-6z" /><path d="M14 26h20" /></>}
       {name === "door" && <><path d="M12 42V6h22v36" /><path d="M6 42h36M28 24v2" /></>}
       {name === "stairs" && <path d="M6 42h10v-9h9v-9h9v-9h9" />}
+      {name === "hat" && <><path d="M8 34c0-12 7-22 16-22s16 10 16 22z" /><path d="M5 34h38v6H5z" /><circle cx={24} cy={9} r={3} /></>}
+      {name === "glove" && <path d="M14 44V22l-4-8c-1-3 3-5 5-2l3 6V8c0-3 4-3 4 0v12V6c0-3 4-3 4 0v14V8c0-3 4-3 4 0v14V12c0-3 4-3 4 0v20c0 7-4 12-10 12z" />}
+      {name === "mask" && <><path d="M8 18c6-2 12-3 16-3s10 1 16 3v10c0 8-8 12-16 12S8 36 8 28z" /><path d="M8 22H3M40 22h5M14 25h20M14 31h20" /></>}
+      {name === "share" && <><path d="M26 10l14 12-14 12v-7c-10 0-16 3-20 10 1-11 7-19 20-20z" /></>}
       {name === "hourglass" && <path d="M14 6h20M14 42h20M16 6c0 10 16 12 16 18S16 32 16 42M32 6c0 10-16 12-16 18s16 8 16 18" />}
     </g>
   </svg>

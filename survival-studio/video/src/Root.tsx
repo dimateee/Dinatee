@@ -16,6 +16,7 @@ import { TretiyCover } from "./episodes/tretiy/TretiyCover";
 import { Bunker1, BUNKER1_FRAMES } from "./episodes/bunker/Bunker1";
 import { BunkerCover } from "./episodes/bunker/BunkerCover";
 import { Bunker2, BUNKER2_FRAMES } from "./episodes/bunker/Bunker2";
+import { Bunker3, BUNKER3_FRAMES } from "./episodes/bunker/Bunker3";
 import { EP1 } from "./series66/ep1";
 import { EP2 } from "./series66/ep2";
 import { epFrames } from "./series66/engine";
@@ -52,6 +53,9 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="Ep66-2" component={Ep66_2} defaultProps={{ withAudio: false }} durationInFrames={epFrames(EP2)} fps={30} width={1080} height={1920} />
       <Composition id="TretiyCover" component={TretiyCover} defaultProps={{ variant: "cover" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="TretiyThumb" component={TretiyCover} defaultProps={{ variant: "thumb" as const }} durationInFrames={1} fps={30} width={1280} height={720} />
+      <Composition id="Bunker3" component={Bunker3} defaultProps={{ withAudio: false }} durationInFrames={BUNKER3_FRAMES} fps={30} width={1080} height={1920} />
+      <Composition id="Bunker3Cover" component={BunkerCover} defaultProps={{ variant: "cover" as const, ep: 3 as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
+      <Composition id="Bunker3Thumb" component={BunkerCover} defaultProps={{ variant: "thumb" as const, ep: 3 as const }} durationInFrames={1} fps={30} width={1280} height={720} />
       <Composition id="Bunker2" component={Bunker2} defaultProps={{ withAudio: false }} durationInFrames={BUNKER2_FRAMES} fps={30} width={1080} height={1920} />
       <Composition id="Bunker2Cover" component={BunkerCover} defaultProps={{ variant: "cover" as const, ep: 2 as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="Bunker2Thumb" component={BunkerCover} defaultProps={{ variant: "thumb" as const, ep: 2 as const }} durationInFrames={1} fps={30} width={1280} height={720} />
