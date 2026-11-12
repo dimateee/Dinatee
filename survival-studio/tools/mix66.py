@@ -16,17 +16,17 @@ SR = 48000
 rng = np.random.default_rng(66 + EP)
 
 CFG = {
-    1: dict(cold=6.14, end=84.90,
-            amb=[(0.00, 6.14, "rain_in"), (6.14, 19.68, "birds"), (19.68, 22.33, "wind"), (22.33, 35.70, "rain_in"), (35.70, 43.41, "room"),
-                 (43.41, 55.90, "birds"), (55.90, 70.08, "room"), (70.08, 76.62, "room"), (76.62, 80.34, "wind"), (80.34, 999, "stove")],
-            sfx=[(0.20, "buzz"), (13.36, "page"), (25.79, "buzz"), (43.89, "creak"), (70.08, "page")],
+    1: dict(cold=6.83, end=83.42,
+            amb=[(0.00, 6.83, "rain_in"), (6.83, 19.96, "birds"), (19.96, 23.24, "wind"), (23.24, 35.69, "rain_in"), (35.69, 43.84, "room"),
+                 (43.84, 55.62, "birds"), (55.62, 68.98, "room"), (68.98, 75.23, "room"), (75.23, 78.71, "wind"), (78.71, 999, "stove")],
+            sfx=[(0.20, "buzz"), (13.06, "page"), (26.22, "buzz"), (44.26, "creak"), (68.98, "page")],
             # настроение музыки: calm / tense / silence / rise
-            mood=[(0.00, "tense"), (6.14, "calm"), (22.33, "tense"), (27.04, "silence"), (29.90, "tense"), (35.70, "calm"), (73.41, "silence"), (76.62, "rise")]),
-    2: dict(cold=7.85, end=80.46,
-            amb=[(0.00, 7.85, "wind_night"), (7.85, 16.40, "stove"), (16.40, 23.77, "stove"), (23.77, 29.26, "wind"), (29.26, 48.74, "room"),
-                 (48.74, 60.59, "wind"), (60.59, 66.74, "room"), (66.74, 999, "wind")],
-            sfx=[(10.15, "page"), (23.91, "creak"), (60.67, "page")],
-            mood=[(0.00, "tense"), (7.85, "calm"), (19.87, "silence"), (23.80, "calm"), (63.23, "silence"), (66.74, "rise")]),
+            mood=[(0.00, "tense"), (6.83, "calm"), (23.24, "tense"), (27.47, "silence"), (30.34, "tense"), (35.69, "calm"), (72.01, "silence"), (75.23, "rise")]),
+    2: dict(cold=7.91, end=78.64,
+            amb=[(0.00, 7.91, "wind_night"), (7.91, 17.03, "stove"), (17.03, 24.04, "stove"), (24.04, 29.24, "wind"), (29.24, 49.03, "room"),
+                 (49.03, 60.20, "wind"), (60.20, 65.77, "room"), (65.77, 999, "wind")],
+            sfx=[(10.50, "page"), (24.16, "creak"), (60.27, "page")],
+            mood=[(0.00, "tense"), (7.91, "calm"), (20.10, "silence"), (24.06, "calm"), (62.49, "silence"), (65.77, "rise")]),
 }[EP]
 TITLE, TAIL = 3.0, 2.0
 ep = lambda t: t + TITLE if t >= CFG["cold"] - 1e-6 else t  # время голоса → время эпизода
