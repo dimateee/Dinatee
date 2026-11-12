@@ -25,3 +25,6 @@ episodes/*/voice/takes/
 episodes/*/voice/phrases/
 episodes/*/voice/samples/*.mp3
 .venv-xtts/
+
+# промежуточные дорожки сведения
+episodes/*/voice/mixparts/
