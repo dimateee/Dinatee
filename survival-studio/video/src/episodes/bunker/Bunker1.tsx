@@ -7,7 +7,7 @@ import { Plate, ServiceLabel } from "../../ui/Hud";
 import { useFonts } from "../../useFonts";
 import { SRYV } from "../../style/palette";
 import { RoomNight } from "../../scenes/Rooms";
-import { BuildingSection, Countdown, NightCity, ProneHero, Shelter, SirenPole, SirenPulse } from "../../scenes/Bunker";
+import { BuildingSection, Countdown, HomeRoom, NightCity, Shelter, SirenPole, SirenPulse } from "../../scenes/Bunker";
 import { ap, Caption, EASE, Push, SchemaBg, TimerCard } from "../propusk/parts";
 
 /*
@@ -92,29 +92,29 @@ const SHOTS: Shot[] = [
     <Plate x={590} y={870} kind="good" icon="tv" title="ТВ" opacity={kIn(f, lf(at("телевизор.", 10.8)))} />
     <SirenPulse f={f + 30} from={0} amount={0.6} />
   </>) },
-  // 4. Правило 1: не смотри на вспышку
-  { from: 12.02, to: 16.18, enter: "lightOn", timer: true, C: ({ f, lf }) => {
+  // 4. Правило 1 — дома: вспышка в окне, не смотри
+  { from: 12.02, to: 16.18, enter: "lightOn", timer: true, C: ({ f, dur, lf }) => {
     const fl = lf(at("вспышку", 13.8));
     return (<>
-      <NightCity frame={f + 200} flash={0.85 * decay(f, fl, 16)} glow={f >= fl ? 1 : 0} shake={f >= fl && f < fl + 10 ? 0.5 : 0} />
+      <HomeRoom frame={f + 200} flash={0.9 * decay(f, fl, 18)} glow={f >= fl ? 1 : 0} eyesShut={f >= fl} shake={f >= fl && f < fl + 8 ? 0.4 : 0} zoom={1 + 0.04 * f / dur} />
       <Rule n={1} />
-      <Plate x={64} y={320} kind="bad" icon="eye" title="Не смотри" sub="на вспышку" opacity={kIn(f, lf(at("не", 14.6)))} />
+      <Plate x={440} y={224} kind="bad" icon="eye" title="Не смотри" sub="на вспышку" opacity={kIn(f, lf(at("не", 14.6)))} />
     </>);
   } },
-  // 5. Ложись лицом вниз
+  // 5. Ложись на пол лицом вниз
   { from: 16.18, to: 18.82, enter: "cut", timer: true, C: ({ f, dur }) => (<>
-    <NightCity frame={f + 330} glow={0.85} zoom={1.15 + 0.03 * f / dur} lift={260} hero={<ProneHero x={430} frame={f} />} />
+    <HomeRoom frame={f + 330} glow={0.9} hero="prone" zoom={1.04 + 0.03 * f / dur} />
     <Rule n={1} />
-    <Plate x={64} y={320} kind="good" icon="check" title="Лицом вниз" sub="руки под себя" opacity={kIn(f, 4)} />
+    <Plate x={440} y={224} kind="good" icon="check" title="Лицом вниз" sub="руки под себя" opacity={kIn(f, 4)} />
   </>) },
-  // 6. Ударная волна — подальше от окон
+  // 6. Ударная волна: стекло трескается — подальше от окон
   { from: 18.82, to: 23.36, enter: "cut", timer: true, C: ({ f, lf }) => {
     const w = lf(at("волна", 19));
     return (<>
-      <NightCity frame={f + 410} glow={0.8} zoom={1.15} lift={260} shake={f >= w && f < w + 40 ? interpolate(f, [w, w + 40], [1, 0]) : 0}
-        wave={interpolate(f, [w, w + 55], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })} hero={<ProneHero x={430} frame={f} />} />
+      <HomeRoom frame={f + 410} glow={0.8} hero="prone" zoom={1.07}
+        shake={f >= w && f < w + 40 ? interpolate(f, [w, w + 40], [1, 0]) : 0} crack={ap(f, w, 3)} />
       <Rule n={1} />
-      <Plate x={64} y={320} kind="bad" icon="warn" title="Подальше от окон" opacity={kIn(f, lf(at("держись", 21.3)))} />
+      <Plate x={440} y={224} kind="bad" icon="warn" title="Подальше от окон" opacity={kIn(f, lf(at("держись", 21.3)))} />
     </>);
   } },
   // 7. Радиоактивная пыль: через 10–20 минут

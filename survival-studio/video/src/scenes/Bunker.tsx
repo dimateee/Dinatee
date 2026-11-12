@@ -319,3 +319,91 @@ export const Countdown: React.FC<{ secLeft: number; safe?: number; opacity?: num
   );
 };
 export { shade };
+
+/* ============================ ДОМА: вспышка в окне ============================ */
+/**
+ * Комната Артёма ночью. Окно слева — в нём город; вспышка заливает окно и пол белым,
+ * потом зарево. Ударная волна: тряска, трещины, осколки у окна. Пол поднят до y=920 (выше субтитров).
+ * hero: "stand" — стоит у кровати лицом к окну; "prone" — лежит на полу лицом вниз, ногами к окну.
+ */
+export const HomeRoom: React.FC<{ frame: number; flash?: number; glow?: number; shake?: number; crack?: number; hero?: "stand" | "prone"; eyesShut?: boolean; zoom?: number }> = ({
+  frame, flash = 0, glow = 0, shake = 0, crack = 0, hero = "stand", eyesShut = false, zoom = 1,
+}) => {
+  const FL = 920;
+  const sx = shake ? Math.round((random(`hx${frame}`) - 0.5) * 26 * shake) : 0;
+  const sy = shake ? Math.round((random(`hy${frame}`) - 0.5) * 18 * shake) : 0;
+  const W0 = 70, W1 = 430, T0 = 300, T1 = 740; // окно
+  const stand: HeroPose = {
+    ...NEUTRAL, torso: 1 + Math.sin(frame / 18), head: Math.sin(frame / 27) * 1.5,
+    armL: { sh: 8, el: -14, wr: 0 }, armR: { sh: -6, el: -12, wr: 0 },
+    expr: { brow: eyesShut ? -0.6 : 0.2, browTilt: eyesShut ? 1 : 0, mouth: "flat", blink: eyesShut ? 1 : frame % 80 < 3 ? 1 : 0 },
+  };
+  const windowFill = flash > 0.05 ? "#FFF8EA" : SRYV.bg0;
+  return (
+    <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+      <RimDefs id="rimWin" side={-1} color={GLOW} strength={0.9} width={6} />
+      <defs>
+        <clipPath id="winClipH"><rect x={W0} y={T0} width={W1 - W0} height={T1 - T0} /></clipPath>
+        <filter id="beamBlur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation={18} /></filter>
+      </defs>
+      <g transform={`translate(${540 + sx} ${FL + sy}) scale(${zoom}) translate(-540 ${-FL})`}>
+        {/* стена */}
+        <rect x={-300} y={-300} width={1680} height={FL + 300} fill={SRYV.bg1} />
+        {/* окно: город за стеклом */}
+        <rect x={W0} y={T0} width={W1 - W0} height={T1 - T0} fill={windowFill} />
+        <g clipPath="url(#winClipH)">
+          {glow > 0 && <ellipse cx={330} cy={610} rx={300} ry={220} fill={GLOW} opacity={0.75 * glow} />}
+          <path d={`M ${W0} 590 L 140 590 L 140 530 L 220 530 L 220 620 L 300 620 L 300 550 L ${W1} 550 L ${W1} ${T1} L ${W0} ${T1} Z`} fill={flash > 0.05 ? "#D9CFC0" : "#0B0E14"} />
+          {glow < 0.3 && flash < 0.05 && [[100, 620], [180, 560], [250, 650], [340, 590], [390, 670]].map(([x, y], i) => <rect key={i} x={x} y={y} width={16} height={22} fill={SRYV.lamp} opacity={0.8} />)}
+        </g>
+        {/* трещины по стеклу */}
+        {crack > 0 && (
+          <g stroke="#DDE6F2" strokeWidth={4} fill="none" opacity={crack} strokeLinecap="round">
+            <g transform="translate(0 50)"><path d="M 250 420 L 170 330 L 120 300 M 250 420 L 360 340 L 410 300 M 250 420 L 300 560 L 330 680 M 250 420 L 150 520 L 80 560 M 250 420 L 390 470" />
+            <path d="M 170 330 L 200 280 M 300 560 L 380 590 M 150 520 L 160 620" /></g>
+          </g>
+        )}
+        <rect x={W0} y={T0} width={W1 - W0} height={T1 - T0} fill="none" stroke="#0A0D13" strokeWidth={16} />
+        <line x1={(W0 + W1) / 2} x2={(W0 + W1) / 2} y1={T0} y2={T1} stroke="#0A0D13" strokeWidth={10} />
+        <rect x={W0 - 20} y={T1} width={W1 - W0 + 40} height={16} fill="#0A0D13" />
+        {/* дверь и кровать */}
+        <rect x={800} y={FL - 640} width={280} height={640} fill="#121722" stroke="#0A0D13" strokeWidth={6} />
+        <circle cx={826} cy={FL - 300} r={12} fill="#3A4560" />
+        <g transform={`translate(560 ${FL})`}>
+          <rect x={-10} y={-120} width={230} height={70} rx={10} fill="#2B3241" />
+          <rect x={-10} y={-60} width={230} height={60} fill="#1E2535" />
+          <rect x={-22} y={-160} width={22} height={160} fill="#1E2535" />
+        </g>
+        {/* пол */}
+        <rect x={-300} y={FL} width={1680} height={1300} fill={SRYV.bg0} />
+        {[50, 130, 240, 380, 560].map((d) => <line key={d} x1={-300} x2={1380} y1={FL + d} y2={FL + d} stroke="#1C2331" strokeWidth={3} />)}
+        <rect x={-300} y={FL - 18} width={1680} height={18} fill="#0A0D13" />
+        {/* осколки у окна */}
+        {crack > 0 && Array.from({ length: 14 }, (_, i) => {
+          const x = 90 + random(`sh${i}`) * 380, y = FL + 10 + random(`shy${i}`) * 90, r = random(`shr${i}`) * 180;
+          return <path key={i} d="M 0 0 L 18 -6 L 10 10 Z" transform={`translate(${x} ${y}) rotate(${r})`} fill="#C9D6E6" opacity={0.8 * crack} />;
+        })}
+        {/* герой */}
+        {hero === "stand" ? (
+          <g transform={`translate(640 ${FL}) scale(${-S} ${S})`}>
+            <GroundShadow w={130} opacity={0.4} color="#000" />
+            <Hero pose={stand} outfit="casual" rimFilter="rimWin" />
+          </g>
+        ) : (
+          <g transform={`translate(330 ${FL - 34}) scale(${S}) rotate(90)`}>
+            <Hero pose={{ ...PRONE, torso: 0.6 * Math.sin(frame / 9) }} outfit="casual" rimFilter="rimWin" />
+          </g>
+        )}
+      </g>
+      {/* ночная тонировка; свет окна — поверх */}
+      <rect width={1080} height={1920} fill="#26324D" style={{ mixBlendMode: "multiply" }} opacity={0.5} />
+      {(flash > 0 || glow > 0) && (
+        <g transform={`translate(${sx} ${sy})`} style={{ mixBlendMode: "screen" }}>
+          <path d={`M ${W0} ${T0} L ${W1} ${T0} L 980 ${FL + 260} L 300 ${FL + 260} Z`} fill={flash > 0.05 ? "#FFF3D6" : GLOW}
+            opacity={flash > 0.05 ? 0.55 * flash : 0.12 * glow} filter="url(#beamBlur)" />
+        </g>
+      )}
+      {flash > 0 && <rect width={1080} height={1920} fill="#FFF8EA" opacity={0.5 * flash} />}
+    </svg>
+  );
+};
