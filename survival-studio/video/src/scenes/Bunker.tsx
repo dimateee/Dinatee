@@ -196,41 +196,79 @@ export const BuildingSection: React.FC<{ f: number; dust: number; basement: numb
 };
 
 /* ============================ ПОДВАЛ-УБЕЖИЩЕ ============================ */
-/** Бетонный подвал, одна лампа, полки с водой, радио на ящике. Артём сидит на ящике, Луна лежит рядом. */
-export const Shelter: React.FC<{ frame: number; radio?: number; lamp?: number; zoom?: number; hero?: boolean; dog?: boolean; enter?: number }> = ({
-  frame, radio = 0, lamp = 1, zoom = 1, hero = true, dog = true, enter = 1,
+/**
+ * Бетонный подвал, одна лампа, полки с водой и консервами, радио на ящике. Артём сидит на ящике, Луна лежит рядом.
+ * cam: точка мира (x, y) ставится в точку экрана (540, 760) с увеличением z — наезд на предмет правила.
+ * Предметы (0..1): vent — решётка вентиляции (taped — заклеена плёнкой и скотчем), jugs — канистры и миска Луны,
+ * bucket — ведро с мешком, torch — фонарик со светом, candle — свеча, dustFall — пыль с потолка.
+ */
+export type ShelterCam = { x: number; y: number; z: number };
+export const SHELTER_HOME: ShelterCam = { x: 540, y: 760, z: 1 };
+export const lerpCam = (a: ShelterCam, b: ShelterCam, k: number): ShelterCam => {
+  const e = k * k * (3 - 2 * k);
+  return { x: a.x + (b.x - a.x) * e, y: a.y + (b.y - a.y) * e, z: a.z + (b.z - a.z) * e };
+};
+export const Shelter: React.FC<{
+  frame: number; radio?: number; lamp?: number; zoom?: number; hero?: boolean; dog?: boolean; enter?: number; cam?: ShelterCam;
+  vent?: number; taped?: number; jugs?: number; bucket?: number; torch?: number; candle?: number; dustFall?: number; static_?: number; cansMark?: number;
+}> = ({
+  frame, radio = 0, lamp = 1, zoom = 1, hero = true, dog = true, enter = 1, cam,
+  vent = 0, taped = 0, jugs = 0, bucket = 0, torch = 0, candle = 0, dustFall = 0, static_ = 0, cansMark = 0,
 }) => {
-  const swing = Math.sin(frame / 40) * 3;
-  const flick = lamp * (random(`fl${Math.floor(frame / 3)}`) < 0.04 ? 0.6 : 1);
+  const swing = Math.sin(frame / 40) * 3 + (dustFall > 0 ? Math.sin(frame / 9) * 3 * dustFall : 0);
+  const flick = lamp * (random(`fl${Math.floor(frame / 3)}`) < (dustFall > 0 ? 0.18 : 0.04) ? 0.55 : 1);
   const sit: HeroPose = {
     ...NEUTRAL, y: -66, torso: 18 + 1 * Math.sin(frame / 18), head: 10 + Math.sin(frame / 25),
     legL: { hip: -84, knee: 92, foot: 0 }, legR: { hip: -80, knee: 88, foot: 0 },
     armL: { sh: -38, el: -52, wr: 0 }, armR: { sh: -32, el: -56, wr: 0 },
     expr: { brow: -0.3, browTilt: 0.8, mouth: "flat", blink: frame % 90 < 4 ? 1 : 0 },
   };
-  const lx = 520, ly = 300 + 0;
+  const lx = 520, ly = 300;
+  const c = cam ?? { x: 540, y: GROUND - (GROUND - 760) / zoom, z: zoom };
+  const T = `translate(540 760) scale(${c.z}) translate(${-c.x} ${-c.y})`;
   return (
     <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
       <RimDefs id="rimLamp" side={-1} color={SRYV.lamp} strength={0.9} width={6} />
       <defs>
-        <radialGradient id="lampGlow">
-          <stop offset="0" stopColor={SRYV.lamp} stopOpacity={0.55} />
-          <stop offset="1" stopColor={SRYV.lamp} stopOpacity={0} />
-        </radialGradient>
-        <radialGradient id="radioGlow">
-          <stop offset="0" stopColor={SRYV.progress} stopOpacity={0.5} />
-          <stop offset="1" stopColor={SRYV.progress} stopOpacity={0} />
-        </radialGradient>
+        <radialGradient id="lampGlow"><stop offset="0" stopColor={SRYV.lamp} stopOpacity={0.55} /><stop offset="1" stopColor={SRYV.lamp} stopOpacity={0} /></radialGradient>
+        <radialGradient id="radioGlow"><stop offset="0" stopColor={SRYV.progress} stopOpacity={0.5} /><stop offset="1" stopColor={SRYV.progress} stopOpacity={0} /></radialGradient>
+        <radialGradient id="candleGlow"><stop offset="0" stopColor="#FFC46B" stopOpacity={0.7} /><stop offset="1" stopColor="#FFC46B" stopOpacity={0} /></radialGradient>
+        <linearGradient id="torchBeam" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#FFF3D0" stopOpacity={0.55} /><stop offset="1" stopColor="#FFF3D0" stopOpacity={0} /></linearGradient>
       </defs>
-      <g transform={`translate(540 ${GROUND}) scale(${zoom}) translate(-540 ${-GROUND})`}>
+      <g transform={T}>
         {/* стены из блоков */}
-        <rect x={-300} y={-300} width={1680} height={GROUND + 300} fill="#1A1F28" />
-        {Array.from({ length: 16 }, (_, r) => Array.from({ length: 8 }, (_, c) => (
-          <rect key={`${r}-${c}`} x={-120 + c * 180 + (r % 2) * 90} y={140 + r * 64} width={174} height={58} fill="none" stroke="#232A36" strokeWidth={4} />
+        <rect x={-600} y={-300} width={2280} height={GROUND + 300} fill="#1A1F28" />
+        {Array.from({ length: 16 }, (_, r) => Array.from({ length: 10 }, (_, cc) => (
+          <rect key={`${r}-${cc}`} x={-300 + cc * 180 + (r % 2) * 90} y={140 + r * 64} width={174} height={58} fill="none" stroke="#232A36" strokeWidth={4} />
         )))}
         {/* труба под потолком */}
-        <rect x={-300} y={200} width={1680} height={34} fill="#2B3241" />
+        <rect x={-600} y={200} width={2280} height={34} fill="#2B3241" />
         {[120, 600, 980].map((x) => <rect key={x} x={x} y={192} width={22} height={50} fill="#353D4E" />)}
+        {/* железная дверь слева */}
+        <g>
+          <rect x={-10} y={GROUND - 430} width={190} height={430} fill="#2B3241" stroke="#0A0D13" strokeWidth={8} />
+          {[0, 1, 2].map((i) => <rect key={i} x={10} y={GROUND - 410 + i * 140} width={150} height={120} fill="none" stroke="#3A4560" strokeWidth={4} />)}
+          <rect x={150} y={GROUND - 240} width={14} height={50} rx={4} fill="#4E5868" />
+          <rect x={-10} y={GROUND - 8} width={190} height={6} fill={SRYV.lamp} opacity={0.35} />
+        </g>
+        {/* решётка вентиляции над дверью */}
+        {vent > 0 && (
+          <g opacity={vent}>
+            <rect x={20} y={GROUND - 600} width={130} height={90} fill="#0E1118" stroke="#4E5868" strokeWidth={6} />
+            {[0, 1, 2, 3, 4].map((i) => <line key={i} x1={28} x2={142} y1={GROUND - 588 + i * 16} y2={GROUND - 588 + i * 16} stroke="#4E5868" strokeWidth={5} />)}
+            {taped > 0 && (
+              <g opacity={taped}>
+                <rect x={10} y={GROUND - 610} width={150} height={110} fill="#C9D6E6" opacity={0.35} />
+                <line x1={6} y1={GROUND - 612} x2={6 + 158 * Math.min(1, taped * 2)} y2={GROUND - 612 + 114 * Math.min(1, taped * 2)} stroke="#E8C547" strokeWidth={16} strokeLinecap="round" />
+                <line x1={164} y1={GROUND - 612} x2={164 - 158 * Math.max(0, taped * 2 - 1)} y2={GROUND - 612 + 114 * Math.max(0, taped * 2 - 1)} stroke="#E8C547" strokeWidth={16} strokeLinecap="round" />
+              </g>
+            )}
+            {taped < 1 && Array.from({ length: 16 }, (_, i) => {
+              const k = ((frame * 0.03 + random(`vd${i}`)) % 1);
+              return <circle key={i} cx={85 + (random(`vx${i}`) - 0.5) * 100 + k * 60} cy={GROUND - 500 + k * 220} r={4} fill="#B9B2A6" opacity={(1 - k) * (1 - taped) * 0.8} />;
+            })}
+          </g>
+        )}
         {/* полки с водой и консервами */}
         <g>
           {[520, 680, 840].map((y) => <rect key={y} x={700} y={y} width={340} height={14} fill="#3A3128" />)}
@@ -241,12 +279,42 @@ export const Shelter: React.FC<{ frame: number; radio?: number; lamp?: number; z
               <rect x={727 + i * 52} y={418} width={16} height={14} fill="#8FBCEB" opacity={0.6} />
             </g>
           ))}
-          {[0, 1, 2, 3, 4].map((i) => <rect key={i} x={716 + i * 62} y={620} width={50} height={60} rx={6} fill="#7B8798" stroke="#4E5868" strokeWidth={3} />)}
+          {[0, 1, 2, 3, 4].map((i) => (
+            <g key={i}>
+              <rect x={716 + i * 62} y={620} width={50} height={60} rx={6} fill="#7B8798" stroke="#4E5868" strokeWidth={3} />
+              <rect x={716 + i * 62} y={636} width={50} height={22} fill="#B85A30" opacity={0.8} />
+            </g>
+          ))}
+          {cansMark > 0 && <rect x={706} y={608} width={322} height={84} rx={12} fill="none" stroke={SRYV.progress} strokeWidth={6} opacity={cansMark * (0.6 + 0.4 * Math.sin(frame / 5))} />}
           {[0, 1, 2].map((i) => <rect key={i} x={720 + i * 100} y={770} width={88} height={70} rx={4} fill="#8A6B47" stroke="#5E4830" strokeWidth={3} />)}
         </g>
         {/* пол */}
-        <rect x={-300} y={GROUND} width={1680} height={900} fill="#11151C" />
-        <rect x={-300} y={GROUND - 16} width={1680} height={16} fill="#0A0D13" />
+        <rect x={-600} y={GROUND} width={2280} height={900} fill="#11151C" />
+        <rect x={-600} y={GROUND - 16} width={2280} height={16} fill="#0A0D13" />
+        {/* канистры с водой у полок */}
+        {jugs > 0 && (
+          <g opacity={jugs}>
+            {[870, 960].map((x) => (
+              <g key={x}>
+                <rect x={x - 38} y={GROUND - 120} width={76} height={120} rx={10} fill="#5AA9FF" opacity={0.45} stroke="#8FBCEB" strokeWidth={4} />
+                <rect x={x - 14} y={GROUND - 138} width={28} height={20} rx={4} fill="#3A6EA8" />
+                <rect x={x - 38} y={GROUND - 70} width={76} height={70} rx={8} fill="#5AA9FF" opacity={0.35} />
+              </g>
+            ))}
+          </g>
+        )}
+        {/* ведро с мешком у двери */}
+        {bucket > 0 && (
+          <g opacity={bucket} transform={`translate(130 ${GROUND})`}>
+            <path d="M -50 -110 L 50 -110 L 40 0 L -40 0 Z" fill="#5E6B7E" stroke="#2B3241" strokeWidth={4} />
+            <path d="M -56 -110 Q -40 -128 -20 -112 Q 0 -130 20 -112 Q 40 -128 56 -110" fill="#1A1F28" stroke="#0A0D13" strokeWidth={3} />
+            <path d="M -50 -104 Q 0 -150 50 -104" fill="none" stroke="#2B3241" strokeWidth={4} />
+            <g transform="translate(-95 0)">
+              <path d="M -30 0 L -26 -60 L 26 -60 L 30 0 Z" fill="#C9B48A" stroke="#8A7650" strokeWidth={3} />
+              <path d="M -26 -60 Q 0 -74 26 -60" fill="#E2CFA0" />
+            </g>
+          </g>
+        )}
         {/* ящик с радио */}
         <g transform={`translate(560 ${GROUND})`}>
           <rect x={-70} y={-110} width={140} height={110} fill="#5E4830" stroke="#3E2F20" strokeWidth={4} />
@@ -254,8 +322,23 @@ export const Shelter: React.FC<{ frame: number; radio?: number; lamp?: number; z
             <rect x={-56} y={-62} width={112} height={62} rx={8} fill="#2B3241" stroke="#0A0D13" strokeWidth={4} />
             <circle cx={-26} cy={-31} r={18} fill="#1A1F28" stroke="#4E5868" strokeWidth={3} />
             <rect x={6} y={-44} width={38} height={14} rx={3} fill={SRYV.progress} opacity={0.25 + 0.75 * radio} />
+            {static_ > 0 && Array.from({ length: 5 }, (_, i) => <line key={i} x1={6} x2={44} y1={-41 + i * 2} y2={-41 + i * 2} stroke="#C9D6E6" strokeWidth={1.4} opacity={random(`st${frame}-${i}`) * static_} />)}
             <line x1={30} y1={-62} x2={60} y2={-120} stroke="#4E5868" strokeWidth={4} />
           </g>
+          {/* свеча (пример: так нельзя) */}
+          {candle > 0 && (
+            <g opacity={candle} transform="translate(-44 -110)">
+              <rect x={-9} y={-56} width={18} height={56} rx={3} fill="#EDE6D6" />
+              <path d={`M 0 -58 Q ${-8 + Math.sin(frame / 3) * 2} -72 0 ${-92 + Math.sin(frame / 4) * 3} Q 8 -72 0 -58 Z`} fill="#FFC46B" />
+            </g>
+          )}
+          {/* фонарик */}
+          {torch > 0 && (
+            <g transform="translate(40 -122)">
+              <path d="M 0 -8 L 40 -12 L 40 12 L 0 8 Z" fill="#2B3241" stroke="#0A0D13" strokeWidth={3} />
+              <rect x={40} y={-15} width={12} height={30} rx={3} fill="#4E5868" />
+            </g>
+          )}
         </g>
         {/* Артём на ящике */}
         {hero && (
@@ -275,17 +358,77 @@ export const Shelter: React.FC<{ frame: number; radio?: number; lamp?: number; z
             <Dog pose={{ ...dogLie(frame, 5), head: 4 }} rimFilter="rimLamp" />
           </g>
         )}
+        {/* миска Луны */}
+        {jugs > 0 && (
+          <g opacity={jugs} transform={`translate(660 ${GROUND})`}>
+            <path d="M -40 -30 L 40 -30 L 30 0 L -30 0 Z" fill="#B85A30" stroke="#6E3B26" strokeWidth={3} />
+            <ellipse cx={0} cy={-30} rx={40} ry={8} fill="#5AA9FF" opacity={0.7} />
+          </g>
+        )}
       </g>
-      {/* тонировка, лампа и радио поверх */}
+      {/* тонировка */}
       <rect width={1080} height={1920} fill="#26324D" style={{ mixBlendMode: "multiply" }} opacity={0.5} />
-      <g transform={`rotate(${swing} ${lx} 120)`}>
-        <line x1={lx} y1={120} x2={lx} y2={ly - 20} stroke="#0A0D13" strokeWidth={4} />
-        <path d={`M ${lx - 40} ${ly - 10} L ${lx + 40} ${ly - 10} L ${lx + 24} ${ly - 34} L ${lx - 24} ${ly - 34} Z`} fill="#2B3241" />
-        <circle cx={lx} cy={ly + 6} r={16} fill="#FFE2A8" opacity={flick} />
-        <circle cx={lx} cy={ly + 150} r={560} fill="url(#lampGlow)" opacity={flick} style={{ mixBlendMode: "screen" }} />
+      <g transform={T}>
+        {/* лампа */}
+        <g transform={`rotate(${swing} ${lx} 120)`}>
+          <line x1={lx} y1={120} x2={lx} y2={ly - 20} stroke="#0A0D13" strokeWidth={4} />
+          <path d={`M ${lx - 40} ${ly - 10} L ${lx + 40} ${ly - 10} L ${lx + 24} ${ly - 34} L ${lx - 24} ${ly - 34} Z`} fill="#2B3241" />
+          <circle cx={lx} cy={ly + 6} r={16} fill="#FFE2A8" opacity={flick} />
+          <circle cx={lx} cy={ly + 150} r={560} fill="url(#lampGlow)" opacity={flick} style={{ mixBlendMode: "screen" }} />
+        </g>
+        {radio > 0 && <circle cx={580} cy={GROUND - 150} r={200} fill="url(#radioGlow)" opacity={radio} style={{ mixBlendMode: "screen" }} />}
+        {candle > 0 && <circle cx={516} cy={GROUND - 190} r={220} fill="url(#candleGlow)" opacity={candle * (0.85 + 0.15 * Math.sin(frame / 3))} style={{ mixBlendMode: "screen" }} />}
+        {torch > 0 && <path d={`M 652 ${GROUND - 122} L 1100 ${GROUND - 330} L 1100 ${GROUND + 60} Z`} fill="url(#torchBeam)" opacity={torch} style={{ mixBlendMode: "screen" }} />}
+        {/* пыль, сыплющаяся с потолка */}
+        {dustFall > 0 && Array.from({ length: 50 }, (_, i) => {
+          const x = random(`cf${i}`) * 1080;
+          const y = 240 + ((random(`cy${i}`) * 900 + frame * (2 + random(`cs${i}`) * 3)) % 900);
+          return <circle key={i} cx={x} cy={y} r={2 + random(`cr${i}`) * 2} fill="#C9C0B0" opacity={0.6 * dustFall} />;
+        })}
       </g>
-      {radio > 0 && <circle cx={580} cy={GROUND - 150} r={200} fill="url(#radioGlow)" opacity={radio} style={{ mixBlendMode: "screen" }} />}
     </svg>
+  );
+};
+
+/* Счётчик «в укрытии»: часы, затем дни. */
+export const ShelterClock: React.FC<{ hours: number; opacity?: number }> = ({ hours, opacity = 1 }) => {
+  const txt = hours < 48 ? `${Math.max(1, Math.floor(hours))} Ч` : `ДЕНЬ ${Math.floor(hours / 24)}`;
+  return (
+    <div style={{ position: "absolute", left: 0, right: 0, top: 96, display: "flex", justifyContent: "center", opacity }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 18, padding: "14px 30px", borderRadius: 16, background: "rgba(14,17,24,0.85)",
+        border: `3px solid ${SRYV.progress}`, boxShadow: `0 0 20px ${SRYV.progress}55` }}>
+        <div style={{ width: 18, height: 18, borderRadius: 9, background: SRYV.progress }} />
+        <div style={{ fontFamily: "JetBrains Mono", fontWeight: 700, fontSize: 52, lineHeight: 1, color: "#FFFFFF", letterSpacing: 2 }}>В УКРЫТИИ · {txt}</div>
+      </div>
+    </div>
+  );
+};
+
+/* Правило 7–10: три полосы излучения, длина — доля от исходного (в логарифмическом виде, чтобы 1% был виден). */
+export const DecayBars: React.FC<{ f: number; at: [number, number, number]; y?: number }> = ({ f, at, y = 330 }) => {
+  const rows = [
+    { t: "1 ЧАС", p: "100%", w: 1, c: SRYV.fail },
+    { t: "7 ЧАСОВ", p: "10%", w: 0.62, c: SRYV.lamp },
+    { t: "2 СУТОК", p: "1%", w: 0.26, c: SRYV.progress },
+  ];
+  return (
+    <div style={{ position: "absolute", left: 90, top: y, width: 900, display: "flex", flexDirection: "column", gap: 44 }}>
+      <div style={{ fontFamily: "JetBrains Mono", fontWeight: 700, fontSize: 36, color: "#C9D2E0", letterSpacing: 4 }}>ИЗЛУЧЕНИЕ ОТ ПЫЛИ</div>
+      {rows.map((r, i) => {
+        const k = Math.min(1, Math.max(0, (f - at[i]) / 12));
+        const e = k * k * (3 - 2 * k);
+        return (
+          <div key={i} style={{ display: "flex", flexDirection: "column", gap: 12, opacity: Math.min(1, k * 3) }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "Inter Display", fontWeight: 900, fontSize: 48, lineHeight: 1, color: "#FFFFFF" }}>
+              <span>{r.t}</span><span style={{ color: r.c }}>{r.p}</span>
+            </div>
+            <div style={{ height: 54, borderRadius: 14, background: "#1C2331", overflow: "hidden" }}>
+              <div style={{ width: `${Math.round(100 * r.w * e)}%`, height: "100%", borderRadius: 14, background: r.c, boxShadow: `0 0 20px ${r.c}88` }} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 };
 

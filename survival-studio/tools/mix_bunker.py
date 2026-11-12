@@ -1,23 +1,32 @@
-"""Звук «Бункер. Серия 1»: тревожный эмбиент (гул, сердцебиение), 4 эффекта, сведение.
+"""Звук серии «Бункер»: тревожный эмбиент (гул, сердцебиение), 4 эффекта, сведение.
 
-.venv/bin/python tools/mix_bunker.py
-Голос: episodes/bunker-1/voice/voice_final.wav (71,43 с) + хвост 1 с.
+.venv/bin/python tools/mix_bunker.py [1|2]
+Голос: episodes/bunker-N/voice/voice_final.wav + хвост 1 с.
 Музыка под голосом ≈ −25 LUFS, сайдчейн 6–8 дБ, вырез 250–500 Гц. Итог −14 LUFS, TP −1.
 """
-import json, os, subprocess, wave
+import json, os, subprocess, sys, wave
 import numpy as np
+EP = int(sys.argv[1]) if len(sys.argv) > 1 else 1
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SR = 48000
 rng = np.random.default_rng(15)
-VOICE_END, TAIL = 71.43, 1.0
+CFG = {
+    1: dict(end=71.43, beat=(12.0, 45.2), tick=(12.0, 45.2), radio=(58.3, 64.0),
+            mood=[(0.0, "dread"), (4.2, "calm"), (6.5, "alarm"), (11.6, "silence"), (12.0, "run"), (45.2, "shelter"), (67.4, "end")],
+            sfx=[(0.00, "boom"), (6.60, "siren"), (19.28, "rumble"), (45.20, "door")]),
+    2: dict(end=66.25, beat=(0.0, 0.0), tick=(12.9, 24.2), radio=(8.7, 12.9),
+            mood=[(0.0, "dread"), (5.6, "shelter"), (12.8, "calm"), (24.2, "shelter"), (56.6, "end")],
+            sfx=[(0.05, "rumble"), (8.74, "static"), (27.14, "tape"), (52.70, "click")]),
+}[EP]
+VOICE_END, TAIL = CFG["end"], 1.0
 TOTAL = VOICE_END + TAIL
 N = int(TOTAL * SR)
 t = np.arange(N) / SR
 # настроение: dread — гул после вспышки, calm — обычный вечер, alarm — сирена, silence — вдох перед правилами,
 # run — сердцебиение и пульс (15 минут), shelter — подвал: низкий гул и лампа, end — финальный подъём
-MOOD = [(0.0, "dread"), (4.2, "calm"), (6.5, "alarm"), (11.6, "silence"), (12.0, "run"), (45.2, "shelter"), (67.4, "end")]
-SFX = [(0.00, "boom"), (6.60, "siren"), (19.28, "rumble"), (45.20, "door")]
+MOOD = CFG["mood"]
+SFX = CFG["sfx"]
 
 
 def lp(x, fc):
@@ -46,9 +55,10 @@ air = lp(rng.standard_normal(N), 500) * 4 * (0.6 + 0.4 * np.sin(2 * np.pi * 0.07
 eerie = 0.18 * np.sin(2 * np.pi * (622 + 6 * np.sin(2 * np.pi * 0.2 * t)) * t) + 0.12 * np.sin(2 * np.pi * 659 * t)
 # сердцебиение: «лаб-даб», темп растёт 72 → 96 уд/мин к укрытию
 beat = np.zeros(N)
-tt = 12.0
-while tt < 45.2:
-    bpm = 72 + 24 * (tt - 12) / 33
+b0, b1 = CFG["beat"]
+tt = b0
+while tt < b1:
+    bpm = 72 + 24 * (tt - b0) / max(1, b1 - b0)
     for off, amp in ((0, 1.0), (0.16, 0.65)):
         n0 = int((tt + off) * SR); n = int(0.18 * SR)
         if n0 + n < N:
@@ -56,12 +66,12 @@ while tt < 45.2:
     tt += 60 / bpm
 # тиканье часов в «15 минутах» — тихо, на долю
 tick = np.zeros(N)
-for i in range(int(12 / 0.5), int(45.2 / 0.5)):
+for i in range(int(CFG["tick"][0] / 0.5), int(CFG["tick"][1] / 0.5)):
     n0 = int(i * 0.5 * SR); n = int(0.03 * SR); x = np.arange(n) / SR
     tick[n0:n0 + n] += np.sin(2 * np.pi * 3000 * x) * np.exp(-x * 160) * (0.35 if i % 2 else 0.2)
 # подвал: гул лампы 100 Гц + радиошум под «Правило пятое»
 hum = 0.25 * np.sin(2 * np.pi * 100 * t) + 0.1 * np.sin(2 * np.pi * 200 * t)
-radio = np.zeros(N); a, b = int(58.3 * SR), int(64.0 * SR)
+radio = np.zeros(N); a, b = int(CFG["radio"][0] * SR), int(CFG["radio"][1] * SR)
 w = rng.standard_normal(b - a); radio[a:b] = (w - lp(w, 3000)) * 0.12 * ramp(b - a, 4000, 20000)
 # пэд для «обычного вечера» и финала (Dm add9)
 pad = np.zeros(N)
@@ -73,7 +83,7 @@ mus = (drone * (dread * 1.0 + alarm * 0.7 + run * 0.6 + shelter * 0.5 + end * 0.
        + air * (dread * 0.6 + run * 0.4 + end * 0.5)
        + eerie * (dread * 0.8 + run * 0.5 + end * 1.0)
        + pad * (calm * 0.6 + shelter * 0.25 + end * 0.45)
-       + beat * run * 1.3 + tick * run * 0.8 + hum * shelter * 0.6 + radio * 3)
+       + beat * run * 1.3 + tick * (run * 0.8 + (calm * 0.5 if EP == 2 else 0)) + hum * shelter * 0.6 + radio * 3)
 mus *= (1 - 0.95 * sil)
 mus *= ramp(N, int(0.05 * SR), int(1.2 * SR))
 mus /= np.max(np.abs(mus)) + 1e-9
@@ -94,6 +104,15 @@ def sfx(kind):
         f = 420 + 360 * (0.5 - 0.5 * np.cos(2 * np.pi * x / 2.6)); ph = 2 * np.pi * np.cumsum(f) / SR
         s = np.sin(ph) + 0.4 * np.sin(2 * ph) + 0.2 * np.sin(3 * ph)
         return lp(s, 2500) * 0.4 * ramp(n, int(0.6 * SR), int(1.5 * SR))
+    if kind == "static":  # радио шипит
+        n = int(1.4 * SR); w = rng.standard_normal(n)
+        return (w - lp(w, 2500)) * 0.5 * ramp(n, 2000, 8000) * (0.7 + 0.3 * (rng.random(n) > 0.97))
+    if kind == "tape":  # скотч отрывается
+        n = int(0.7 * SR); x = np.arange(n) / SR; w = rng.standard_normal(n)
+        return (w - lp(w, 1800)) * 0.6 * (0.6 + 0.4 * np.sign(np.sin(2 * np.pi * 38 * x))) * ramp(n, 300, 6000)
+    if kind == "click":  # щелчок фонарика
+        n = int(0.12 * SR); x = np.arange(n) / SR
+        return (np.sin(2 * np.pi * 1800 * x) * np.exp(-x * 90) + rng.standard_normal(n) * np.exp(-x * 140) * 0.3) * 0.9
     if kind == "door":  # тяжёлая дверь подвала
         n = int(1.2 * SR); x = np.arange(n) / SR; w = rng.standard_normal(n)
         return (np.sin(2 * np.pi * 70 * x) * np.exp(-x * 9) * 0.9 + lp(w, 600) * 2 * np.exp(-x * 14) + np.sin(2 * np.pi * 410 * x) * np.exp(-x * 20) * 0.2)
@@ -112,13 +131,13 @@ def write(path, x):
         w.setnchannels(data.shape[1] if data.ndim == 2 else 1); w.setsampwidth(2); w.setframerate(SR); w.writeframes(data.tobytes())
 
 
-tmp = os.path.join(ROOT, "episodes", "bunker-1", "voice", "mixparts"); os.makedirs(tmp, exist_ok=True)
+tmp = os.path.join(ROOT, "episodes", f"bunker-{EP}", "voice", "mixparts"); os.makedirs(tmp, exist_ok=True)
 write(f"{tmp}/music.wav", mus * 0.5)
 write(f"{tmp}/fx.wav", np.stack([fx, fx], 1) * 0.7)
-vsrc = os.path.join(ROOT, "episodes", "bunker-1", "voice", "voice_final.wav")
+vsrc = os.path.join(ROOT, "episodes", f"bunker-{EP}", "voice", "voice_final.wav")
 subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", vsrc, "-af", f"apad=whole_dur={TOTAL},aformat=channel_layouts=stereo,aresample={SR}",
                 f"{tmp}/voice_ep.wav"], check=True)
-out = os.path.join(ROOT, "video", "public", "audio", "bunker1_mix.wav")
+out = os.path.join(ROOT, "video", "public", "audio", f"bunker{EP}_mix.wav")
 graph = (
     "[1]equalizer=f=350:t=o:w=1:g=-6,loudnorm=I=-24:TP=-4:LRA=11[m0];"
     "[2]loudnorm=I=-20:TP=-3:LRA=15[f0];"
