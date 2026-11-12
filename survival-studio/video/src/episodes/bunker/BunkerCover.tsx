@@ -1,7 +1,10 @@
 import React from "react";
 import { AbsoluteFill } from "remotion";
 import { useFonts } from "../../useFonts";
-import { NightCity } from "../../scenes/Bunker";
+import { NightCity, Shelter } from "../../scenes/Bunker";
+const Bg: React.FC<{ ep: number; thumb?: boolean }> = ({ ep, thumb }) => ep === 1
+  ? <NightCity frame={60} boom={2.2} glow={0.6} zoom={thumb ? 1 : 1.05} />
+  : <Shelter frame={40} radio={1} cam={{ x: thumb ? 460 : 470, y: thumb ? 760 : 980, z: thumb ? 1.1 : 1.25 }} />;
 
 /* Обложки серии «Бункер»: гриб над городом + крупный заголовок; ≤ 8 слов, правый низ свободен. */
 const Title: React.FC<{ n: number; l1: string; l2: string; plate: string; size: number; ps: number; align: "center" | "flex-start" }> = ({ n, l1, l2, plate, size, ps, align }) => (
@@ -16,13 +19,14 @@ const Title: React.FC<{ n: number; l1: string; l2: string; plate: string; size: 
 );
 export const BUNKER_COVERS = {
   1: { l1: "ПЕРВЫЕ", l2: "15 МИНУТ", plate: "5 ПРАВИЛ ВЫЖИВАНИЯ" },
+  2: { l1: "ДВЕ НЕДЕЛИ", l2: "В ПОДВАЛЕ", plate: "НЕ ВЫХОДИ РАНЬШЕ" },
 } as const;
-export const BunkerCover: React.FC<{ variant: "cover" | "thumb"; ep: 1 }> = ({ variant, ep }) => {
+export const BunkerCover: React.FC<{ variant: "cover" | "thumb"; ep: 1 | 2 }> = ({ variant, ep }) => {
   useFonts();
   const c = BUNKER_COVERS[ep];
   if (variant === "cover") return (
     <AbsoluteFill style={{ backgroundColor: "#07090D" }}>
-      <NightCity frame={60} boom={2.2} glow={0.6} zoom={1.05} />
+      <Bg ep={ep} />
       <div style={{ position: "absolute", left: 0, right: 0, top: 860, display: "flex", justifyContent: "center" }}>
         <Title n={ep} l1={c.l1} l2={c.l2} plate={c.plate} size={128} ps={50} align="center" />
       </div>
@@ -31,7 +35,7 @@ export const BunkerCover: React.FC<{ variant: "cover" | "thumb"; ep: 1 }> = ({ v
   return (
     <AbsoluteFill style={{ backgroundColor: "#07090D", overflow: "hidden" }}>
       <div style={{ position: "absolute", left: 470, top: -140, width: 1080, height: 1920, transform: "scale(0.75)", transformOrigin: "0 0" }}>
-        <NightCity frame={60} boom={2.2} glow={0.6} />
+        <Bg ep={ep} thumb />
       </div>
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(7,9,13,.92) 0%, rgba(7,9,13,.6) 45%, rgba(7,9,13,0) 70%)" }} />
       <div style={{ position: "absolute", left: 64, top: 110 }}><Title n={ep} l1={c.l1} l2={c.l2} plate={c.plate} size={104} ps={42} align="flex-start" /></div>

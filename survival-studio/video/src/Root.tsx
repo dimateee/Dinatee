@@ -53,6 +53,8 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="TretiyCover" component={TretiyCover} defaultProps={{ variant: "cover" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="TretiyThumb" component={TretiyCover} defaultProps={{ variant: "thumb" as const }} durationInFrames={1} fps={30} width={1280} height={720} />
       <Composition id="Bunker2" component={Bunker2} defaultProps={{ withAudio: false }} durationInFrames={BUNKER2_FRAMES} fps={30} width={1080} height={1920} />
+      <Composition id="Bunker2Cover" component={BunkerCover} defaultProps={{ variant: "cover" as const, ep: 2 as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
+      <Composition id="Bunker2Thumb" component={BunkerCover} defaultProps={{ variant: "thumb" as const, ep: 2 as const }} durationInFrames={1} fps={30} width={1280} height={720} />
       <Composition id="Bunker1Cover" component={BunkerCover} defaultProps={{ variant: "cover" as const, ep: 1 as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="Bunker1Thumb" component={BunkerCover} defaultProps={{ variant: "thumb" as const, ep: 1 as const }} durationInFrames={1} fps={30} width={1280} height={720} />
       <Composition id="Bunker1" component={Bunker1} defaultProps={{ withAudio: false }} durationInFrames={BUNKER1_FRAMES} fps={30} width={1080} height={1920} />
