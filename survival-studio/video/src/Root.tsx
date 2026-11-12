@@ -8,6 +8,8 @@ import { KaraokeTest } from "./sheets/KaraokeTest";
 import { EPISODE_FRAMES, PropuskEpisode } from "./episodes/propusk/Episode";
 import { Cover } from "./episodes/propusk/Cover";
 import { RigTest2 } from "./series66/RigTest2";
+import { CastSheet, Frame66, Test15 } from "./series66/Sheets66";
+import { Cycles66 } from "./series66/Cycles66";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -25,6 +27,18 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="PropuskCover" component={Cover} defaultProps={{ variant: "cover" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="PropuskThumb" component={Cover} defaultProps={{ variant: "thumb" as const }} durationInFrames={1} fps={30} width={1280} height={720} />
       <Composition id="RigTest2" component={RigTest2} durationInFrames={1} fps={30} width={1600} height={900} />
+      <Composition id="CastSheet" component={CastSheet} durationInFrames={1} fps={30} width={2400} height={2000} />
+      <Composition id="Test15" component={Test15} durationInFrames={450} fps={30} width={1080} height={1920} />
+      <Composition id="F66-yard" component={Frame66} defaultProps={{ v: "yard" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
+      <Composition id="F66-interior" component={Frame66} defaultProps={{ v: "interior" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
+      <Composition id="F66-night" component={Frame66} defaultProps={{ v: "night" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
+      <Composition id="F66-fog" component={Frame66} defaultProps={{ v: "fog" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
+      <Composition id="F66-winter" component={Frame66} defaultProps={{ v: "winter" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
+      <Composition id="F66-howto" component={Frame66} defaultProps={{ v: "howto" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
+      <Composition id="F66-ritm" component={Frame66} defaultProps={{ v: "ritm" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
+      <Composition id="F66-notebook" component={Frame66} defaultProps={{ v: "notebook" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
+      <Composition id="Walk66Man" component={Cycles66} defaultProps={{ who: "man" as const }} durationInFrames={72} fps={30} width={1080} height={720} />
+      <Composition id="Walk66Dog" component={Cycles66} defaultProps={{ who: "dog" as const }} durationInFrames={72} fps={30} width={1080} height={720} />
     </>
   );
 };

@@ -8,6 +8,7 @@ const FONTS = [
   { family: "Montserrat", file: "Montserrat-ExtraBold.ttf", weight: "800" },
   { family: "Montserrat", file: "Montserrat-Black.ttf", weight: "900" },
   { family: "Oswald", file: "Oswald-Bold.ttf", weight: "700" },
+  { family: "Oswald", file: "Oswald-SemiBold.ttf", weight: "600" },
   { family: "JetBrains Mono", file: "JetBrainsMono-Regular.ttf", weight: "400" },
   { family: "JetBrains Mono", file: "JetBrainsMono-Bold.ttf", weight: "700" },
   { family: "Caveat", file: "Caveat-Bold.ttf", weight: "700" },
