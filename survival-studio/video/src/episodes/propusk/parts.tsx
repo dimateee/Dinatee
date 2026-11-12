@@ -430,3 +430,67 @@ export const StudyCard: React.FC<{ f: number; at: number }> = ({ f, at }) => {
     </div>
   );
 };
+
+/* ===================== шкала мотивации, которая падает ===================== */
+export const MotivationBar: React.FC<{ f: number; dropAt: number; dropDur: number }> = ({ f, dropAt, dropDur }) => {
+  const v = interpolate(f, [0, 10, dropAt, dropAt + dropDur], [0, 0.95, 0.95, 0.04], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: EASE });
+  const col = v > 0.5 ? SRYV.progress : v > 0.2 ? "#F5C518" : SRYV.fail;
+  return (
+    <>
+      <Caption x={540} y={330} w={900} text="МОТИВАЦИЯ" color="#C9D2E0" size={64} font="head" opacity={ap(f, 0, 8)} />
+      <div style={{ position: "absolute", left: 160, top: 430, width: 760, height: 120, borderRadius: 60, border: "6px solid #3A4560", background: "#121722" }}>
+        <div style={{ position: "absolute", left: 10, top: 10, height: 88, width: px(740 * v), borderRadius: 44, background: col, boxShadow: `0 0 24px ${col}66` }} />
+      </div>
+      <Caption x={540} y={650} w={600} text={`${Math.round(v * 100)}%`} color={col} size={110} font="head" opacity={ap(f, 4, 8)} />
+    </>
+  );
+};
+
+/* ===================== «погода» мотивации против роста привычки ===================== */
+export const TwoCurves: React.FC<{ f: number; habitAt: number }> = ({ f, habitAt }) => {
+  const X0 = 110, X1 = 970, Y0 = 900, Y1 = 330;
+  const k1 = interpolate(f, [0, 40], [0, 1], { extrapolateRight: "clamp" });
+  const k2 = interpolate(f, [habitAt, habitAt + 30], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const motiv = (t: number) => Y0 - (Y0 - Y1) * (0.55 + 0.38 * Math.sin(t * 13) * Math.exp(-t * 0.4));
+  const habit = (t: number) => Y0 - (Y0 - Y1) * 0.85 * (1 - Math.exp(-t * 2.6));
+  const path = (fn: (t: number) => number, k: number) => Array.from({ length: 121 }, (_, i) => i / 120).filter((t) => t <= k)
+    .map((t, i) => `${i ? "L" : "M"} ${px(X0 + (X1 - X0) * t)} ${px(fn(t))}`).join(" ");
+  return (
+    <>
+      <svg width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+        <line x1={X0} x2={X1} y1={Y0} y2={Y0} stroke="#3A4560" strokeWidth={4} />
+        <path d={path(motiv, k1)} stroke="#F5C518" strokeWidth={9} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        {k2 > 0 && <path d={path(habit, k2)} stroke={SRYV.progress} strokeWidth={12} fill="none" strokeLinecap="round" />}
+        {/* солнце и туча над пиками и провалами */}
+        <g opacity={ap(f, 8, 8)}><circle cx={245} cy={260} r={34} fill="#F5C518" />{Array.from({ length: 8 }, (_, i) => <line key={i} x1={245} y1={200} x2={245} y2={214} stroke="#F5C518" strokeWidth={5} strokeLinecap="round" transform={`rotate(${i * 45} 245 260)`} />)}</g>
+        <g opacity={ap(f, 16, 8)} fill="#8FA3C2"><ellipse cx={470} cy={270} rx={60} ry={30} /><ellipse cx={430} cy={250} rx={36} ry={30} /><ellipse cx={500} cy={244} rx={40} ry={34} /></g>
+      </svg>
+      <Caption x={300} y={980} w={420} text="МОТИВАЦИЯ" color="#F5C518" size={44} font="head" opacity={ap(f, 6, 8)} />
+      <Caption x={780} y={980} w={420} text="ПРИВЫЧКА" color={SRYV.progress} size={44} font="head" opacity={ap(f, habitAt, 8)} />
+    </>
+  );
+};
+
+/* ===================== пять дел схлопываются в одно ===================== */
+export const FiveToOne: React.FC<{ f: number; at: number; items: { icon: IconName; title: string }[]; keep: number }> = ({ f, at, items, keep }) => {
+  const k = ap(f, at, 14);
+  return (
+    <>
+      {items.map((it, i) => {
+        const y0 = 230 + i * 150, yK = 520;
+        const isKeep = i === keep;
+        const y = isKeep ? y0 + (yK - y0) * k : y0;
+        const o = isKeep ? 1 : (1 - k) * ap(f, i * 3, 6);
+        return (
+          <div key={i} style={{ position: "absolute", left: 230, top: px(y), width: 620, height: 120, opacity: o,
+            transform: `scale(${isKeep ? 1 + 0.25 * k : 1 - 0.2 * k})`, transformOrigin: "50% 50%",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 24, borderRadius: 22,
+            background: "rgba(246,242,231,0.95)", border: `4px solid ${isKeep && k > 0.5 ? SRYV.progress : REGIME.olive}` }}>
+            <Icon name={it.icon} color={REGIME.olive} size={64} />
+            <div style={{ ...H, fontSize: 56, color: REGIME.olive }}>{it.title}</div>
+          </div>
+        );
+      })}
+    </>
+  );
+};
