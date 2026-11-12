@@ -2,16 +2,20 @@
 # Обработка голоса по стандарту студии:
 # deepFilter (умеренно) -> HPF 80 Гц -> -2 дБ @ 300 Гц (если гудит) -> де-эссер ->
 # компрессия 2:1 (атака 15 мс) -> loudnorm в два прохода (-14 LUFS, TP -1 dBTP, LRA <= 6).
-# Использование: tools/voice_process.sh in.wav out.wav [--no-mud]
+# Использование: tools/voice_process.sh in.wav out.wav [--no-mud] [--no-df]
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-IN=$(realpath "$1"); OUT=$(realpath -m "$2"); MUD=1; [ "${3:-}" = "--no-mud" ] && MUD=0
+IN=$(realpath "$1"); OUT=$(realpath -m "$2"); MUD=1; DFN=1
+for o in "${@:3}"; do [ "$o" = "--no-mud" ] && MUD=0; [ "$o" = "--no-df" ] && DFN=0; done
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 
 ffmpeg -v error -y -i "$IN" -ac 1 -ar 48000 "$TMP/in.wav"
 # 1. DeepFilterNet: ограничение подавления 8 дБ — без «подводного» звука
-"$ROOT/.venv/bin/deepFilter" -m "$ROOT/tools/models/DeepFilterNet3" --atten-lim 8 -o "$TMP" "$TMP/in.wav" >/dev/null 2>&1
-DF="$TMP/in_DeepFilterNet3.wav"
+# (--no-df: для синтезированного голоса без шума шумодав только портит дикцию)
+if [ "$DFN" = 1 ]; then
+  "$ROOT/.venv/bin/deepFilter" -m "$ROOT/tools/models/DeepFilterNet3" --atten-lim 8 -o "$TMP" "$TMP/in.wav" >/dev/null 2>&1
+  DF="$TMP/in_DeepFilterNet3.wav"
+else DF="$TMP/in.wav"; fi
 
 EQ="highpass=f=80:poles=2"
 [ "$MUD" = 1 ] && EQ="$EQ,equalizer=f=300:t=q:w=1.2:g=-2"

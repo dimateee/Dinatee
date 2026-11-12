@@ -15,7 +15,7 @@ import { clamp, easeInOut, ik2, lerp, onTwos } from "./geom";
 
 export const DD = {
   frontAt: { x: 46, y: 14 }, hindAt: { x: -46, y: 10 },
-  upper: 36, lower: 34, pawH: 6,
+  upper: 40, lower: 40, pawH: 6,
   neck: { x: 58, y: -16 }, headC: { x: 22, y: -26 }, headR: 25,
   tailAt: { x: -64, y: -12 },
 };

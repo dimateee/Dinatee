@@ -21,3 +21,6 @@ episodes/*/voice/*.wav
 episodes/*/3d/*_frames/
 episodes/*/render/
 video/public/3d/
+episodes/*/voice/takes/
+episodes/*/voice/phrases/
+episodes/*/voice/samples/*.mp3
