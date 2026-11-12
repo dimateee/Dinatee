@@ -14,7 +14,7 @@ import { DogPose } from "../rig/Dog";
  */
 export const FPS = 30;
 export const TITLE_SEC = 3;
-export const TAIL_SEC = 4;
+export const TAIL_SEC = 2;
 
 export type Ctx = { f: number; dur: number; lf: (voiceSec: number) => number; frame: number };
 export type ShotDef = {
