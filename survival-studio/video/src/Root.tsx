@@ -14,6 +14,7 @@ import { Ep66_1, Ep66_2 } from "./series66/Episodes66";
 import { Tretiy, TRETIY_FRAMES } from "./episodes/tretiy/Tretiy";
 import { TretiyCover } from "./episodes/tretiy/TretiyCover";
 import { Bunker1, BUNKER1_FRAMES } from "./episodes/bunker/Bunker1";
+import { BunkerCover } from "./episodes/bunker/BunkerCover";
 import { EP1 } from "./series66/ep1";
 import { EP2 } from "./series66/ep2";
 import { epFrames } from "./series66/engine";
@@ -50,6 +51,8 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="Ep66-2" component={Ep66_2} defaultProps={{ withAudio: false }} durationInFrames={epFrames(EP2)} fps={30} width={1080} height={1920} />
       <Composition id="TretiyCover" component={TretiyCover} defaultProps={{ variant: "cover" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="TretiyThumb" component={TretiyCover} defaultProps={{ variant: "thumb" as const }} durationInFrames={1} fps={30} width={1280} height={720} />
+      <Composition id="Bunker1Cover" component={BunkerCover} defaultProps={{ variant: "cover" as const, ep: 1 as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
+      <Composition id="Bunker1Thumb" component={BunkerCover} defaultProps={{ variant: "thumb" as const, ep: 1 as const }} durationInFrames={1} fps={30} width={1280} height={720} />
       <Composition id="Bunker1" component={Bunker1} defaultProps={{ withAudio: false }} durationInFrames={BUNKER1_FRAMES} fps={30} width={1080} height={1920} />
       <Composition id="Tretiy" component={Tretiy} defaultProps={{ withAudio: false }} durationInFrames={TRETIY_FRAMES} fps={30} width={1080} height={1920} />
     </>
