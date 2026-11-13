@@ -57,6 +57,8 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="TretiyCover" component={TretiyCover} defaultProps={{ variant: "cover" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="TretiyThumb" component={TretiyCover} defaultProps={{ variant: "thumb" as const }} durationInFrames={1} fps={30} width={1280} height={720} />
       <Composition id="Podval2" component={Podval2} defaultProps={{ withAudio: false }} durationInFrames={PODVAL2_FRAMES} fps={30} width={1080} height={1920} />
+      <Composition id="Podval2Cover" component={PodvalCover} defaultProps={{ variant: "cover" as const, ep: 2 as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
+      <Composition id="Podval2Thumb" component={PodvalCover} defaultProps={{ variant: "thumb" as const, ep: 2 as const }} durationInFrames={1} fps={30} width={1280} height={720} />
       <Composition id="Podval1Cover" component={PodvalCover} defaultProps={{ variant: "cover" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="Podval1Thumb" component={PodvalCover} defaultProps={{ variant: "thumb" as const }} durationInFrames={1} fps={30} width={1280} height={720} />
       <Composition id="Podval1" component={Podval1} defaultProps={{ withAudio: false }} durationInFrames={PODVAL1_FRAMES} fps={30} width={1080} height={1920} />
