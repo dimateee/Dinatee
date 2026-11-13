@@ -23,9 +23,9 @@ CFG = {
             mood=[(0.0, "dread"), (6.6, "shelter"), (13.0, "calm"), (28.0, "dread"), (37.8, "shelter"), (46.8, "end")],
             sfx=[(1.40, "static"), (2.30, "creak"), (43.80, "knock")]),
     # «Подвал на восьмерых», серия 1: сирена с начала, сердцебиение под таймер, дверь, стук
-    "podval-1": dict(end=77.59, tail=1.6, beat=(19.3, 64.0), tick=(19.3, 64.0), radio=(60.6, 63.0),
-            mood=[(0.0, "alarm"), (10.4, "run"), (63.0, "silence"), (64.1, "dread"), (71.0, "end")],
-            sfx=[(0.00, "siren"), (27.2, "tape"), (63.10, "door"), (64.40, "knock")]),
+    "podval-1": dict(end=88.09, tail=1.6, beat=(20.5, 73.3), tick=(20.5, 73.3), radio=(69.5, 72.6),
+            mood=[(0.0, "alarm"), (11.0, "run"), (72.9, "silence"), (74.0, "dread"), (79.8, "end")],
+            sfx=[(0.00, "siren"), (31.40, "tape"), (73.40, "door"), (75.20, "knock")]),
 }[EP]
 VOICE_END, TAIL = CFG["end"], CFG.get("tail", 1.0)
 TOTAL = VOICE_END + TAIL
