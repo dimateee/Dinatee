@@ -27,6 +27,7 @@ export const LOOKS: Record<string, Look> = {
   zina: { ...HERO, head: "scarf", scarfColor: "#B23A48", hoodie: "#6E5E7E", hoodieShade: "#594B66", jeans: "#5A4A40", jeansShade: "#4A3C33",
     boots: "#2E2622", skin: "#E7B898", skirt: "#3F4A5C" },
   vitya: { ...HERO, head: "hair", hairColor: "#2E2620", glasses: true, hoodie: "#3E6E8E", hoodieShade: "#2F5670", jeans: "#3A3F48", jeansShade: "#2E333B", hood: true },
+  vityaMask: { ...HERO, head: "hair", hairColor: "#2E2620", glasses: true, hoodie: "#3E6E8E", hoodieShade: "#2F5670", jeans: "#3A3F48", jeansShade: "#2E333B", hood: true, facemask: "#D8D2C2" },
   vityaGear: { ...HERO, head: "hair", hairColor: "#2E2620", glasses: true, hoodie: "#3E6E8E", hoodieShade: "#2F5670", jeans: "#3A3F48", jeansShade: "#2E333B", hood: true, facemask: "#D8D2C2", gloves: "#E8C547" },
   petrov: { ...HERO, head: "hair", hairColor: "#6B4A2E", beard: "#6B4A2E", hoodie: "#5E7A4A", hoodieShade: "#4B6239", jeans: "#2F3A4A", jeansShade: "#262F3C" },
   petrova: { ...HERO, head: "hair", hairColor: "#8A4A2A", longHair: true, hoodie: "#C0567A", hoodieShade: "#9E4463", jeans: "#3C4658", jeansShade: "#2F3747", skin: "#EDBE9C" },
@@ -89,6 +90,95 @@ export const MOVERS: Mover[] = [
 /** Все уже на местах (для обложек). */
 export const ALL_IN: Record<string, number> = Object.fromEntries(MOVERS.map((m) => [m.key, -100]));
 
+/* ---------- Труба между подвалами: под потолком, у стены коленом вниз, заглушка на уровне груди ---------- */
+export const CAP = { x: 300, y: 860 };
+const PipeLayer: React.FC<{ frame: number; st: PodvalState; hand: { x: number; y: number } | null }> = ({ frame, st, hand }) => {
+  const s = (v?: number) => v ?? 0;
+  const PIPE = "#6E5A44", PIPE_D = "#3E2F20", Y0 = W_CEIL + 117;
+  const capOff = s(st.capOff);
+  const capPos = st.capInHand && hand ? hand : { x: CAP.x + 14 * capOff, y: CAP.y };
+  const capRot = capOff * 900;
+  const open = capOff >= 1 || st.capInHand;
+  const bottleK = s(st.bottle);
+  const ragK = s(st.rag);
+  const ragHome = { x: CAP.x - 10, y: CAP.y + 34 };
+  const ragPos = s(st.ragBag) > 0 ? { x: ragHome.x + (390 - ragHome.x) * s(st.ragBag), y: ragHome.y + (W_FLOOR - 30 - ragHome.y) * s(st.ragBag) }
+    : s(st.ragInHand) > 0 && hand ? { x: hand.x + (ragHome.x - hand.x) * s(st.ragInHand), y: hand.y + (ragHome.y - hand.y) * s(st.ragInHand) } : ragHome;
+  return (
+    <g>
+      {/* труба */}
+      <rect x={-260} y={Y0 - 13} width={534} height={26} rx={6} fill={PIPE} stroke={PIPE_D} strokeWidth={3} />
+      {[-160, 40, 200].map((x) => <rect key={x} x={x} y={Y0 - 19} width={16} height={38} rx={3} fill="#5A4834" />)}
+      <rect x={248} y={Y0} width={26} height={CAP.y - Y0} fill={PIPE} stroke={PIPE_D} strokeWidth={3} />
+      <rect x={248} y={CAP.y - 13} width={CAP.x - 248} height={26} fill={PIPE} stroke={PIPE_D} strokeWidth={3} />
+      <rect x={CAP.x - 8} y={CAP.y - 18} width={10} height={36} rx={2} fill="#5A4834" />
+      {s(st.pipeGlow) > 0 && <circle cx={CAP.x + 8} cy={CAP.y} r={44} fill="none" stroke="#E8C547" strokeWidth={6} opacity={s(st.pipeGlow) * (0.6 + 0.4 * Math.sin(frame / 5))} />}
+      {/* отверстие, когда заглушка снята; немного пыли падает на тряпку */}
+      {open && <g>
+        <ellipse cx={CAP.x + 2} cy={CAP.y} rx={6} ry={12} fill="#0A0D13" />
+        {Array.from({ length: 7 }, (_, k) => { const ph = (frame / 14 + k / 7) % 1; return <circle key={k} cx={CAP.x + 6 + ph * 10} cy={CAP.y + 6 + ph * 34} r={2.6} fill="#C9C0B0" opacity={1 - ph} />; })}
+      </g>}
+      {/* мокрая тряпка */}
+      {ragK > 0 && (
+        <g transform={`translate(${ragPos.x} ${ragPos.y})`} opacity={ragK * (1 - Math.max(0, s(st.ragBag) - 0.8) / 0.2)}>
+          <path d="M -40 -6 L 40 -6 L 36 46 Q 0 56 -36 46 Z" fill="#5E6B7E" stroke="#3A4560" strokeWidth={3} />
+          {s(st.ragBag) === 0 && [0, 1, 2].map((k) => { const ph = (frame / 20 + k / 3) % 1; return <circle key={k} cx={-18 + k * 18} cy={52 + ph * 50} r={4} fill="#8FC8FF" opacity={1 - ph} />; })}
+        </g>
+      )}
+      {/* пакет для тряпки */}
+      {s(st.ragBag) > 0 && (
+        <g transform={`translate(390 ${W_FLOOR})`}>
+          <path d="M -34 0 L -28 -64 L 28 -64 L 34 0 Z" fill="#1A1F28" stroke="#0A0D13" strokeWidth={3} />
+          {s(st.ragBag) >= 1 && <path d="M -10 -64 Q 0 -84 10 -64" stroke="#E8C547" strokeWidth={5} fill="none" />}
+        </g>
+      )}
+      {/* заглушка: крутится, снимается, возвращается */}
+      <g transform={`translate(${capPos.x + 10} ${capPos.y}) rotate(${capRot})`}>
+        <rect x={-8} y={-16} width={16} height={32} rx={4} fill="#8A7650" stroke={PIPE_D} strokeWidth={3} />
+        <line x1={-8} y1={0} x2={8} y2={0} stroke={PIPE_D} strokeWidth={3} />
+      </g>
+      {/* бутылка: в руке → в отверстие → вглубь трубы */}
+      {(st.bottleInHand || (bottleK > 0 && bottleK < 1)) && (() => {
+        const hp = hand ?? { x: CAP.x + 80, y: CAP.y };
+        const k1 = Math.min(1, bottleK / 0.4), k2 = Math.max(0, (bottleK - 0.4) / 0.6);
+        const x = hp.x + (CAP.x + 4 - hp.x) * k1 - 60 * k2, y = hp.y + (CAP.y - hp.y) * k1;
+        return (
+          <g transform={`translate(${x} ${y})`} opacity={1 - Math.max(0, k2 - 0.6) / 0.4}>
+            <rect x={-6} y={-10} width={44} height={20} rx={7} fill="#5AA9FF" opacity={0.8} stroke="#8FBCEB" strokeWidth={2} />
+            <rect x={-12} y={-5} width={8} height={10} fill="#3A6EA8" />
+            {k1 < 1 && <path d="M -2 -14 L 40 -14 L 42 14 L -4 14 Z" fill="#E6EDF5" opacity={0.35} />}
+          </g>
+        );
+      })()}
+      {/* плёнка и две полосы скотча — по очереди */}
+      {s(st.pipeSealed) > 0 && (
+        <g>
+          <rect x={CAP.x - 16} y={CAP.y - 26} width={44 * s(st.pipeSealed)} height={52} fill="#C9D6E6" opacity={0.55} />
+          {s(st.tape1) > 0 && <line x1={CAP.x - 18} y1={CAP.y - 28} x2={CAP.x - 18 + 50 * s(st.tape1)} y2={CAP.y - 28 + 56 * s(st.tape1)} stroke="#E8C547" strokeWidth={10} strokeLinecap="round" />}
+          {s(st.tape2) > 0 && <line x1={CAP.x + 32} y1={CAP.y - 28} x2={CAP.x + 32 - 50 * s(st.tape2)} y2={CAP.y - 28 + 56 * s(st.tape2)} stroke="#E8C547" strokeWidth={10} strokeLinecap="round" />}
+        </g>
+      )}
+      {/* мытьё рук */}
+      {s(st.wash) > 0 && hand && Array.from({ length: 10 }, (_, k) => { const ph = (frame / 10 + k / 10) % 1;
+        return <circle key={k} cx={hand.x - 14 + random(`wh${k}`) * 28} cy={hand.y + ph * 70} r={3.5} fill="#8FC8FF" opacity={(1 - ph) * s(st.wash)} />; })}
+      {/* стук и записка */}
+      {s(st.pipeKnock) > 0 && [0, 1, 2].map((k) => { const ph = (frame / 9 + k / 3) % 1;
+        return <path key={k} d={`M ${CAP.x + 34 + ph * 24} ${CAP.y - 26 - k * 4} q 14 26 0 52`} stroke="#F6F2E7" strokeWidth={5} fill="none" strokeLinecap="round" opacity={(1 - ph) * s(st.pipeKnock)} />; })}
+      {s(st.note) > 0 && (() => {
+        const k = s(st.note), kh = s(st.noteToHand);
+        const base = { x: CAP.x + 10 + 26 * k, y: CAP.y + 4 * k };
+        const pos = hand && kh > 0 ? { x: base.x + (hand.x - base.x) * kh, y: base.y + (hand.y - base.y) * kh } : base;
+        return (
+          <g transform={`translate(${pos.x} ${pos.y}) rotate(${-10 * k})`}>
+            <rect x={-20} y={-14} width={40} height={28} rx={3} fill="#F6F2E7" stroke="#8A7E66" strokeWidth={2} />
+            {[-6, 0, 6].map((y) => <line key={y} x1={-13} x2={13} y1={y} y2={y} stroke="#8A7E66" strokeWidth={2} />)}
+          </g>
+        );
+      })()}
+    </g>
+  );
+};
+
 /* ---------- Состояние мира ---------- */
 export type PodvalState = {
   siren?: number; outDust?: number;
@@ -99,13 +189,16 @@ export type PodvalState = {
   radio?: number; doorClosed?: number; knock?: number; guests?: number;
   vityaPhone?: boolean; zinaJar?: boolean;
   power?: number; plaster?: number; groundDust?: number; neighbor?: number; pipeGlow?: number;
-  posOverride?: Record<string, number>; vityaGear?: boolean; vityaReach?: boolean; rag?: number; pipeOpen?: number; bottle?: number;
+  posOverride?: Record<string, number>; vityaGear?: number; vityaReach?: boolean; rag?: number; pipeOpen?: number; bottle?: number;
   pipeSealed?: number; pipeKnock?: number; note?: number; sheet?: number;
+  vityaFace?: 1 | -1; vityaArm?: { sh: number; el: number; wr: number }; capOff?: number; capInHand?: boolean; tape1?: number; tape2?: number;
+  ragInHand?: number; ragBag?: number; bottleInHand?: boolean; wash?: number; noteToHand?: number;
 };
 
 export const PodvalWorld: React.FC<{ frame: number; cam: Cam; st: PodvalState; entries?: Record<string, number> }> = ({ frame, cam, st, entries = ALL_IN }) => {
   const s = (v?: number) => v ?? 0;
   const T = `translate(540 760) scale(${cam.z}) translate(${-cam.x} ${-cam.y})`;
+  let vHand: { x: number; y: number } | null = null;
   const sirenPulse = s(st.siren) * (0.5 + 0.5 * Math.sin(frame / 4.5));
   const knockShake = s(st.knock) > 0 ? Math.round(Math.sin(frame * 2.2) * 3 * s(st.knock)) : 0;
   const VENTS = [420, 800, 1240];
@@ -209,50 +302,6 @@ export const PodvalWorld: React.FC<{ frame: number; cam: Cam; st: PodvalState; e
             ))}
           </g>
         ))}
-        {s(st.neighbor) > 0 && (
-          <g opacity={s(st.neighbor)}>
-            <rect x={-260} y={W_CEIL + 104} width={520} height={26} rx={6} fill="#6E5A44" stroke="#3E2F20" strokeWidth={3} />
-            {[-160, 40, 200].map((x) => <rect key={x} x={x} y={W_CEIL + 98} width={16} height={38} rx={3} fill="#5A4834" />)}
-            <circle cx={262} cy={W_CEIL + 117} r={22} fill="#8A7650" stroke="#3E2F20" strokeWidth={4} />
-            <circle cx={262} cy={W_CEIL + 117} r={8} fill="#3E2F20" />
-            {s(st.pipeGlow) > 0 && <circle cx={262} cy={W_CEIL + 117} r={46} fill="none" stroke="#E8C547" strokeWidth={6} opacity={s(st.pipeGlow) * (0.6 + 0.4 * Math.sin(frame / 5))} />}
-            {/* мокрая тряпка под трубой */}
-            {s(st.rag) > 0 && (
-              <g opacity={s(st.rag)}>
-                <path d={`M 222 ${W_CEIL + 150} L 302 ${W_CEIL + 150} L 296 ${W_CEIL + 214} Q 262 ${W_CEIL + 226} 228 ${W_CEIL + 214} Z`} fill="#5E6B7E" stroke="#3A4560" strokeWidth={3} />
-                {[0, 1, 2].map((k) => { const ph = (frame / 20 + k / 3) % 1; return <circle key={k} cx={240 + k * 20} cy={W_CEIL + 222 + ph * 60} r={4} fill="#8FC8FF" opacity={1 - ph} />; })}
-              </g>
-            )}
-            {/* заглушка снята / бутылка уходит в трубу */}
-            {s(st.pipeOpen) > 0 && (
-              <g>
-                <circle cx={262} cy={W_CEIL + 117} r={15} fill="#0A0D13" opacity={s(st.pipeOpen)} />
-                {Array.from({ length: 8 }, (_, k) => { const ph = (frame / 12 + k / 8) % 1; return <circle key={k} cx={262 + (random(`pd${k}`) - 0.5) * 30} cy={W_CEIL + 130 + ph * 40} r={3} fill="#C9C0B0" opacity={(1 - ph) * s(st.pipeOpen)} />; })}
-              </g>
-            )}
-            {s(st.bottle) > 0 && s(st.bottle) < 1 && (
-              <g transform={`translate(${262 - 340 * s(st.bottle)} ${W_CEIL + 117})`} opacity={s(st.bottle) < 0.85 ? 1 : (1 - s(st.bottle)) / 0.15}>
-                <rect x={-20} y={-9} width={40} height={18} rx={6} fill="#5AA9FF" opacity={0.75} stroke="#8FBCEB" strokeWidth={2} />
-                <rect x={-28} y={-4} width={9} height={8} fill="#3A6EA8" />
-              </g>
-            )}
-            {s(st.pipeSealed) > 0 && (
-              <g opacity={s(st.pipeSealed)}>
-                <rect x={236} y={W_CEIL + 91} width={52} height={52} fill="#C9D6E6" opacity={0.55} />
-                <line x1={232} y1={W_CEIL + 89} x2={292} y2={W_CEIL + 145} stroke="#E8C547" strokeWidth={10} strokeLinecap="round" />
-                <line x1={292} y1={W_CEIL + 89} x2={232} y2={W_CEIL + 145} stroke="#E8C547" strokeWidth={10} strokeLinecap="round" />
-              </g>
-            )}
-            {s(st.pipeKnock) > 0 && [0, 1, 2].map((k) => { const ph = (frame / 9 + k / 3) % 1;
-              return <path key={k} d={`M ${300 + ph * 24} ${W_CEIL + 90 - k * 4} q 14 27 0 54`} stroke="#F6F2E7" strokeWidth={5} fill="none" strokeLinecap="round" opacity={(1 - ph) * s(st.pipeKnock)} />; })}
-            {s(st.note) > 0 && (
-              <g transform={`translate(${262 + 20 * s(st.note)} ${W_CEIL + 117 + 34 * s(st.note)}) rotate(${-12 * s(st.note)})`}>
-                <rect x={-22} y={-14} width={44} height={30} rx={3} fill="#F6F2E7" stroke="#8A7E66" strokeWidth={2} />
-                {[-6, 0, 6].map((y) => <line key={y} x1={-14} x2={14} y1={y} y2={y} stroke="#8A7E66" strokeWidth={2} />)}
-              </g>
-            )}
-          </g>
-        )}
         {/* полки у задней стены */}
         <g>
           {[760, 880].map((y) => <rect key={y} x={1290} y={y} width={240} height={12} fill="#3A3128" />)}
@@ -359,14 +408,16 @@ export const PodvalWorld: React.FC<{ frame: number; cam: Cam; st: PodvalState; e
             ? { ...heroGait(frame + m.seed * 5, m.run ? RUN : WALK, { expr: { brow: 0.3, browTilt: 0.6, mouth: m.kid ? "o" : "flat", blink: 0 } }), x: 0,
                 holdL: base.holdL, phoneGlow: base.phoneGlow }
             : base;
-          const face = p.moving ? -1 : m.faceEnd;
-          const hand = heroHandL(pose);
+          const face = p.moving ? -1 : (m.key === "vitya" && st.vityaFace) ? st.vityaFace : m.faceEnd;
+          const poseV: HeroPose = m.key === "vitya" && st.vityaArm && !p.moving ? { ...pose, armL: st.vityaArm, holdL: null } : pose;
+          const hand = heroHandL(poseV);
+          if (m.key === "vitya") vHand = { x: p.x + face * hand.x * sc, y: p.y + hand.y * sc };
           return (
             <g key={m.key}>
               <g transform={`translate(${p.x} ${p.y}) scale(${face * sc} ${sc})`}>
                 <GroundShadow w={120} opacity={0.4} color="#000" />
-                <Hero pose={m.key === "vitya" && st.vityaReach && !p.moving ? { ...pose, armL: { sh: -168, el: -6, wr: 0 }, holdL: null } : pose}
-                  look={m.key === "vitya" && st.vityaGear ? LOOKS.vityaGear : LOOKS[m.look]} rimFilter="rimPod" />
+                <Hero pose={poseV}
+                  look={m.key === "vitya" && (st.vityaGear ?? 0) >= 2 ? LOOKS.vityaGear : m.key === "vitya" && (st.vityaGear ?? 0) >= 1 ? LOOKS.vityaMask : LOOKS[m.look]} rimFilter="rimPod" />
               </g>
               {m.key === "zina" && st.zinaJar && (
                 <g transform={`translate(${p.x + face * hand.x * sc} ${p.y + hand.y * sc})`}>
@@ -383,6 +434,7 @@ export const PodvalWorld: React.FC<{ frame: number; cam: Cam; st: PodvalState; e
               )}
             </g>);
         })}
+        {s(st.neighbor) > 0 && <PipeLayer frame={frame} st={st} hand={vHand} />}
         {/* гости на лестнице (до удара — без пыли) */}
         {s(st.guests) > 0 && (
           <g opacity={s(st.guests)}>

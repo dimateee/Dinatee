@@ -44,17 +44,17 @@ const ACCENTS = Object.fromEntries(ACC.map(([w, n, c]) => [accIdx(w, n), c === "
 const ramp = (t: number, a: number, len = 0.35) => Math.min(1, Math.max(0, (t - a) / len));
 
 /* ---------- Моменты ---------- */
-const tVit = W("витя", 1), tR1 = W("правило", 1), tRag = W("мокрая"), tMouth = W("рот"), tR2 = W("правило", 2), tGlove = W("перчатка");
+const tVit = W("витя", 1), tRag = W("мокрая"), tMouth = W("рот"), tR2 = W("правило", 2), tGlove = W("перчатка");
 const t30 = W("тридцать"), tOpen = W("открыта."), tBottle = W("бутылка"), tBack = W("заглушку", 2), tFilm = W("плёнка");
 const tR3 = W("правило", 3), tWash = W("моет"), tRagBag = W("тряпку"), tWater = W("воды"), tVit2 = W("витя", 2), tZina = W("баба");
 const tDet = W("«детям».") , tKnock = W("стука."), tNote = W("бумажка."), tNoteText = W("записка"), tSignal = W("сигнал", 2);
 const tTwo = W("две"), tPassed = W("прошло"), tSafer = W("ещё"), tChoice = W("идём"), tWrite = W("пиши:"), tNext = W("серия");
 
 /* ---------- Камера ---------- */
+const PIPE_CAM: Cam = { x: 345, y: 880, z: 1.45 };
 const CAM: [number, Cam][] = [
-  [0, { x: 300, y: 820, z: 0.9 }], [tVit, { x: 300, y: 760, z: 1.15 }], [tR1, { x: 280, y: 700, z: 1.45 }],
-  [t30, { x: 250, y: 720, z: 1.6 }], [tR3, { x: 330, y: 800, z: 1.25 }], [tWater, { x: 700, y: 860, z: 1.1 }],
-  [tZina, { x: 520, y: 840, z: 1.25 }], [tKnock, { x: 270, y: 720, z: 1.5 }], [tSignal, { x: 1655, y: 420, z: 1.3 }],
+  [0, { x: 420, y: 820, z: 0.95 }], [tVit, PIPE_CAM], [tR3 + 2.4, { x: 400, y: 880, z: 1.2 }], [tWater, { x: 700, y: 860, z: 1.1 }],
+  [tZina, { x: 560, y: 840, z: 1.25 }], [tKnock, PIPE_CAM], [tSignal, { x: 1655, y: 420, z: 1.3 }],
   [tPassed, { x: 1300, y: 300, z: 0.75 }], [tChoice, { x: 900, y: 600, z: 0.8 }],
 ];
 const MOVE = 1.3;
@@ -64,15 +64,43 @@ const camAt = (t: number): Cam => {
   return cur;
 };
 
-const stateAt = (t: number): PodvalState => ({
+/* ---------- Руки Вити (локальные углы, лицом влево) ---------- */
+type Arm = { sh: number; el: number; wr: number };
+const REST: Arm = { sh: 8, el: -14, wr: 0 }, REACH: Arm = { sh: -2, el: -100, wr: 0 }, RAG: Arm = { sh: 8, el: -88, wr: 0 },
+  FACE: Arm = { sh: -60, el: -120, wr: 0 }, WASH: Arm = { sh: -30, el: -70, wr: 0 };
+const mix = (a: Arm, b: Arm, k: number): Arm => { const e = Math.min(1, Math.max(0, k)); const q = e * e * (3 - 2 * e); return { sh: a.sh + (b.sh - a.sh) * q, el: a.el + (b.el - a.el) * q, wr: a.wr + (b.wr - a.wr) * q }; };
+/** Ключевые позы руки во времени: [время, поза]; между ними — плавный переход 0,4 с. */
+const tCapBack = tBack, tTape = W("скотч.");
+const ARM_KEYS: [number, Arm][] = [
+  [0, REST], [tVit, REACH], [W("но"), REST], [tRag, RAG], [tMouth - 0.2, FACE], [tMouth + 0.5, REST],
+  [t30, REACH], [tOpen + 0.6, REST], [tBottle - 0.2, REACH], [tBottle + 1.2, REST], [tCapBack - 0.3, REACH], [tTape + 0.8, REST],
+  [tWash - 0.2, WASH], [tRagBag - 0.1, RAG], [tRagBag + 0.8, REST], [tNote + 0.4, REACH], [tNoteText, REST],
+];
+const armAt = (t: number, f: number): Arm => {
+  let cur = ARM_KEYS[0][1];
+  for (let i = 1; i < ARM_KEYS.length; i++) { const [ta, a] = ARM_KEYS[i]; if (t < ta) break; cur = mix(cur, a, (t - ta) / 0.4); }
+  const twisting = (t >= t30 + 0.3 && t < tOpen) || (t >= tCapBack && t < tCapBack + 0.7);
+  if (twisting) cur = { ...cur, wr: 28 * Math.sin(f / 2.2), el: cur.el + 6 * Math.sin(f / 2.2) };
+  if (t >= tWash && t < tWash + 1.2) cur = { ...cur, sh: cur.sh + 10 * Math.sin(f / 2.5), wr: 20 * Math.sin(f / 2) };
+  return cur;
+};
+
+const stateAt = (t: number, f: number): PodvalState => ({
   film: 1, tape: 1, bags: 1, oilcloth: 1, buckets: 1, pots: 1, bath: 1, toilet: 1, doorClosed: 1, power: 0, torches: 1,
   neighbor: 1, groundDust: 0.5, radio: 0.4,
-  posOverride: { vitya: 300, zina: 560, barsik: 640 },
-  vityaReach: t >= tVit && t < tR3, vityaGear: t >= tMouth && t < tWash,
-  rag: ramp(t, tRag, 0.4) * (1 - ramp(t, tRagBag, 0.4)),
-  pipeOpen: t >= tOpen && t < tBack ? 1 : 0, bottle: interpolate(t, [tBottle, tBottle + 1.2], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
-  pipeSealed: ramp(t, tFilm, 0.4), pipeKnock: t >= tKnock - 0.4 && t < tNote ? 1 : 0, note: ramp(t, tNote, 0.6) * (1 - ramp(t, tSignal, 0.3)),
-  sheet: ramp(t, W("простыня"), 0.8), pipeGlow: t >= tVit && t < tR1 ? 1 : 0,
+  posOverride: { vitya: 380, zina: 600, barsik: 690 },
+  vityaFace: -1, vityaArm: armAt(t, f),
+  vityaGear: t >= tMouth + 0.1 && t < tWash + 1.2 ? (t >= tGlove ? 2 : 1) : 0,
+  pipeGlow: t >= tVit && t < W("но") ? 1 : 0,
+  rag: ramp(t, tRag - 0.6, 0.3) * (1 - ramp(t, tRagBag + 0.9, 0.3)), ragInHand: t < tRag + 0.6 ? 0.001 + 0.999 * ramp(t, tRag, 0.6) : 1,
+  ragBag: ramp(t, tRagBag, 0.8),
+  capOff: t < tCapBack ? ramp(t, t30 + 0.3, tOpen - t30 - 0.3) : 1 - ramp(t, tCapBack + 0.1, 0.6),
+  capInHand: (t >= tOpen && t < tOpen + 0.6) || (t >= tCapBack - 0.3 && t < tCapBack + 0.1),
+  bottleInHand: t >= tOpen + 0.7 && t < tBottle, bottle: interpolate(t, [tBottle, tBottle + 1.2], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
+  pipeSealed: ramp(t, tFilm, 0.4), tape1: ramp(t, tTape, 0.3), tape2: ramp(t, tTape + 0.35, 0.3),
+  wash: t >= tWash && t < tWash + 1.2 ? 1 : 0,
+  pipeKnock: t >= tKnock - 0.4 && t < tNote ? 1 : 0, note: ramp(t, tNote, 0.5) * (1 - ramp(t, tSignal, 0.3)), noteToHand: ramp(t, tNote + 0.6, 0.5),
+  sheet: ramp(t, W("простыня"), 0.8),
   zinaJar: t >= tZina && t < tKnock,
 });
 const water = (t: number) => (t < tBottle + 1.2 ? 60 : 50);
@@ -103,7 +131,7 @@ export const Podval3: React.FC<{ withAudio?: boolean }> = ({ withAudio = true })
   const frame = useCurrentFrame();
   const t = frame / FPS;
   const cam = camAt(t);
-  const st = stateAt(t);
+  const st = stateAt(t, frame);
   const scr = (x: number, y: number) => toScreen(cam, x, y);
   const win = (a: number, b: number, len = 0.3) => Math.min(ramp(t, a, len), 1 - ramp(t, b - len, len));
   const sec30 = Math.max(0, Math.round(interpolate(t, [t30, tFilm + 0.6], [30, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })));
@@ -119,7 +147,8 @@ export const Podval3: React.FC<{ withAudio?: boolean }> = ({ withAudio = true })
       </div>
       {/* правила и действия */}
       <Stamp k={win(tRag, tR2, 0.2)} text="МОКРАЯ ТРЯПКА ПОД ТРУБУ" color={SRYV.lamp} y={330} size={46} />
-      {(() => { const p = scr(300, W_FLOOR - 470); return <NameTag x={p.x} y={p.y} text="РОТ И НОС ЗАКРЫТЫ" k={win(tMouth, tR2)} color={SRYV.progress} />; })()}
+      {(() => { const p = scr(400, W_FLOOR - 470); return <NameTag x={p.x} y={p.y} text="РОТ И НОС ЗАКРЫТЫ" k={win(tMouth, W("пыль"))} color={SRYV.progress} />; })()}
+      {(() => { const p = scr(300, 960); return <NameTag x={p.x} y={p.y} text="ПЫЛЬ ЛИПНЕТ К МОКРОМУ" k={win(W("пыль"), tR2)} color={SRYV.lamp} />; })()}
       <Stamp k={win(tGlove, t30, 0.2)} text="ПЕРЧАТКА ИЛИ ПАКЕТ" color={SRYV.lamp} y={330} size={50} />
       <div style={{ position: "absolute", left: 0, right: 0, top: 300, display: "flex", justifyContent: "center", opacity: win(t30, tR3, 0.2) }}>
         <div style={{ padding: "14px 40px", borderRadius: 20, background: "rgba(14,17,24,0.9)", border: `6px solid ${SRYV.fail}`, boxShadow: `0 0 30px ${SRYV.fail}88`,
