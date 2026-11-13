@@ -58,7 +58,7 @@ if EP == "podval-3":
         sfx=[(_t3("открыта"), "creak"), (_t3("скотч"), "tape"), (_t3("стука") - 0.5, "knock")])
 if EP == "svet-1":
     _w = json.load(open(os.path.join(ROOT, "episodes", "svet-1", "words.json")))["words"]
-    _n = lambda s: s.lower().replace("ё", "е").strip(".,:;!?—«»\"")
+    _n = lambda s: s.lower().replace("ё", "е").strip(".,:;!?—«»\" ")
     def _ts(word, k=1):
         c = 0
         for x in _w:
@@ -66,12 +66,12 @@ if EP == "svet-1":
                 c += 1
                 if c == k: return x["start"]
         raise KeyError(word)
-    up, stop = _ts("поднимается"), _ts("замирают")
-    CFG.update(end=_w[-1]["end"], beat=(_ts("поднимается"), stop), tick=(0, 0), radio=(0, 0),
-        mood=[(0.0, "dread"), (_ts("правило"), "shelter"), (_ts("лестнице"), "dread"), (stop + 0.3, "silence"), (_ts("телефон", 4), "dread"),
-              (_ts("стук") - 0.4, "silence"), (_ts("шепот"), "dread"), (_ts("что", 3), "end")],
-        sfx=[(0.1, "buzz"), (_ts("вибрирует"), "buzz"), (up - 0.2, f"steps:{stop - up + 0.25:.2f}"), (_ts("вибрирует", 2), "buzz"),
-             (_ts("сквозь"), "cry"), (_ts("стук"), "knock"), (_ts("шепот"), "whisper")])
+    up, stop = _ts("поднимаются"), _ts("тишина")
+    CFG.update(end=_w[-1]["end"], beat=(up, stop), tick=(0, 0), radio=(0, 0),
+        mood=[(0.0, "dread"), (_ts("правила"), "shelter"), (_ts("внизу"), "dread"), (stop + 0.2, "silence"), (_ts("вибрация"), "dread"),
+              (_ts("три", 2) - 0.4, "silence"), (_ts("шепот"), "dread"), (_ts("что", 2), "end")],
+        sfx=[(0.1, "buzz"), (_ts("хлопает") + 0.1, "door"), (up - 0.3, f"steps:{stop - up + 0.2:.2f}"), (_ts("вибрация"), "buzz"),
+             (_ts("плачет") - 0.3, "cry"), (_ts("три", 2), "knock"), (_ts("шепот") + 0.2, "whisper")])
 VOICE_END, TAIL = CFG["end"], CFG.get("tail", 1.0)
 TOTAL = VOICE_END + TAIL
 N = int(TOTAL * SR)
