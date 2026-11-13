@@ -21,6 +21,7 @@ import { Podval1, PODVAL1_FRAMES } from "./episodes/podval/Podval1";
 import { PodvalCover } from "./episodes/podval/PodvalCover";
 import { Podval2, PODVAL2_FRAMES } from "./episodes/podval/Podval2";
 import { Podval3, PODVAL3_FRAMES } from "./episodes/podval/Podval3";
+import { Svet1, SVET1_FRAMES } from "./episodes/svet/Svet1";
 import { EP1 } from "./series66/ep1";
 import { EP2 } from "./series66/ep2";
 import { epFrames } from "./series66/engine";
@@ -57,6 +58,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="Ep66-2" component={Ep66_2} defaultProps={{ withAudio: false }} durationInFrames={epFrames(EP2)} fps={30} width={1080} height={1920} />
       <Composition id="TretiyCover" component={TretiyCover} defaultProps={{ variant: "cover" as const }} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="TretiyThumb" component={TretiyCover} defaultProps={{ variant: "thumb" as const }} durationInFrames={1} fps={30} width={1280} height={720} />
+      <Composition id="Svet1" component={Svet1} defaultProps={{ withAudio: false }} durationInFrames={SVET1_FRAMES} fps={30} width={1080} height={1920} />
       <Composition id="Podval3" component={Podval3} defaultProps={{ withAudio: false }} durationInFrames={PODVAL3_FRAMES} fps={30} width={1080} height={1920} />
       <Composition id="Podval2" component={Podval2} defaultProps={{ withAudio: false }} durationInFrames={PODVAL2_FRAMES} fps={30} width={1080} height={1920} />
       <Composition id="Podval2Cover" component={PodvalCover} defaultProps={{ variant: "cover" as const, ep: 2 as const }} durationInFrames={1} fps={30} width={1080} height={1920} />

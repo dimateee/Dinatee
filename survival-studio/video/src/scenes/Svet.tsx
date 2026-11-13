@@ -1,7 +1,7 @@
 import React from "react";
 import { random } from "remotion";
 import { ARTYOM, Hero, heroHandL, HeroPose, NEUTRAL } from "../rig/Hero";
-import { Dog, dogSit } from "../rig/Dog";
+import { Dog, dogLie, dogSit } from "../rig/Dog";
 import { POSES } from "../rig/poses";
 import { GroundShadow, RimDefs } from "../rig/shared";
 import { SRYV } from "../style/palette";
@@ -119,6 +119,8 @@ export type TowerState = {
   feet?: number;         // ноги у двери 5-го этажа
   childCry?: number;     // плач ребёнка на 4-м
   heroPose?: "phone" | "kneel" | "torch" | "stand" | "freeze";
+  dogHide?: number;      // пёс уходит под кровать 0..1
+  lookDown?: number;
 };
 export type Cam = { x: number; y: number; z: number };
 export const lerpCam = (a: Cam, b: Cam, k: number): Cam => { const e = Math.min(1, Math.max(0, k)); const s = e * e * (3 - 2 * e); return { x: a.x + (b.x - a.x) * s, y: a.y + (b.y - a.y) * s, z: a.z + (b.z - a.z) * s }; };
@@ -196,10 +198,14 @@ export const Tower: React.FC<{ frame: number; cam: Cam; st: TowerState }> = ({ f
             <GroundShadow w={120} opacity={0.4} color="#000" />
             <Hero pose={pose} look={ARTYOM} rimFilter="rimT" />
           </g>
-          <g transform={`translate(${s(st.lunaGrowl) > 0 ? 200 : 620} ${y5 - 12}) scale(${s(st.lunaGrowl) > 0 ? -0.9 : 0.9} 0.9)`}>
-            <GroundShadow w={150} opacity={0.4} color="#000" />
-            <Dog pose={{ ...dogSit(frame, 3, false), earL: s(st.lunaGrowl) > 0 ? -20 : 0, earR: s(st.lunaGrowl) > 0 ? -20 : 0 }} rimFilter="rimT" />
-          </g>
+          {(() => { const h = s(st.dogHide); const base = st.heroPose === "torch" ? 700 : 620; const dx = base + (350 - base) * h;
+            return (
+              <g transform={`translate(${dx} ${y5 - 12}) scale(${h > 0 && h < 1 ? -0.9 : 0.9} 0.9)`}>
+                <GroundShadow w={150} opacity={0.4} color="#000" />
+                <Dog pose={h >= 1 ? { ...dogLie(frame, 3), earL: -22, earR: -22, head: 10 } : { ...dogSit(frame, 3, false), earL: h > 0 ? -22 : 0, earR: h > 0 ? -22 : 0 }} rimFilter="rimT" />
+              </g>); })()}
+          {/* передняя планка кровати — пёс прячется за ней */}
+          <rect x={250} y={y5 - 50} width={200} height={38} fill="#232A36" />
         </Flat>
         {/* подъезд: пролёты-зигзаг и номера этажей */}
         <rect x={800} y={floorY(5) - FH} width={380} height={5 * FH} fill="#0D1118" />
@@ -246,8 +252,8 @@ export const Tower: React.FC<{ frame: number; cam: Cam; st: TowerState }> = ({ f
 };
 
 /* ---------------- Телефон крупно ---------------- */
-export const PhoneUI: React.FC<{ mode: "alert" | "neighbor" | "brightness"; k: number; battery: number; bright?: number; time: string }> = ({ mode, k, battery, bright = 1, time }) => (
-  <div style={{ position: "absolute", left: 250, top: 330, width: 580, height: 980, opacity: k, transform: `translateY(${Math.round((1 - k) * 60)}px)`,
+export const PhoneUI: React.FC<{ mode: "alert" | "neighbor" | "brightness"; k: number; battery: number; bright?: number; time: string; turn?: number; shake?: number; left?: number; scale?: number; lines?: string[] }> = ({ mode, k, battery, bright = 1, time, turn = 0, shake = 0, left = 250, scale = 1, lines }) => (
+  <div style={{ position: "absolute", left, top: 330, width: 580, height: 980, opacity: k, transform: `translateY(${Math.round((1 - k) * 60)}px) translateX(${Math.round(shake * 8 * Math.sin(k * 97))}px) perspective(1400px) rotateY(${Math.round(-55 * turn)}deg) scale(${scale})`, transformOrigin: "50% 0%",
     borderRadius: 64, background: "#0B0D12", border: "14px solid #1E222B", boxShadow: "0 30px 80px rgba(0,0,0,.7)", overflow: "hidden" }}>
     <div style={{ position: "absolute", inset: 0, background: mode === "alert" ? "#2A0C10" : "#10141C", opacity: 0.25 + 0.75 * bright }} />
     <div style={{ position: "absolute", left: 40, right: 40, top: 26, display: "flex", justifyContent: "space-between", fontFamily: "JetBrains Mono", fontWeight: 700, fontSize: 30, color: "#C9D2E0", opacity: 0.4 + 0.6 * bright }}>
@@ -261,9 +267,10 @@ export const PhoneUI: React.FC<{ mode: "alert" | "neighbor" | "brightness"; k: n
     )}
     {mode === "neighbor" && (
       <div style={{ position: "absolute", left: 30, right: 30, top: 180, display: "flex", flexDirection: "column", gap: 14 }}>
-        <div style={{ fontFamily: "JetBrains Mono", fontWeight: 700, fontSize: 26, color: "#9AA6BA" }}>Соседка · 4 этаж</div>
-        <div style={{ padding: "24px 28px", borderRadius: "28px 28px 28px 8px", background: "#2B3241", fontFamily: "Inter Display", fontWeight: 900, fontSize: 46, lineHeight: 1.1, color: "#FFFFFF" }}>
-          Ребёнок плачет.<br />Можно я зажгу свечу?</div>
+        <div style={{ fontFamily: "JetBrains Mono", fontWeight: 700, fontSize: 28, color: "#9AA6BA" }}>Лена · 4 эт.</div>
+        {(lines ?? ["Ребёнок плачет.", "Можно я зажгу свечу?"]).map((l, i) => (
+          <div key={i} style={{ padding: "20px 26px", borderRadius: "28px 28px 28px 8px", background: "#2B3241", fontFamily: "Inter Display", fontWeight: 900, fontSize: 40, lineHeight: 1.1, color: "#FFFFFF" }}>{l}</div>
+        ))}
       </div>
     )}
     {mode === "brightness" && (
@@ -277,3 +284,34 @@ export const PhoneUI: React.FC<{ mode: "alert" | "neighbor" | "brightness"; k: n
     )}
   </div>
 );
+
+/* ---------------- Дверь крупно: цепочка, стук, шёпот ---------------- */
+export const DoorClose: React.FC<{ frame: number; knock?: number; chain?: number; zoom?: number; width?: number }> = ({ frame, knock = 0, chain = 0, zoom = 1, width = 1080 }) => {
+  const shake = knock > 0 ? Math.sin(frame * 2.6) * 3 * knock : 0;
+  const cs = chain > 0 ? Math.sin(frame / 2.2) * 6 * chain : 0;
+  return (
+    <svg viewBox={`0 0 ${width} 1920`} width={width} height={1920} style={{ position: "absolute", left: 0, top: 0 }}>
+      <g transform={`translate(${width / 2} 900) scale(${zoom}) translate(-540 -900)`}>
+        <rect x={-300} y={-200} width={1680} height={2400} fill="#0B0E14" />
+        <rect x={230} y={160} width={620} height={1240} fill="#232A36" stroke="#0A0D13" strokeWidth={14} />
+        <g transform={`translate(${shake} 0)`}>
+          <rect x={260} y={190} width={560} height={1180} fill="#2B3241" />
+          {[0, 1, 2].map((i) => <rect key={i} x={300} y={240 + i * 380} width={480} height={320} fill="none" stroke="#3A4560" strokeWidth={6} />)}
+          <circle cx={540} cy={430} r={22} fill="#0A0D13" stroke="#4E5868" strokeWidth={6} />
+          <rect x={720} y={760} width={70} height={30} rx={8} fill="#4E5868" />
+          {/* цепочка */}
+          <rect x={700} y={600} width={30} height={60} rx={6} fill="#6E7A8E" />
+          <g transform={`translate(715 660) rotate(${cs})`}>
+            {Array.from({ length: 7 }, (_, i) => <ellipse key={i} cx={-24 * i} cy={10 + 6 * Math.sin(i / 2)} rx={14} ry={8} fill="none" stroke="#9AA6BA" strokeWidth={5} />)}
+          </g>
+          <rect x={540} y={650} width={30} height={40} rx={6} fill="#6E7A8E" />
+        </g>
+        {/* полоска под дверью */}
+        <rect x={260} y={1370} width={560} height={12} fill="#05070B" />
+        {/* стук */}
+        {knock > 0 && [0, 1, 2].map((i) => { const ph = (frame / 9 + i / 3) % 1;
+          return <path key={i} d={`M ${190 - ph * 40} ${560 + i * 30} q -20 40 0 80`} stroke="#F6F2E7" strokeWidth={6} fill="none" strokeLinecap="round" opacity={(1 - ph) * knock} />; })}
+      </g>
+    </svg>
+  );
+};

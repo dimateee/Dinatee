@@ -28,6 +28,7 @@ CFG = {
             sfx=[(0.00, "siren"), (31.40, "tape"), (73.40, "door"), (75.20, "knock")]),
     "podval-2": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "podval-3": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
+    "svet-1": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
 }[EP]
 if EP == "podval-2":  # времена — из слов текущего голоса (голос может смениться)
     _w = json.load(open(os.path.join(ROOT, "episodes", "podval-2", "words.json")))["words"]
@@ -55,6 +56,22 @@ if EP == "podval-3":
     t30 = _t3("тридцать"); CFG.update(end=_w[-1]["end"], beat=(0, 0), tick=(t30, _t3("пленка") + 0.6), radio=(0, 0),
         mood=[(0.0, "calm"), (t30, "run"), (_t3("правило", 3), "shelter"), (_t3("стука"), "dread"), (_t3("белая"), "shelter"), (_t3("идем"), "end")],
         sfx=[(_t3("открыта"), "creak"), (_t3("скотч"), "tape"), (_t3("стука") - 0.5, "knock")])
+if EP == "svet-1":
+    _w = json.load(open(os.path.join(ROOT, "episodes", "svet-1", "words.json")))["words"]
+    _n = lambda s: s.lower().replace("ё", "е").strip(".,:;!?—«»\"")
+    def _ts(word, k=1):
+        c = 0
+        for x in _w:
+            if _n(x["word"]) == word:
+                c += 1
+                if c == k: return x["start"]
+        raise KeyError(word)
+    up, stop = _ts("поднимается"), _ts("замирают")
+    CFG.update(end=_w[-1]["end"], beat=(_ts("поднимается"), stop), tick=(0, 0), radio=(0, 0),
+        mood=[(0.0, "dread"), (_ts("правило"), "shelter"), (_ts("лестнице"), "dread"), (stop + 0.3, "silence"), (_ts("телефон", 4), "dread"),
+              (_ts("стук") - 0.4, "silence"), (_ts("шепот"), "dread"), (_ts("что", 3), "end")],
+        sfx=[(0.1, "buzz"), (_ts("вибрирует"), "buzz"), (up - 0.2, f"steps:{stop - up + 0.25:.2f}"), (_ts("вибрирует", 2), "buzz"),
+             (_ts("сквозь"), "cry"), (_ts("стук"), "knock"), (_ts("шепот"), "whisper")])
 VOICE_END, TAIL = CFG["end"], CFG.get("tail", 1.0)
 TOTAL = VOICE_END + TAIL
 N = int(TOTAL * SR)
@@ -161,6 +178,27 @@ def sfx(kind):
             n0 = int(k0 * SR); n = int(0.12 * SR); x = np.arange(n) / SR; w = rng.standard_normal(n)
             out[n0:n0 + n] += (np.sin(2 * np.pi * 160 * x) * 0.8 + lp(w, 900) * 2) * np.exp(-x * 45)
         return out
+    if kind == "buzz":  # вибрация телефона
+        n = int(1.1 * SR); x = np.arange(n) / SR
+        gate = (((x % 0.36) < 0.24)).astype(float)
+        return np.sin(2 * np.pi * 150 * x) * lp(gate, 60) * 0.5
+    if kind.startswith("steps:"):  # медленные шаги вверх по лестнице, затем резкая остановка
+        dur = float(kind.split(":")[1]); out = np.zeros(int((dur + 0.5) * SR)); tt0 = 0.0; k = 0
+        while tt0 < dur:
+            n0 = int(tt0 * SR); n = int(0.16 * SR); x = np.arange(n) / SR; w = rng.standard_normal(n)
+            out[n0:n0 + n] += (np.sin(2 * np.pi * (70 + 10 * (k % 2)) * x) * 0.9 + lp(w, 700) * 2) * np.exp(-x * 30) * (0.6 + 0.08 * k)
+            tt0 += 0.78 - 0.02 * min(k, 6); k += 1
+        return out
+    if kind == "cry":  # приглушённый детский плач сквозь пол
+        n = int(2.2 * SR); x = np.arange(n) / SR
+        f0 = 420 + 120 * np.sin(2 * np.pi * 1.3 * x) - 60 * x
+        ph = 2 * np.pi * np.cumsum(f0) / SR
+        v = (np.sin(ph) + 0.5 * np.sin(2 * ph) + 0.25 * np.sin(3 * ph)) * (0.5 + 0.5 * np.abs(np.sin(2 * np.pi * 0.9 * x)))
+        return lp(v, 600) * 0.6 * ramp(n, 4000, 12000)
+    if kind == "whisper":  # шёпот за дверью: фильтрованный шум слогами
+        n = int(3.0 * SR); x = np.arange(n) / SR; w = rng.standard_normal(n)
+        env = np.clip(np.sin(2 * np.pi * 3.1 * x) * np.sin(2 * np.pi * 0.7 * x + 1), 0, 1)
+        return (lp(w, 3500) - lp(w, 900)) * env * 0.5 * ramp(n, 3000, 9000)
     if kind == "door":  # тяжёлая дверь подвала
         n = int(1.2 * SR); x = np.arange(n) / SR; w = rng.standard_normal(n)
         return (np.sin(2 * np.pi * 70 * x) * np.exp(-x * 9) * 0.9 + lp(w, 600) * 2 * np.exp(-x * 14) + np.sin(2 * np.pi * 410 * x) * np.exp(-x * 20) * 0.2)
