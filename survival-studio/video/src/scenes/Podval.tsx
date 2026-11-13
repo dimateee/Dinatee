@@ -97,6 +97,7 @@ export type PodvalState = {
   toilet?: number; catOnLitter?: number;
   radio?: number; doorClosed?: number; knock?: number; guests?: number;
   vityaPhone?: boolean; zinaJar?: boolean;
+  power?: number; plaster?: number; groundDust?: number; neighbor?: number; pipeGlow?: number;
 };
 
 export const PodvalWorld: React.FC<{ frame: number; cam: Cam; st: PodvalState; entries?: Record<string, number> }> = ({ frame, cam, st, entries = ALL_IN }) => {
@@ -151,6 +152,24 @@ export const PodvalWorld: React.FC<{ frame: number; cam: Cam; st: PodvalState; e
         {Array.from({ length: 60 }, (_, i) => <circle key={i} cx={-700 + random(`pg${i}`) * 3000} cy={W_GROUND + 10 + random(`pgy${i}`) * 700} r={4} fill="#3A322C" />)}
         <rect x={-800} y={W_GROUND - 6} width={3200} height={8} fill="#4A4038" />
         {/* подвал */}
+        {/* соседний подвал (второй подъезд) за левой стеной */}
+        {s(st.neighbor) > 0 && (
+          <g opacity={s(st.neighbor)}>
+            <rect x={-900} y={W_CEIL} width={940} height={W_FLOOR - W_CEIL} fill="#1A1E25" />
+            {Array.from({ length: 7 }, (_, r) => Array.from({ length: 6 }, (_, c) => (
+              <rect key={`n${r}-${c}`} x={-900 + c * 172 + (r % 2) * 86} y={W_CEIL + 10 + r * 64} width={168} height={58} fill="none" stroke="#22272F" strokeWidth={4} />
+            )))}
+            <rect x={-900} y={W_FLOOR} width={940} height={20} fill="#14171D" />
+            {[[-420, "guest", 1, 12], [-300, "kidA", KID, 13], [-220, "kidB", KID, 14]].map(([x, l, k, sd]) => (
+              <g key={`nb${l}`} transform={`translate(${x} ${W_FLOOR}) scale(${S * (k as number)} ${S * (k as number)})`}>
+                <GroundShadow w={110} opacity={0.4} color="#000" />
+                <Hero pose={idle(frame, sd as number, { torso: 8, head: 10, expr: { brow: -0.4, browTilt: 1, mouth: "sad", blink: (frame + (sd as number) * 17) % 90 < 4 ? 1 : 0 } })} look={LOOKS[l as string]} rimFilter="rimPod" />
+              </g>
+            ))}
+            {/* стена между подвалами и труба сквозь неё */}
+            <rect x={20} y={W_CEIL} width={40} height={W_FLOOR - W_CEIL} fill="#3A3F48" />
+          </g>
+        )}
         <rect x={60} y={W_CEIL} width={1640} height={W_FLOOR - W_CEIL} fill="#22272F" />
         {Array.from({ length: 7 }, (_, r) => Array.from({ length: 10 }, (_, c) => (
           <rect key={`${r}-${c}`} x={60 + c * 172 + (r % 2) * 86} y={W_CEIL + 10 + r * 64} width={168} height={58} fill="none" stroke="#2B313A" strokeWidth={4} />
@@ -181,6 +200,15 @@ export const PodvalWorld: React.FC<{ frame: number; cam: Cam; st: PodvalState; e
             ))}
           </g>
         ))}
+        {s(st.neighbor) > 0 && (
+          <g opacity={s(st.neighbor)}>
+            <rect x={-260} y={W_CEIL + 104} width={520} height={26} rx={6} fill="#6E5A44" stroke="#3E2F20" strokeWidth={3} />
+            {[-160, 40, 200].map((x) => <rect key={x} x={x} y={W_CEIL + 98} width={16} height={38} rx={3} fill="#5A4834" />)}
+            <circle cx={262} cy={W_CEIL + 117} r={22} fill="#8A7650" stroke="#3E2F20" strokeWidth={4} />
+            <circle cx={262} cy={W_CEIL + 117} r={8} fill="#3E2F20" />
+            {s(st.pipeGlow) > 0 && <circle cx={262} cy={W_CEIL + 117} r={46} fill="none" stroke="#E8C547" strokeWidth={6} opacity={s(st.pipeGlow) * (0.6 + 0.4 * Math.sin(frame / 5))} />}
+          </g>
+        )}
         {/* полки у задней стены */}
         <g>
           {[760, 880].map((y) => <rect key={y} x={1290} y={y} width={240} height={12} fill="#3A3128" />)}
@@ -189,7 +217,7 @@ export const PodvalWorld: React.FC<{ frame: number; cam: Cam; st: PodvalState; e
         </g>
         {/* лампа */}
         <line x1={600} y1={W_CEIL + 26} x2={600} y2={W_CEIL + 100} stroke="#0A0D13" strokeWidth={4} />
-        <circle cx={600} cy={W_CEIL + 108} r={12} fill="#FFE2A8" />
+        <circle cx={600} cy={W_CEIL + 108} r={12} fill={(st.power ?? 1) > 0.5 ? "#FFE2A8" : "#3A3F48"} />
         {/* туалетный угол: перегородка, шторка, ведро, наполнитель */}
         <g>
           <rect x={60} y={W_CEIL + 120} width={20} height={W_FLOOR - W_CEIL - 120} fill="#2B3241" />
@@ -323,14 +351,32 @@ export const PodvalWorld: React.FC<{ frame: number; cam: Cam; st: PodvalState; e
           </g>
         )}
       </g>
+      {(st.power ?? 1) < 1 && <rect width={1080} height={1920} fill="#05070B" opacity={0.3 * (1 - (st.power ?? 1))} />}
       {/* тонировка подвала; свет поверх */}
       <rect width={1080} height={1920} fill="#26324D" style={{ mixBlendMode: "multiply" }} opacity={0.42} />
       <g transform={T}>
-        <circle cx={600} cy={W_CEIL + 160} r={760} fill="url(#podLamp)" opacity={0.6} style={{ mixBlendMode: "screen" }} />
+        <circle cx={600} cy={W_CEIL + 160} r={760} fill="url(#podLamp)" opacity={0.6 * (st.power ?? 1)} style={{ mixBlendMode: "screen" }} />
+        {s(st.torches) > 0 && (st.power ?? 1) < 1 && <circle cx={1100} cy={W_FLOOR - 260} r={760} fill="url(#podLamp)" opacity={0.32 * s(st.torches)} style={{ mixBlendMode: "screen" }} />}
+        {s(st.neighbor) > 0 && <circle cx={-320} cy={W_FLOOR - 230} r={420} fill="url(#podLamp)" opacity={0.4 * s(st.neighbor)} style={{ mixBlendMode: "screen" }} />}
         {s(st.torches) > 0 && (<>
           <path d={`M 1210 ${W_FLOOR - 250} L 1700 ${W_FLOOR - 470} L 1700 ${W_FLOOR - 40} Z`} fill="url(#podBeam)" opacity={s(st.torches)} style={{ mixBlendMode: "screen" }} />
         </>)}
         {s(st.candle) > 0 && s(st.candleHidden) < 1 && <circle cx={330 + heroHandL(zina).x * S} cy={W_FLOOR + heroHandL(zina).y * S - 60} r={160} fill="url(#podCandle)" opacity={1 - s(st.candleHidden)} style={{ mixBlendMode: "screen" }} />}
+        {s(st.plaster) > 0 && Array.from({ length: 90 }, (_, i) => {
+          const x = 80 + random(`pl${i}`) * 1600;
+          const y = W_CEIL + 30 + ((random(`ply${i}`) * 300 + frame * (6 + random(`pls${i}`) * 6)) % 440);
+          return <rect key={`pl${i}`} x={x} y={y} width={5} height={5} fill="#C9C0B0" opacity={0.8 * s(st.plaster)} />;
+        })}
+        {s(st.groundDust) > 0 && (
+          <g>
+            {Array.from({ length: 160 }, (_, i) => {
+              const x = -900 + random(`gd${i}`) * 3000;
+              const y = -900 + ((random(`gdy${i}`) * 1460 + frame * (1.6 + random(`gds${i}`))) % 1460);
+              return <circle key={`gdp${i}`} cx={x} cy={y} r={3 + random(`gdr${i}`) * 3} fill="#C9C0B0" opacity={0.65 * s(st.groundDust)} />;
+            })}
+            <rect x={-900} y={W_GROUND - 6 - 10 * s(st.groundDust)} width={3200} height={6 + 10 * s(st.groundDust)} fill="#B9B2A6" opacity={0.85} />
+          </g>
+        )}
         {s(st.radio) > 0 && <circle cx={1020} cy={W_FLOOR - 110} r={120} fill={SRYV.progress} opacity={0.14 * s(st.radio)} style={{ mixBlendMode: "screen" }} />}
       </g>
       {/* красная пульсация сирены по краям */}

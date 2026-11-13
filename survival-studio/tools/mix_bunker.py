@@ -26,7 +26,21 @@ CFG = {
     "podval-1": dict(end=88.09, tail=1.6, beat=(20.5, 73.3), tick=(20.5, 73.3), radio=(69.5, 72.6),
             mood=[(0.0, "alarm"), (11.0, "run"), (72.9, "silence"), (74.0, "dread"), (79.8, "end")],
             sfx=[(0.00, "siren"), (31.40, "tape"), (73.40, "door"), (75.20, "knock")]),
+    "podval-2": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
 }[EP]
+if EP == "podval-2":  # времена — из слов текущего голоса (голос может смениться)
+    _w = json.load(open(os.path.join(ROOT, "episodes", "podval-2", "words.json")))["words"]
+    _n = lambda s: s.lower().replace("ё", "е").strip(".,:;!?—«»\"")
+    def _t(word, k=1):
+        c = 0
+        for x in _w:
+            if _n(x["word"]) == word:
+                c += 1
+                if c == k: return x["start"]
+        raise KeyError(word)
+    z = _t("ноль"); CFG.update(end=_w[-1]["end"], beat=(z + 1.5, _t("ночь")), tick=(0.5, z), radio=(_t("оставайтесь") - 1.2, _t("оставайтесь") + 2.0),
+        mood=[(0.0, "dread"), (z - 0.4, "silence"), (z, "run"), (_t("ночь"), "dread"), (_t("делимся"), "end")],
+        sfx=[(z, "boom"), (z + 0.15, "rumble"), (_t("включаем"), "click"), (_t("откроешь"), "creak")])
 VOICE_END, TAIL = CFG["end"], CFG.get("tail", 1.0)
 TOTAL = VOICE_END + TAIL
 N = int(TOTAL * SR)
