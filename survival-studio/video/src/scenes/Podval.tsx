@@ -27,6 +27,7 @@ export const LOOKS: Record<string, Look> = {
   zina: { ...HERO, head: "scarf", scarfColor: "#B23A48", hoodie: "#6E5E7E", hoodieShade: "#594B66", jeans: "#5A4A40", jeansShade: "#4A3C33",
     boots: "#2E2622", skin: "#E7B898", skirt: "#3F4A5C" },
   vitya: { ...HERO, head: "hair", hairColor: "#2E2620", glasses: true, hoodie: "#3E6E8E", hoodieShade: "#2F5670", jeans: "#3A3F48", jeansShade: "#2E333B", hood: true },
+  vityaGear: { ...HERO, head: "hair", hairColor: "#2E2620", glasses: true, hoodie: "#3E6E8E", hoodieShade: "#2F5670", jeans: "#3A3F48", jeansShade: "#2E333B", hood: true, facemask: "#D8D2C2", gloves: "#E8C547" },
   petrov: { ...HERO, head: "hair", hairColor: "#6B4A2E", beard: "#6B4A2E", hoodie: "#5E7A4A", hoodieShade: "#4B6239", jeans: "#2F3A4A", jeansShade: "#262F3C" },
   petrova: { ...HERO, head: "hair", hairColor: "#8A4A2A", longHair: true, hoodie: "#C0567A", hoodieShade: "#9E4463", jeans: "#3C4658", jeansShade: "#2F3747", skin: "#EDBE9C" },
   twinA: { ...HERO, head: "hair", hairColor: "#C08A50", hoodie: "#E8C547", hoodieShade: "#C9A82F", jeans: "#4C5A6B", jeansShade: "#3B4756" },
@@ -98,6 +99,8 @@ export type PodvalState = {
   radio?: number; doorClosed?: number; knock?: number; guests?: number;
   vityaPhone?: boolean; zinaJar?: boolean;
   power?: number; plaster?: number; groundDust?: number; neighbor?: number; pipeGlow?: number;
+  posOverride?: Record<string, number>; vityaGear?: boolean; vityaReach?: boolean; rag?: number; pipeOpen?: number; bottle?: number;
+  pipeSealed?: number; pipeKnock?: number; note?: number; sheet?: number;
 };
 
 export const PodvalWorld: React.FC<{ frame: number; cam: Cam; st: PodvalState; entries?: Record<string, number> }> = ({ frame, cam, st, entries = ALL_IN }) => {
@@ -132,6 +135,12 @@ export const PodvalWorld: React.FC<{ frame: number; cam: Cam; st: PodvalState; e
         }))}
         {Array.from({ length: 4 }, (_, i) => <rect key={i} x={100} y={-500 + i * 255} width={1800} height={8} fill="#2E323B" />)}
         <rect x={80} y={-760} width={1840} height={24} fill="#2A2E36" />
+        {s(st.sheet) > 0 && (
+          <g opacity={s(st.sheet)}>
+            <path d={`M 1612 ${-680 + 4 * 255 + 4} L 1698 ${-680 + 4 * 255 + 4} L ${1698 + 4 * Math.sin(frame / 8)} ${-680 + 4 * 255 + 150 * s(st.sheet)} Q 1655 ${-680 + 4 * 255 + 160 * s(st.sheet) + 6 * Math.sin(frame / 6)} ${1612 - 4 * Math.sin(frame / 8)} ${-680 + 4 * 255 + 150 * s(st.sheet)} Z`}
+              fill="#F6F2E7" stroke="#C9C0B0" strokeWidth={3} />
+          </g>
+        )}
         {/* громкоговоритель на крыше */}
         <g transform="translate(1000 -760)">
           <rect x={-6} y={-140} width={12} height={140} fill="#2B3241" />
@@ -207,6 +216,41 @@ export const PodvalWorld: React.FC<{ frame: number; cam: Cam; st: PodvalState; e
             <circle cx={262} cy={W_CEIL + 117} r={22} fill="#8A7650" stroke="#3E2F20" strokeWidth={4} />
             <circle cx={262} cy={W_CEIL + 117} r={8} fill="#3E2F20" />
             {s(st.pipeGlow) > 0 && <circle cx={262} cy={W_CEIL + 117} r={46} fill="none" stroke="#E8C547" strokeWidth={6} opacity={s(st.pipeGlow) * (0.6 + 0.4 * Math.sin(frame / 5))} />}
+            {/* мокрая тряпка под трубой */}
+            {s(st.rag) > 0 && (
+              <g opacity={s(st.rag)}>
+                <path d={`M 222 ${W_CEIL + 150} L 302 ${W_CEIL + 150} L 296 ${W_CEIL + 214} Q 262 ${W_CEIL + 226} 228 ${W_CEIL + 214} Z`} fill="#5E6B7E" stroke="#3A4560" strokeWidth={3} />
+                {[0, 1, 2].map((k) => { const ph = (frame / 20 + k / 3) % 1; return <circle key={k} cx={240 + k * 20} cy={W_CEIL + 222 + ph * 60} r={4} fill="#8FC8FF" opacity={1 - ph} />; })}
+              </g>
+            )}
+            {/* заглушка снята / бутылка уходит в трубу */}
+            {s(st.pipeOpen) > 0 && (
+              <g>
+                <circle cx={262} cy={W_CEIL + 117} r={15} fill="#0A0D13" opacity={s(st.pipeOpen)} />
+                {Array.from({ length: 8 }, (_, k) => { const ph = (frame / 12 + k / 8) % 1; return <circle key={k} cx={262 + (random(`pd${k}`) - 0.5) * 30} cy={W_CEIL + 130 + ph * 40} r={3} fill="#C9C0B0" opacity={(1 - ph) * s(st.pipeOpen)} />; })}
+              </g>
+            )}
+            {s(st.bottle) > 0 && s(st.bottle) < 1 && (
+              <g transform={`translate(${262 - 340 * s(st.bottle)} ${W_CEIL + 117})`} opacity={s(st.bottle) < 0.85 ? 1 : (1 - s(st.bottle)) / 0.15}>
+                <rect x={-20} y={-9} width={40} height={18} rx={6} fill="#5AA9FF" opacity={0.75} stroke="#8FBCEB" strokeWidth={2} />
+                <rect x={-28} y={-4} width={9} height={8} fill="#3A6EA8" />
+              </g>
+            )}
+            {s(st.pipeSealed) > 0 && (
+              <g opacity={s(st.pipeSealed)}>
+                <rect x={236} y={W_CEIL + 91} width={52} height={52} fill="#C9D6E6" opacity={0.55} />
+                <line x1={232} y1={W_CEIL + 89} x2={292} y2={W_CEIL + 145} stroke="#E8C547" strokeWidth={10} strokeLinecap="round" />
+                <line x1={292} y1={W_CEIL + 89} x2={232} y2={W_CEIL + 145} stroke="#E8C547" strokeWidth={10} strokeLinecap="round" />
+              </g>
+            )}
+            {s(st.pipeKnock) > 0 && [0, 1, 2].map((k) => { const ph = (frame / 9 + k / 3) % 1;
+              return <path key={k} d={`M ${300 + ph * 24} ${W_CEIL + 90 - k * 4} q 14 27 0 54`} stroke="#F6F2E7" strokeWidth={5} fill="none" strokeLinecap="round" opacity={(1 - ph) * s(st.pipeKnock)} />; })}
+            {s(st.note) > 0 && (
+              <g transform={`translate(${262 + 20 * s(st.note)} ${W_CEIL + 117 + 34 * s(st.note)}) rotate(${-12 * s(st.note)})`}>
+                <rect x={-22} y={-14} width={44} height={30} rx={3} fill="#F6F2E7" stroke="#8A7E66" strokeWidth={2} />
+                {[-6, 0, 6].map((y) => <line key={y} x1={-14} x2={14} y1={y} y2={y} stroke="#8A7E66" strokeWidth={2} />)}
+              </g>
+            )}
           </g>
         )}
         {/* полки у задней стены */}
@@ -290,7 +334,9 @@ export const PodvalWorld: React.FC<{ frame: number; cam: Cam; st: PodvalState; e
         {MOVERS.map((m) => {
           const t0 = entries[m.key];
           if (t0 === undefined || frame / 30 < t0) return null;
-          const p = moverAt(frame / 30 - t0, m.speed, m.target);
+          const p0 = moverAt(frame / 30 - t0, m.speed, m.target);
+          const ov = st.posOverride?.[m.key];
+          const p = ov !== undefined && !p0.moving ? { ...p0, x: ov } : p0;
           const sc = m.scale;
           if (m.kind === "dog") {
             const pose = p.moving ? { ...dogWalk(frame, 4, true, DOG_WALK_MATCH), x: 0 } : dogSit(frame, 4, false);
@@ -319,7 +365,8 @@ export const PodvalWorld: React.FC<{ frame: number; cam: Cam; st: PodvalState; e
             <g key={m.key}>
               <g transform={`translate(${p.x} ${p.y}) scale(${face * sc} ${sc})`}>
                 <GroundShadow w={120} opacity={0.4} color="#000" />
-                <Hero pose={pose} look={LOOKS[m.look]} rimFilter="rimPod" />
+                <Hero pose={m.key === "vitya" && st.vityaReach && !p.moving ? { ...pose, armL: { sh: -168, el: -6, wr: 0 }, holdL: null } : pose}
+                  look={m.key === "vitya" && st.vityaGear ? LOOKS.vityaGear : LOOKS[m.look]} rimFilter="rimPod" />
               </g>
               {m.key === "zina" && st.zinaJar && (
                 <g transform={`translate(${p.x + face * hand.x * sc} ${p.y + hand.y * sc})`}>

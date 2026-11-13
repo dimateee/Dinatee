@@ -27,6 +27,7 @@ CFG = {
             mood=[(0.0, "alarm"), (11.0, "run"), (72.9, "silence"), (74.0, "dread"), (79.8, "end")],
             sfx=[(0.00, "siren"), (31.40, "tape"), (73.40, "door"), (75.20, "knock")]),
     "podval-2": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
+    "podval-3": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
 }[EP]
 if EP == "podval-2":  # времена — из слов текущего голоса (голос может смениться)
     _w = json.load(open(os.path.join(ROOT, "episodes", "podval-2", "words.json")))["words"]
@@ -41,6 +42,19 @@ if EP == "podval-2":  # времена — из слов текущего гол
     z = _t("ноль"); CFG.update(end=_w[-1]["end"], beat=(z + 1.5, _t("ночь")), tick=(0.5, z), radio=(_t("оставайтесь") - 1.2, _t("оставайтесь") + 2.0),
         mood=[(0.0, "dread"), (z - 0.4, "silence"), (z, "run"), (_t("ночь"), "dread"), (_t("делимся"), "end")],
         sfx=[(z, "boom"), (z + 0.15, "rumble"), (_t("включаем"), "click"), (_t("откроешь"), "creak")])
+if EP == "podval-3":
+    _w = json.load(open(os.path.join(ROOT, "episodes", "podval-3", "words.json")))["words"]
+    _n = lambda s: s.lower().replace("ё", "е").strip(".,:;!?—«»\"")
+    def _t3(word, k=1):
+        c = 0
+        for x in _w:
+            if _n(x["word"]) == word:
+                c += 1
+                if c == k: return x["start"]
+        raise KeyError(word)
+    t30 = _t3("тридцать"); CFG.update(end=_w[-1]["end"], beat=(0, 0), tick=(t30, _t3("пленка") + 0.6), radio=(0, 0),
+        mood=[(0.0, "calm"), (t30, "run"), (_t3("правило", 3), "shelter"), (_t3("стука"), "dread"), (_t3("белая"), "shelter"), (_t3("идем"), "end")],
+        sfx=[(_t3("открыта"), "creak"), (_t3("скотч"), "tape"), (_t3("стука") - 0.5, "knock")])
 VOICE_END, TAIL = CFG["end"], CFG.get("tail", 1.0)
 TOTAL = VOICE_END + TAIL
 N = int(TOTAL * SR)
@@ -94,7 +108,8 @@ for i in range(int(CFG["tick"][0] / 0.5), int(CFG["tick"][1] / 0.5)):
 # подвал: гул лампы 100 Гц + радиошум под «Правило пятое»
 hum = 0.25 * np.sin(2 * np.pi * 100 * t) + 0.1 * np.sin(2 * np.pi * 200 * t)
 radio = np.zeros(N); a, b = int(CFG["radio"][0] * SR), int(CFG["radio"][1] * SR)
-w = rng.standard_normal(b - a); radio[a:b] = (w - lp(w, 3000)) * 0.12 * ramp(b - a, 4000, 20000)
+if b - a > 4000:
+    w = rng.standard_normal(b - a); radio[a:b] = (w - lp(w, 3000)) * 0.12 * ramp(b - a, 4000, 20000)
 # пэд для «обычного вечера» и финала (Dm add9)
 pad = np.zeros(N)
 for f0 in (146.83, 220.0, 293.66, 329.63):

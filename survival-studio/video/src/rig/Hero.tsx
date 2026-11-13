@@ -54,7 +54,7 @@ type Outfit = "casual" | "sport";
 export type Look = { [K in keyof typeof HERO]: string } & {
   head: "cap" | "scarf" | "hair" | "bald";
   hairColor?: string; longHair?: boolean; scarfColor?: string;
-  glasses?: boolean; beard?: string; bristle?: boolean; bracelet?: boolean; hood?: boolean; strings?: boolean; skirt?: string;
+  glasses?: boolean; beard?: string; bristle?: boolean; bracelet?: boolean; facemask?: string; gloves?: string; hood?: boolean; strings?: boolean; skirt?: string;
 };
 export const ARTYOM: Look = { ...HERO, head: "cap", bristle: true, bracelet: true, hood: true, strings: true };
 const LookCtx = React.createContext<Look>(ARTYOM);
@@ -108,7 +108,7 @@ const Hand: React.FC<{ hold?: HeroPose["holdL"]; glow?: number; band?: boolean; 
   return (
   <g>
     {band && L.bracelet && <rect x={-9} y={-6} width={18} height={6} rx={2.5} fill={L.band} stroke={shade(L.band, -0.45)} strokeWidth={1.2} />}
-    <circle r={DIM.handR} cy={5} fill={far ? L.skinShade : L.skin} stroke={shade(L.skin, -0.45)} strokeWidth={1.6} />
+    <circle r={DIM.handR + (L.gloves ? 1.5 : 0)} cy={5} fill={L.gloves ?? (far ? L.skinShade : L.skin)} stroke={shade(L.gloves ?? L.skin, -0.45)} strokeWidth={1.6} />
     {hold === "phone" && <Phone glow={glow} />}
     {hold === "pen" && <path d="M 2 4 L 20 22" stroke="#2B2B33" strokeWidth={3} strokeLinecap="round" />}
     {hold === "leash" && <path d="M 0 8 q 30 40 70 30" stroke="#E8833A" strokeWidth={3.2} fill="none" strokeLinecap="round" />}
@@ -189,6 +189,7 @@ export const HeroHead: React.FC<{ expr: Expr; glow?: number }> = ({ expr, glow =
           <circle cx={34} cy={-4} r={10} /><path d={`M 44 -6 L ${R - 2} -2 M 24 -6 L 2 -10`} />
         </g>
       )}
+      {L.facemask && <path d={`M 4 4 Q 30 -2 ${R + 8} 6 L ${R + 4} 34 Q 30 46 8 38 Z`} fill={L.facemask} stroke={shade(L.facemask, -0.4)} strokeWidth={2} strokeLinejoin="round" />}
       {L.head === "cap" && (<>
         {/* кепка */}
         <path d={`M ${-R - 1} -6 Q ${-R} ${-R - 6} 4 ${-R - 6} Q ${R + 2} ${-R - 4} ${R + 1} -14 L ${-R - 1} -6 Z`}
