@@ -30,6 +30,7 @@ CFG = {
     "podval-3": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "svet-1": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "svet-2": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
+    "cam-1": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
 }[EP]
 if EP == "podval-2":  # времена — из слов текущего голоса (голос может смениться)
     _w = json.load(open(os.path.join(ROOT, "episodes", "podval-2", "words.json")))["words"]
@@ -57,7 +58,7 @@ if EP == "podval-3":
     t30 = _t3("тридцать"); CFG.update(end=_w[-1]["end"], beat=(0, 0), tick=(t30, _t3("пленка") + 0.6), radio=(0, 0),
         mood=[(0.0, "calm"), (t30, "run"), (_t3("правило", 3), "shelter"), (_t3("стука"), "dread"), (_t3("белая"), "shelter"), (_t3("идем"), "end")],
         sfx=[(_t3("открыта"), "creak"), (_t3("скотч"), "tape"), (_t3("стука") - 0.5, "knock")])
-if EP.startswith("svet-"):
+if EP.startswith("svet-") or EP.startswith("cam-"):
     _w = json.load(open(os.path.join(ROOT, "episodes", EP, "words.json")))["words"]
     _n = lambda s: s.lower().replace("ё", "е").strip(".,:;!?—«»\" ")
     def _ts(word, k=1):
@@ -67,6 +68,12 @@ if EP.startswith("svet-"):
                 c += 1
                 if c == k: return x["start"]
         raise KeyError(word)
+if EP == "cam-1":
+    end = _w[-1]["end"]
+    CFG.update(end=end, beat=(_ts("тридцать"), end), tick=(_ts("шестьдесят"), end), radio=(0, 0),
+        mood=[(0.0, "alarm"), (_ts("камера", 2), "dread"), (_ts("тридцать"), "alarm"), (_ts("что"), "end")],
+        sfx=[(0.0, "siren"), (_ts("стучит") + 0.8, "knock"), (_ts("голове") + 0.7, "bonk"), (_ts("кнопку") + 0.1, "click"),
+             (_ts("пустите") - 0.15, "static"), (_ts("включаешь") + 0.3, "click"), (_ts("дозиметр"), "geiger:4.5"), (_ts("десять") , "click")])
 if EP == "svet-2":
     CFG.update(end=_w[-1]["end"], beat=(_ts("яркость"), _ts("тебе")), tick=(0, 0), radio=(0, 0),
         mood=[(0.0, "dread"), (_ts("яркость"), "alarm"), (_ts("цепочка"), "dread"), (_ts("но") - 0.2, "silence"), (_ts("входящий"), "dread"),
@@ -193,6 +200,15 @@ def sfx(kind):
         n = int(1.1 * SR); x = np.arange(n) / SR
         gate = (((x % 0.36) < 0.24)).astype(float)
         return np.sin(2 * np.pi * 150 * x) * lp(gate, 60) * 0.5
+    if kind == "bonk":  # кастрюля на голове бьётся о дверь
+        n = int(1.2 * SR); x = np.arange(n) / SR
+        return sum(np.sin(2 * np.pi * f * x) * a for f, a in ((523, 1), (1290, .6), (2210, .4), (3100, .25))) * np.exp(-x * 5) * 0.25
+    if kind.startswith("geiger:"):  # дозиметр трещит всё чаще
+        dur = float(kind.split(":")[1]); n = int(dur * SR); out = np.zeros(n); tt = 0.0
+        while tt < dur:
+            i0 = int(tt * SR); m = min(int(0.004 * SR), n - i0); out[i0:i0 + m] += rng.standard_normal(m) * 0.5
+            tt += rng.exponential(0.25 / (1 + 12 * tt / dur))
+        return out
     if kind == "chain":  # цепочка на двери звенит сама
         n = int(1.9 * SR); out = np.zeros(n)
         for j in range(9):
