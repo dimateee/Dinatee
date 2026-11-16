@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import base64
 import datetime as dt
+import json
 import os
 import shutil
 import subprocess
 import time
 import urllib.parse
+import urllib.request
 import webbrowser
 from pathlib import Path
 from typing import Callable
@@ -273,6 +275,38 @@ class Tools:
     def get_datetime(self) -> str:
         return dt.datetime.now().astimezone().strftime("%A, %d.%m.%Y, %H:%M, часовой пояс %Z")
 
+    def get_weather(self, city: str) -> str:
+        def fetch(url: str) -> dict:
+            try:
+                with urllib.request.urlopen(url, timeout=10) as response:
+                    return json.load(response)
+            except OSError as exc:
+                raise ToolError(f"Сервис погоды недоступен: {exc}")
+
+        place = fetch(
+            "https://geocoding-api.open-meteo.com/v1/search?count=1&language=ru&name="
+            + urllib.parse.quote(city)
+        ).get("results")
+        if not place:
+            raise ToolError(f"Не нашёл город «{city}».")
+        spot = place[0]
+        data = fetch(
+            "https://api.open-meteo.com/v1/forecast?timezone=auto&forecast_days=2&wind_speed_unit=ms"
+            f"&latitude={spot['latitude']}&longitude={spot['longitude']}"
+            "&current=temperature_2m,apparent_temperature,precipitation,wind_speed_10m,cloud_cover"
+            "&daily=temperature_2m_max,temperature_2m_min,precipitation_sum"
+        )
+        now, daily = data["current"], data["daily"]
+        days = [
+            f"{label}: от {daily['temperature_2m_min'][i]} до {daily['temperature_2m_max'][i]} °C, осадки {daily['precipitation_sum'][i]} мм"
+            for i, label in enumerate(("сегодня", "завтра"))
+        ]
+        return (
+            f"{spot['name']}, сейчас {now['temperature_2m']} °C, ощущается как {now['apparent_temperature']} °C, "
+            f"ветер {now['wind_speed_10m']} м/с, облачность {now['cloud_cover']} %, осадки {now['precipitation']} мм. "
+            + "; ".join(days) + "."
+        )
+
     def shutdown_assistant(self) -> str:
         raise Shutdown()
 
@@ -346,5 +380,6 @@ TOOL_SCHEMAS = [
     _tool("take_screenshot", "Сделать снимок экрана и сохранить на рабочий стол."),
     _tool("lock_screen", "Заблокировать экран."),
     _tool("get_datetime", "Узнать текущие дату и время."),
+    _tool("get_weather", "Текущая погода и прогноз на сегодня и завтра для города.", {"city": _STR}),
     _tool("shutdown_assistant", "Завершить работу ассистента, когда пользователь просит отключиться."),
 ]

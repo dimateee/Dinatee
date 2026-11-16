@@ -1,4 +1,4 @@
-anthropic>=2.8
+gigachat>=0.2
 faster-whisper>=1.1
 sounddevice>=0.5
 numpy>=1.26

@@ -37,8 +37,10 @@ def _flag(name: str, default: bool) -> bool:
 @dataclass
 class Config:
     model: str
-    effort: str
-    web_search: bool
+    gigachat_credentials: str
+    gigachat_scope: str
+    gigachat_verify_ssl: bool
+    gigachat_ca_bundle: str
     confirm_dangerous: bool
     language: str
     whisper_model: str
@@ -55,9 +57,11 @@ class Config:
         load_env_file()
         env = os.environ.get
         return cls(
-            model=env("JARVIS_MODEL", "claude-opus-5-5"),
-            effort=env("JARVIS_EFFORT", "low"),
-            web_search=_flag("JARVIS_WEB_SEARCH", True),
+            model=env("JARVIS_MODEL", "GigaChat-2-Max"),
+            gigachat_credentials=env("GIGACHAT_CREDENTIALS", ""),
+            gigachat_scope=env("GIGACHAT_SCOPE", "GIGACHAT_API_PERS"),
+            gigachat_verify_ssl=_flag("GIGACHAT_VERIFY_SSL", False),
+            gigachat_ca_bundle=env("GIGACHAT_CA_BUNDLE", ""),
             confirm_dangerous=_flag("JARVIS_CONFIRM", True),
             language=env("JARVIS_LANGUAGE", "ru"),
             whisper_model=env("JARVIS_WHISPER_MODEL", "small"),
