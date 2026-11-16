@@ -68,11 +68,14 @@ if EP.startswith("svet-"):
                 if c == k: return x["start"]
         raise KeyError(word)
 if EP == "svet-2":
-    CFG.update(end=_w[-1]["end"], beat=(_ts("яркость"), _ts("твоему")), tick=(0, 0), radio=(0, 0),
-        mood=[(0.0, "dread"), (_ts("яркость"), "alarm"), (_ts("джек"), "dread"), (_ts("только") - 0.2, "silence"), (_ts("голос"), "dread"),
+    CFG.update(end=_w[-1]["end"], beat=(_ts("яркость"), _ts("тебе")), tick=(0, 0), radio=(0, 0),
+        mood=[(0.0, "dread"), (_ts("яркость"), "alarm"), (_ts("цепочка"), "dread"), (_ts("но") - 0.2, "silence"), (_ts("входящий"), "dread"),
               (_ts("яркость", 2), "alarm"), (_ts("что"), "end")],
-        sfx=[(1.4, "click"), (_ts("яркость") + 0.2, "whine:6.5"), (_ts("кнопка") + 0.2, "click"), (_ts("кнопка") + 0.6, "click"),
-             (_ts("ходит") - 0.1, "steps:2.6"), (_ts("динамика") + 0.3, "static"), (_ts("зря") - 0.1, "whisper"), (_ts("яркость", 2), "whine:3")])
+        sfx=[(_ts("погас"), "rumble"), (_ts("голос") , "whisper"), (_ts("проверить") + 0.3, "click"),
+             (_ts("вспыхивает"), "click"), (_ts("вспыхивает") + 0.1, "whine:7"), (_ts("кнопка") + 0.2, "click"), (_ts("кнопка") + 0.6, "click"),
+             (_ts("цепочка") + 0.3, "chain"), (_ts("ручка") + 0.2, "creak"), (_ts("скрипят"), "steps:2.4"), (_ts("скрипят") + 0.2, "creak"),
+             (_ts("входящий"), "buzz"), (_ts("входящий") + 1.1, "buzz"), (_ts("тот") , "static"), (_ts("зря") - 0.1, "whisper"),
+             (_ts("яркость", 2), "whine:3"), (_ts("ручка", 2) + 0.2, "creak"), (_ts("ручка", 2) + 0.5, "chain")])
 if EP == "svet-1":
     up, stop = _ts("поднимаются"), _ts("тишина")
     CFG.update(end=_w[-1]["end"], beat=(up, stop), tick=(0, 0), radio=(0, 0),
@@ -190,6 +193,13 @@ def sfx(kind):
         n = int(1.1 * SR); x = np.arange(n) / SR
         gate = (((x % 0.36) < 0.24)).astype(float)
         return np.sin(2 * np.pi * 150 * x) * lp(gate, 60) * 0.5
+    if kind == "chain":  # цепочка на двери звенит сама
+        n = int(1.9 * SR); out = np.zeros(n)
+        for j in range(9):
+            n0 = int((0.05 + j * 0.16 + 0.04 * rng.random()) * SR); m = int(0.25 * SR); x = np.arange(m) / SR
+            tone = sum(np.sin(2 * np.pi * f * x) for f in (2600 + 400 * rng.random(), 4100 + 500 * rng.random(), 5300))
+            out[n0:n0 + m] += tone * np.exp(-x * 28) * 0.08 * (1 - j / 12)
+        return out
     if kind.startswith("whine:"):  # электрический писк, растущий по высоте и громкости
         dur = float(kind.split(":")[1]); n = int(dur * SR); x = np.arange(n) / SR
         f = 900 + 1800 * (x / dur) ** 1.5

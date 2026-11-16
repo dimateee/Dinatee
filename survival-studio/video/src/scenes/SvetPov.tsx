@@ -351,6 +351,10 @@ export const CeilingGlow: React.FC<{ frame: number; glow: number; steps: number 
         const x = 280 + p * 320, y = 700 + (i ? 40 : -40);
         return <ellipse key={i} cx={x} cy={y} rx={46} ry={22} fill="#050608" opacity={0.75 * steps * Math.min(1, glow * 2)} />;
       })}
+      {steps > 0 && Array.from({ length: 26 }, (_, i) => {
+        const p = ((frame + i * 11) % 60) / 60, x0 = 300 + ((i * 97) % 520);
+        return <circle key={`d${i}`} cx={x0 + Math.sin(p * 6 + i) * 10} cy={760 + p * 1100} r={2 + (i % 3)} fill="#D8CFB8" opacity={0.6 * steps * (1 - p)} />;
+      })}
     </svg>
   );
 };

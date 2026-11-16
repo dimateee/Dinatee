@@ -253,7 +253,7 @@ export const Tower: React.FC<{ frame: number; cam: Cam; st: TowerState }> = ({ f
 
 /* ---------------- Телефон крупно ---------------- */
 export const PhoneUI: React.FC<{ mode: "alert" | "neighbor" | "brightness" | "voice"; k: number; battery: number; bright?: number; time: string; turn?: number; shake?: number; left?: number; scale?: number; lines?: string[];
-  status?: string; statusHi?: number; ghost?: string[]; typing?: number; wave?: number; frame?: number }> = ({ mode, k, battery, bright = 1, time, turn = 0, shake = 0, left = 250, scale = 1, lines, status, statusHi = 0, ghost = [], typing = 0, wave = 0, frame = 0 }) => (
+  status?: string; statusHi?: number; ghost?: string[]; typing?: number; wave?: number; frame?: number; call?: boolean }> = ({ mode, k, battery, bright = 1, time, turn = 0, shake = 0, left = 250, scale = 1, lines, status, statusHi = 0, ghost = [], typing = 0, wave = 0, frame = 0, call = false }) => (
   <div style={{ position: "absolute", left, top: 330, width: 580, height: 980, opacity: k, transform: `translateY(${Math.round((1 - k) * 60)}px) translateX(${Math.round(shake * 8 * Math.sin(k * 97))}px) perspective(1400px) rotateY(${Math.round(-55 * turn)}deg) scale(${scale})`, transformOrigin: "50% 0%",
     borderRadius: 64, background: "#0B0D12", border: "14px solid #1E222B", boxShadow: "0 30px 80px rgba(0,0,0,.7)", overflow: "hidden" }}>
     <div style={{ position: "absolute", inset: 0, background: mode === "alert" ? "#2A0C10" : "#10141C", opacity: 0.25 + 0.75 * bright }} />
@@ -285,9 +285,11 @@ export const PhoneUI: React.FC<{ mode: "alert" | "neighbor" | "brightness" | "vo
       <div style={{ position: "absolute", left: 40, right: 40, top: 170, display: "flex", flexDirection: "column", alignItems: "center", gap: 22 }}>
         <div style={{ width: 170, height: 170, borderRadius: 85, background: "#2B3241", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Inter Display", fontWeight: 900, fontSize: 80, color: "#C9D2E0" }}>Л</div>
         <div style={{ fontFamily: "Inter Display", fontWeight: 900, fontSize: 48, color: "#FFFFFF" }}>Лена · 4 эт.</div>
-        <div style={{ fontFamily: "JetBrains Mono", fontWeight: 700, fontSize: 28, color: "#FF6B5E" }}>ГРОМКАЯ СВЯЗЬ · НЕ В СЕТИ</div>
+        <div style={{ fontFamily: "JetBrains Mono", fontWeight: 700, fontSize: 28, color: "#FF6B5E" }}>{call ? "ВХОДЯЩИЙ ВЫЗОВ" : "ГРОМКАЯ СВЯЗЬ · НЕ В СЕТИ"}</div>
+        {call && <div style={{ display: "flex", gap: 120, marginTop: 300 }}>
+          {["#E53935", "#3DDC84"].map((c, i) => <div key={c} style={{ width: 120, height: 120, borderRadius: 60, background: c, transform: `scale(${1 + (i ? 0.08 * Math.abs(Math.sin(frame / 5)) : 0)})` }} />)}</div>}
         <div style={{ display: "flex", gap: 8, alignItems: "center", height: 120 }}>
-          {Array.from({ length: 18 }, (_, i) => <div key={i} style={{ width: 12, borderRadius: 6, background: "#FF6B5E", height: 14 + 100 * wave * Math.abs(Math.sin(frame / 3 + i * 1.7)) }} />)}
+          {!call && Array.from({ length: 18 }, (_, i) => <div key={i} style={{ width: 12, borderRadius: 6, background: "#FF6B5E", height: 14 + 100 * wave * Math.abs(Math.sin(frame / 3 + i * 1.7)) }} />)}
         </div>
       </div>
     )}
@@ -304,7 +306,7 @@ export const PhoneUI: React.FC<{ mode: "alert" | "neighbor" | "brightness" | "vo
 );
 
 /* ---------------- Дверь крупно: цепочка, стук, шёпот ---------------- */
-export const DoorClose: React.FC<{ frame: number; knock?: number; chain?: number; zoom?: number; width?: number }> = ({ frame, knock = 0, chain = 0, zoom = 1, width = 1080 }) => {
+export const DoorClose: React.FC<{ frame: number; knock?: number; chain?: number; zoom?: number; width?: number; handle?: number }> = ({ frame, knock = 0, chain = 0, zoom = 1, width = 1080, handle = 0 }) => {
   const shake = knock > 0 ? Math.sin(frame * 2.6) * 3 * knock : 0;
   const cs = chain > 0 ? Math.sin(frame / 2.2) * 6 * chain : 0;
   return (
@@ -316,7 +318,7 @@ export const DoorClose: React.FC<{ frame: number; knock?: number; chain?: number
           <rect x={260} y={190} width={560} height={1180} fill="#2B3241" />
           {[0, 1, 2].map((i) => <rect key={i} x={300} y={240 + i * 380} width={480} height={320} fill="none" stroke="#3A4560" strokeWidth={6} />)}
           <circle cx={540} cy={430} r={22} fill="#0A0D13" stroke="#4E5868" strokeWidth={6} />
-          <rect x={720} y={760} width={70} height={30} rx={8} fill="#4E5868" />
+          <g transform={`rotate(${42 * handle + (handle > 0 && handle < 1 ? Math.sin(frame / 1.7) * 1.5 : 0)} 728 775)`}><rect x={700} y={760} width={90} height={30} rx={8} fill="#6E7A8E" /><circle cx={728} cy={775} r={20} fill="#4E5868" /></g>
           {/* цепочка */}
           <rect x={700} y={600} width={30} height={60} rx={6} fill="#6E7A8E" />
           <g transform={`translate(715 660) rotate(${cs})`}>
