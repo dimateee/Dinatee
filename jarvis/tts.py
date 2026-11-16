@@ -6,6 +6,7 @@ import base64
 import json
 import re
 import subprocess
+import time
 import urllib.error
 import urllib.request
 
@@ -20,10 +21,10 @@ def clean_for_speech(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def elevenlabs_pcm(cfg: Config, text: str) -> bytes:
-    """Возвращает звук 16-бит моно 22050 Гц."""
+def elevenlabs_chunks(cfg: Config, text: str):
+    """Потоково отдаёт звук 16-бит моно 22050 Гц по мере синтеза."""
     url = (
-        f"https://api.elevenlabs.io/v1/text-to-speech/{cfg.elevenlabs_voice}"
+        f"https://api.elevenlabs.io/v1/text-to-speech/{cfg.elevenlabs_voice}/stream"
         f"?output_format=pcm_{SAMPLE_RATE}"
     )
     body = json.dumps({"text": text, "model_id": cfg.elevenlabs_model}).encode("utf-8")
@@ -32,34 +33,44 @@ def elevenlabs_pcm(cfg: Config, text: str) -> bytes:
         headers={"xi-api-key": cfg.elevenlabs_key, "Content-Type": "application/json"},
     )
     with urllib.request.urlopen(request, timeout=30) as response:
-        return response.read()
+        while chunk := response.read(4096):
+            yield chunk
 
 
 class Speaker:
     def __init__(self, cfg: Config):
         self.cfg = cfg
         self.use_elevenlabs = bool(cfg.elevenlabs_key)
+        self.first_sound_seconds = 0.0
 
     def say(self, text: str) -> None:
         text = clean_for_speech(text)
         if not text:
             return
+        started = time.monotonic()
+        self.first_sound_seconds = 0.0
         if self.use_elevenlabs:
             try:
-                self._play(elevenlabs_pcm(self.cfg, text))
+                self._play_stream(elevenlabs_chunks(self.cfg, text), started)
                 return
             except (urllib.error.URLError, TimeoutError) as exc:
                 detail = exc.read().decode("utf-8", "replace")[:300] if isinstance(exc, urllib.error.HTTPError) else exc
                 print(f"[ElevenLabs недоступен, говорю системным голосом] {detail}")
         self._system_voice(text)
 
-    @staticmethod
-    def _play(pcm: bytes) -> None:
-        import numpy as np
+    def _play_stream(self, chunks, started: float) -> None:
+        """Начинает играть с первым же куском, не дожидаясь конца синтеза."""
         import sounddevice as sd
 
-        sd.play(np.frombuffer(pcm[: len(pcm) // 2 * 2], dtype=np.int16), SAMPLE_RATE)
-        sd.wait()
+        tail = b""
+        with sd.RawOutputStream(samplerate=SAMPLE_RATE, channels=1, dtype="int16") as out:
+            for chunk in chunks:
+                if not self.first_sound_seconds:
+                    self.first_sound_seconds = time.monotonic() - started
+                data = tail + chunk
+                even = len(data) // 2 * 2
+                out.write(data[:even])
+                tail = data[even:]
 
     def _system_voice(self, text: str) -> None:
         if IS_MAC:

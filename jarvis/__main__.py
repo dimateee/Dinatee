@@ -73,9 +73,13 @@ def run_voice(cfg: Config) -> None:
             if not command:
                 speaker.say("Слушаю, сэр.")
             else:
+                asked = time.monotonic()
                 reply = brain.ask(command)
+                thinking = time.monotonic() - asked
                 print(f"Джарвис: {reply}")
                 speaker.say(reply)
+                print(f"  ⏱ распознавание {listener.transcribe_seconds:.1f} с · "
+                      f"GigaChat {thinking:.1f} с · до начала речи {speaker.first_sound_seconds:.1f} с")
             followup_until = time.monotonic() + cfg.followup_seconds
     except Shutdown:
         speaker.say("Отключаюсь. До связи.")

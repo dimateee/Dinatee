@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import collections
+import os
 import queue
 import re
 import time
@@ -14,7 +15,7 @@ from .config import Config
 SAMPLE_RATE = 16000
 FRAME = 480               # 30 мс
 START_FRAMES = 4          # столько громких кадров подряд считается началом речи
-END_SILENCE = 0.9         # секунд тишины, после которых фраза считается законченной
+END_SILENCE = 0.7         # секунд тишины, после которых фраза считается законченной
 MAX_PHRASE = 25.0         # секунд
 MIN_PHRASE = 0.35
 
@@ -25,6 +26,16 @@ HALLUCINATIONS = (
 )
 
 
+def drop_repeats(text: str) -> str:
+    """Whisper на коротких фразах иногда повторяет предложение дважды — оставляем одно."""
+    kept: list[str] = []
+    for sentence in re.findall(r"[^.!?…]+[.!?…]*", text):
+        key = re.sub(r"\W+", "", sentence.lower())
+        if key and not (kept and re.sub(r"\W+", "", kept[-1].lower()) == key):
+            kept.append(sentence.strip())
+    return " ".join(kept)
+
+
 class Listener:
     def __init__(self, cfg: Config):
         from faster_whisper import WhisperModel
@@ -32,7 +43,11 @@ class Listener:
         self.cfg = cfg
         compute = "float16" if cfg.whisper_device == "cuda" else "int8"
         print(f"Загружаю модель распознавания «{cfg.whisper_model}» (первый запуск скачивает её)…")
-        self.model = WhisperModel(cfg.whisper_model, device=cfg.whisper_device, compute_type=compute)
+        self.model = WhisperModel(
+            cfg.whisper_model, device=cfg.whisper_device, compute_type=compute,
+            cpu_threads=min(8, os.cpu_count() or 4),
+        )
+        self.transcribe_seconds = 0.0
         self.noise = cfg.mic_threshold / 3
 
     def record(self, start_timeout: float | None = None) -> np.ndarray | None:
@@ -87,6 +102,7 @@ class Listener:
                     return np.concatenate(phrase)
 
     def transcribe(self, audio: np.ndarray) -> str:
+        started = time.monotonic()
         segments, _ = self.model.transcribe(
             audio,
             language=self.cfg.language or None,
@@ -95,7 +111,8 @@ class Listener:
             initial_prompt="Джарвис, открой браузер.",
             condition_on_previous_text=False,
         )
-        text = re.sub(r"\s+", " ", " ".join(s.text for s in segments)).strip()
+        text = drop_repeats(re.sub(r"\s+", " ", " ".join(s.text for s in segments)).strip())
+        self.transcribe_seconds = time.monotonic() - started
         lowered = text.lower()
         if any(marker in lowered for marker in HALLUCINATIONS):
             return ""
