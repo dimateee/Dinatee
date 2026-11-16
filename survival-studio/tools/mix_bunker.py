@@ -29,6 +29,7 @@ CFG = {
     "podval-2": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "podval-3": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "svet-1": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
+    "svet-2": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
 }[EP]
 if EP == "podval-2":  # времена — из слов текущего голоса (голос может смениться)
     _w = json.load(open(os.path.join(ROOT, "episodes", "podval-2", "words.json")))["words"]
@@ -56,8 +57,8 @@ if EP == "podval-3":
     t30 = _t3("тридцать"); CFG.update(end=_w[-1]["end"], beat=(0, 0), tick=(t30, _t3("пленка") + 0.6), radio=(0, 0),
         mood=[(0.0, "calm"), (t30, "run"), (_t3("правило", 3), "shelter"), (_t3("стука"), "dread"), (_t3("белая"), "shelter"), (_t3("идем"), "end")],
         sfx=[(_t3("открыта"), "creak"), (_t3("скотч"), "tape"), (_t3("стука") - 0.5, "knock")])
-if EP == "svet-1":
-    _w = json.load(open(os.path.join(ROOT, "episodes", "svet-1", "words.json")))["words"]
+if EP.startswith("svet-"):
+    _w = json.load(open(os.path.join(ROOT, "episodes", EP, "words.json")))["words"]
     _n = lambda s: s.lower().replace("ё", "е").strip(".,:;!?—«»\" ")
     def _ts(word, k=1):
         c = 0
@@ -66,6 +67,13 @@ if EP == "svet-1":
                 c += 1
                 if c == k: return x["start"]
         raise KeyError(word)
+if EP == "svet-2":
+    CFG.update(end=_w[-1]["end"], beat=(_ts("яркость"), _ts("твоему")), tick=(0, 0), radio=(0, 0),
+        mood=[(0.0, "dread"), (_ts("яркость"), "alarm"), (_ts("джек"), "dread"), (_ts("только") - 0.2, "silence"), (_ts("голос"), "dread"),
+              (_ts("яркость", 2), "alarm"), (_ts("что"), "end")],
+        sfx=[(1.4, "click"), (_ts("яркость") + 0.2, "whine:6.5"), (_ts("кнопка") + 0.2, "click"), (_ts("кнопка") + 0.6, "click"),
+             (_ts("ходит") - 0.1, "steps:2.6"), (_ts("динамика") + 0.3, "static"), (_ts("зря") - 0.1, "whisper"), (_ts("яркость", 2), "whine:3")])
+if EP == "svet-1":
     up, stop = _ts("поднимаются"), _ts("тишина")
     CFG.update(end=_w[-1]["end"], beat=(up, stop), tick=(0, 0), radio=(0, 0),
         mood=[(0.0, "dread"), (_ts("правила"), "shelter"), (_ts("внизу"), "dread"), (stop + 0.2, "silence"), (_ts("вибрация"), "dread"),
@@ -182,6 +190,10 @@ def sfx(kind):
         n = int(1.1 * SR); x = np.arange(n) / SR
         gate = (((x % 0.36) < 0.24)).astype(float)
         return np.sin(2 * np.pi * 150 * x) * lp(gate, 60) * 0.5
+    if kind.startswith("whine:"):  # электрический писк, растущий по высоте и громкости
+        dur = float(kind.split(":")[1]); n = int(dur * SR); x = np.arange(n) / SR
+        f = 900 + 1800 * (x / dur) ** 1.5
+        return np.sin(2 * np.pi * np.cumsum(f) / SR) * (x / dur) ** 2 * 0.12 * ramp(n, 2000, 4000)
     if kind.startswith("steps:"):  # медленные шаги вверх по лестнице, затем резкая остановка
         dur = float(kind.split(":")[1]); out = np.zeros(int((dur + 0.5) * SR)); tt0 = 0.0; k = 0
         while tt0 < dur:

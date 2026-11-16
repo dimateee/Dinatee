@@ -252,7 +252,8 @@ export const Tower: React.FC<{ frame: number; cam: Cam; st: TowerState }> = ({ f
 };
 
 /* ---------------- Телефон крупно ---------------- */
-export const PhoneUI: React.FC<{ mode: "alert" | "neighbor" | "brightness"; k: number; battery: number; bright?: number; time: string; turn?: number; shake?: number; left?: number; scale?: number; lines?: string[] }> = ({ mode, k, battery, bright = 1, time, turn = 0, shake = 0, left = 250, scale = 1, lines }) => (
+export const PhoneUI: React.FC<{ mode: "alert" | "neighbor" | "brightness" | "voice"; k: number; battery: number; bright?: number; time: string; turn?: number; shake?: number; left?: number; scale?: number; lines?: string[];
+  status?: string; statusHi?: number; ghost?: string[]; typing?: number; wave?: number; frame?: number }> = ({ mode, k, battery, bright = 1, time, turn = 0, shake = 0, left = 250, scale = 1, lines, status, statusHi = 0, ghost = [], typing = 0, wave = 0, frame = 0 }) => (
   <div style={{ position: "absolute", left, top: 330, width: 580, height: 980, opacity: k, transform: `translateY(${Math.round((1 - k) * 60)}px) translateX(${Math.round(shake * 8 * Math.sin(k * 97))}px) perspective(1400px) rotateY(${Math.round(-55 * turn)}deg) scale(${scale})`, transformOrigin: "50% 0%",
     borderRadius: 64, background: "#0B0D12", border: "14px solid #1E222B", boxShadow: "0 30px 80px rgba(0,0,0,.7)", overflow: "hidden" }}>
     <div style={{ position: "absolute", inset: 0, background: mode === "alert" ? "#2A0C10" : "#10141C", opacity: 0.25 + 0.75 * bright }} />
@@ -268,9 +269,26 @@ export const PhoneUI: React.FC<{ mode: "alert" | "neighbor" | "brightness"; k: n
     {mode === "neighbor" && (
       <div style={{ position: "absolute", left: 30, right: 30, top: 180, display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ fontFamily: "JetBrains Mono", fontWeight: 700, fontSize: 28, color: "#9AA6BA" }}>Лена · 4 эт.</div>
+        {status && <div style={{ marginTop: -6, padding: "6px 12px", borderRadius: 10, alignSelf: "flex-start", fontFamily: "JetBrains Mono", fontWeight: 700, fontSize: 26,
+          color: statusHi > 0 ? "#FFFFFF" : "#6E7A8E", background: statusHi > 0 ? `rgba(229,57,53,${0.55 * statusHi})` : "transparent", border: statusHi > 0 ? "3px solid #FF6B5E" : "3px solid transparent" }}>{status}</div>}
         {(lines ?? ["Ребёнок плачет.", "Можно я зажгу свечу?"]).map((l, i) => (
-          <div key={i} style={{ padding: "20px 26px", borderRadius: "28px 28px 28px 8px", background: "#2B3241", fontFamily: "Inter Display", fontWeight: 900, fontSize: 40, lineHeight: 1.1, color: "#FFFFFF" }}>{l}</div>
+          <div key={i} style={{ padding: "20px 26px", borderRadius: "28px 28px 28px 8px", background: "#2B3241", fontFamily: "Inter Display", fontWeight: 900, fontSize: 40, lineHeight: 1.1, color: "#FFFFFF", opacity: ghost.length ? 0.45 : 1 }}>{l}</div>
         ))}
+        {ghost.map((l, i) => (
+          <div key={`g${i}`} style={{ padding: "20px 26px", borderRadius: "28px 28px 28px 8px", background: "#3A1418", border: "3px solid #FF6B5E", fontFamily: "Inter Display", fontWeight: 900, fontSize: 44, lineHeight: 1.1, color: "#FFFFFF" }}>{l}</div>
+        ))}
+        {typing > 0 && <div style={{ alignSelf: "flex-start", padding: "14px 22px", borderRadius: 24, background: "#2B3241", display: "flex", gap: 10 }}>
+          {[0, 1, 2].map((i) => <div key={i} style={{ width: 14, height: 14, borderRadius: 7, background: "#C9D2E0", opacity: 0.3 + 0.7 * Math.abs(Math.sin(frame / 5 + i)) }} />)}</div>}
+      </div>
+    )}
+    {mode === "voice" && (
+      <div style={{ position: "absolute", left: 40, right: 40, top: 170, display: "flex", flexDirection: "column", alignItems: "center", gap: 22 }}>
+        <div style={{ width: 170, height: 170, borderRadius: 85, background: "#2B3241", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Inter Display", fontWeight: 900, fontSize: 80, color: "#C9D2E0" }}>Л</div>
+        <div style={{ fontFamily: "Inter Display", fontWeight: 900, fontSize: 48, color: "#FFFFFF" }}>Лена · 4 эт.</div>
+        <div style={{ fontFamily: "JetBrains Mono", fontWeight: 700, fontSize: 28, color: "#FF6B5E" }}>ГРОМКАЯ СВЯЗЬ · НЕ В СЕТИ</div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", height: 120 }}>
+          {Array.from({ length: 18 }, (_, i) => <div key={i} style={{ width: 12, borderRadius: 6, background: "#FF6B5E", height: 14 + 100 * wave * Math.abs(Math.sin(frame / 3 + i * 1.7)) }} />)}
+        </div>
       </div>
     )}
     {mode === "brightness" && (

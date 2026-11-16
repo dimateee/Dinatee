@@ -1,5 +1,5 @@
 import React from "react";
-import { Dog, dogLie } from "../rig/Dog";
+import { Dog, dogLie, dogSit } from "../rig/Dog";
 import { RimDefs } from "../rig/shared";
 import { HERO } from "../style/palette";
 
@@ -255,5 +255,121 @@ export const BedHide: React.FC<{ frame: number; hide: number }> = ({ frame, hide
 export const ChainHand: React.FC<{ reach: number; tremble: number; frame: number }> = ({ reach, tremble, frame }) => (
   <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
     <PovArm x={780 + Math.sin(frame / 2.3) * 4 * tremble} y={1920 - 900 * reach} angle={-22} side="R" pose="point" light={0.35} scale={1.05} />
+  </svg>
+);
+
+/* ================= Серия 2 ================= */
+
+/* Телефон прижат к груди: свет пробивается сквозь пальцы. k — яркость 0..1 */
+export const ChestGlow: React.FC<{ frame: number; k: number }> = ({ frame, k }) => {
+  const fl = 0.9 + 0.1 * Math.sin(frame / 2.7);
+  return (
+    <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+      <defs>
+        <radialGradient id="cgG"><stop offset="0" stopColor="#E6F0FF" stopOpacity={0.95} /><stop offset="1" stopColor="#9CC2FF" stopOpacity={0} /></radialGradient>
+      </defs>
+      <rect x={0} y={0} width={1080} height={1920} fill="#07080B" />
+<g style={{ filter: `brightness(${0.32 + 0.9 * k})` }}>
+      <path d="M 120 1920 C 150 1500 200 1180 330 1080 Q 540 1010 750 1080 C 880 1180 930 1500 960 1920 Z" fill={HERO.hoodie} stroke={HERO.line} strokeWidth={8} />
+      <path d="M 540 1050 L 540 1920" stroke={HERO.hoodieShade} strokeWidth={10} />
+      <path d="M 470 1060 Q 455 1200 470 1290 M 610 1060 Q 625 1200 610 1290" stroke="#EDE6D6" strokeWidth={8} fill="none" strokeLinecap="round" />
+      </g>
+      <circle cx={540} cy={1420} r={260 + 420 * k} fill="url(#cgG)" opacity={Math.min(1, 0.25 + 1.6 * k) * fl} />
+      {Array.from({ length: 7 }, (_, i) => {
+        const a = -Math.PI / 2 + (i - 3) * 0.32;
+        const L = 300 + 700 * k;
+        return <line key={i} x1={540} y1={1420} x2={540 + Math.cos(a) * L * 1.2} y2={1420 + Math.sin(a) * L} stroke="#E6F0FF" strokeWidth={10 + 20 * k} opacity={(0.08 + 0.5 * k) * fl} strokeLinecap="round" />;
+      })}
+      <PovArm x={130} y={1560} angle={72} side="L" pose="flat" light={0.35 + 0.6 * k} scale={1.1} />
+      <PovArm x={960} y={1500} angle={-74} side="R" pose="flat" light={0.35 + 0.6 * k} scale={1.1} />
+      {[[520, 1330], [575, 1380], [500, 1450], [590, 1470]].map(([x, y], i) => (
+        <ellipse key={i} cx={x} cy={y} rx={8 + 18 * k} ry={4 + 6 * k} fill="#F4F8FF" opacity={(0.2 + 0.8 * k) * fl} />
+      ))}
+    </svg>
+  );
+};
+
+/* Щель между шторами: в доме напротив загораются окна, свет ползёт к твоему дому. */
+const ORDER = Array.from({ length: 28 }, (_, i) => i).sort((a, b) => ((a * 37) % 29) - ((b * 37) % 29));
+export const LightSpread: React.FC<{ frame: number; lit: number; floor: number; near: number; edge: number }> = ({ frame, lit, floor, near, edge }) => {
+  const GX = 340, GW = 400;
+  return (
+    <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+      <defs>
+        <clipPath id="lsGap"><rect x={GX} y={200} width={GW} height={1300} /></clipPath>
+        <radialGradient id="lsW"><stop offset="0" stopColor="#FFE9B0" stopOpacity={0.8} /><stop offset="1" stopColor="#FFE9B0" stopOpacity={0} /></radialGradient>
+      </defs>
+      <rect x={0} y={0} width={1080} height={1920} fill="#0B0E14" />
+      <g clipPath="url(#lsGap)">
+        <rect x={GX} y={200} width={GW} height={1300} fill="#06080D" />
+        {/* дальний дом напротив */}
+        <rect x={GX + 30} y={380} width={300} height={1120} fill="#121722" />
+        {Array.from({ length: 7 }, (_, r) => Array.from({ length: 4 }, (_, c) => {
+          const id = r * 4 + c, x = GX + 52 + c * 70, y = 420 + r * 140;
+          const on = ORDER.indexOf(id) < lit || (r === 3 && floor > c / 4);
+          return <g key={id}>
+            <rect x={x} y={y} width={44} height={70} fill="#0A0D13" stroke="#1C2230" strokeWidth={3} />
+            {on && <><rect x={x} y={y} width={44} height={70} fill="#FFE9B0" opacity={0.9} /><circle cx={x + 22} cy={y + 35} r={60} fill="url(#lsW)" /></>}
+          </g>;
+        }))}
+        {/* ближний дом справа — свет переходит на него */}
+        <rect x={GX + 250} y={260} width={260} height={1240} fill="#161B26" />
+        {Array.from({ length: 6 }, (_, r) => Array.from({ length: 2 }, (_, c) => {
+          const x = GX + 290 + c * 100, y = 320 + r * 190, on = near > 1 - (c * 0.5 + r * 0.08 + 0.05);
+          return <g key={`n${r}${c}`}>
+            <rect x={x} y={y} width={70} height={110} fill="#0A0D13" stroke="#232A36" strokeWidth={4} />
+            {on && <><rect x={x} y={y} width={70} height={110} fill="#FFE9B0" opacity={0.9} /><circle cx={x + 35} cy={y + 55} r={90} fill="url(#lsW)" /></>}
+          </g>;
+        }))}
+      </g>
+      {/* шторы и их кромки — светятся, когда свет дошёл до твоего окна */}
+      <rect x={0} y={150} width={GX} height={1500} fill="#3A2E4A" />
+      <rect x={GX + GW} y={150} width={1080 - GX - GW} height={1500} fill="#3A2E4A" />
+      {[GX - 6, GX + GW - 10].map((x, i) => <rect key={i} x={x} y={150} width={16} height={1500} fill="#FFD27A" opacity={0.85 * edge * (0.85 + 0.15 * Math.sin(frame / 3))} />)}
+      <rect x={0} y={130} width={1080} height={24} fill="#2B3241" />
+      <PovArm x={GX - 30} y={1340} angle={14} side="L" pose="grip" light={0.3 + 0.5 * edge} />
+    </svg>
+  );
+};
+
+/* Потолок: жёлтое пятно и тени шагов сверху. */
+export const CeilingGlow: React.FC<{ frame: number; glow: number; steps: number }> = ({ frame, glow, steps }) => {
+  const ph = (frame / 30) * 0.8;
+  return (
+    <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+      <defs><radialGradient id="cgY"><stop offset="0" stopColor="#FFD27A" stopOpacity={0.75} /><stop offset="1" stopColor="#FFD27A" stopOpacity={0} /></radialGradient></defs>
+      <rect x={0} y={0} width={1080} height={1920} fill="#0C0E13" />
+      <path d="M 0 1500 L 1080 1500 L 1080 1920 L 0 1920 Z" fill="#090A0D" />
+      <path d="M 0 1500 L 160 1380 L 920 1380 L 1080 1500" stroke="#14171E" strokeWidth={8} fill="none" />
+      {/* мёртвая люстра */}
+      <line x1={540} y1={0} x2={540} y2={260} stroke="#2B3241" strokeWidth={6} />
+      <path d="M 440 260 L 640 260 L 600 330 L 480 330 Z" fill="#1A1F28" />
+      <circle cx={600} cy={720} r={160 + 260 * glow} fill="url(#cgY)" opacity={glow * (0.85 + 0.15 * Math.sin(frame / 4))} />
+      <path d="M 300 640 L 420 700 L 470 690 L 610 760 L 700 740 L 820 800" stroke="#06070A" strokeWidth={5} fill="none" opacity={0.8} />
+      {steps > 0 && [0, 1].map((i) => {
+        const p = (ph + i * 0.5) % 2;
+        const x = 280 + p * 320, y = 700 + (i ? 40 : -40);
+        return <ellipse key={i} cx={x} cy={y} rx={46} ry={22} fill="#050608" opacity={0.75 * steps * Math.min(1, glow * 2)} />;
+      })}
+    </svg>
+  );
+};
+
+/* Джек вылезает из-под кровати и смотрит вверх. */
+export const DogLookUp: React.FC<{ frame: number; out: number; up: number }> = ({ frame, out, up }) => (
+  <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+    <RimDefs id="rimUp" side={1} color="#FFD27A" strength={0.4 + 0.5 * up} width={4} />
+    <rect x={0} y={0} width={1080} height={1920} fill="#0A0C11" />
+    <rect x={0} y={1300} width={1080} height={620} fill="#14120F" />
+    <rect x={-40} y={760} width={720} height={130} rx={20} fill="#2B3241" />
+    <rect x={-40} y={880} width={720} height={420} fill="#020203" />
+    <rect x={-40} y={880} width={720} height={60} fill="#232A36" />
+    {out < 0.5 && <g transform={`translate(${240 + 520 * out * 2} 1300) scale(-2.2 2.2)`}>
+      <Dog pose={{ ...dogLie(frame, 3), earL: -10, earR: -10, head: 4 }} rimFilter="rimUp" />
+    </g>}
+    <rect x={-40} y={1240} width={720} height={70} fill="#232A36" />
+    {out >= 0.5 && <g transform="translate(680 1990) scale(-3.2 3.2)">
+      <Dog pose={{ ...dogSit(frame, 3, false), head: -34 * up + 2 * Math.sin(frame / 9), earL: -6 * up, earR: -6 * up }} rimFilter="rimUp" />
+    </g>}
   </svg>
 );
