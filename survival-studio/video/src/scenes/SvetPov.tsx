@@ -1,6 +1,8 @@
 import React from "react";
 import { Dog, dogLie, dogSit } from "../rig/Dog";
 import { RimDefs } from "../rig/shared";
+import { Hero, HeroPose, Look, NEUTRAL } from "../rig/Hero";
+import { Cat } from "./Podval";
 import { HERO } from "../style/palette";
 
 /*
@@ -360,7 +362,7 @@ export const CeilingGlow: React.FC<{ frame: number; glow: number; steps: number 
 };
 
 /* Джек вылезает из-под кровати и смотрит вверх. */
-export const DogLookUp: React.FC<{ frame: number; out: number; up: number }> = ({ frame, out, up }) => (
+export const DogLookUp: React.FC<{ frame: number; out: number; up: number; wag?: number }> = ({ frame, out, up, wag = 0 }) => (
   <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
     <RimDefs id="rimUp" side={1} color="#FFD27A" strength={0.4 + 0.5 * up} width={4} />
     <rect x={0} y={0} width={1080} height={1920} fill="#0A0C11" />
@@ -373,7 +375,175 @@ export const DogLookUp: React.FC<{ frame: number; out: number; up: number }> = (
     </g>}
     <rect x={-40} y={1240} width={720} height={70} fill="#232A36" />
     {out >= 0.5 && <g transform="translate(680 1990) scale(-3.2 3.2)">
-      <Dog pose={{ ...dogSit(frame, 3, false), head: -34 * up + 2 * Math.sin(frame / 9), earL: -6 * up, earR: -6 * up }} rimFilter="rimUp" />
+      <Dog pose={{ ...dogSit(frame, 3, false), head: -34 * up + 2 * Math.sin(frame / 9), earL: -6 * up, earR: -6 * up, tail: wag * 35 * Math.sin(frame / 2) }} rimFilter="rimUp" />
     </g>}
   </svg>
 );
+
+/* ================= Серия 3 ================= */
+
+/* Разбитый телефон на полу; k — свечение трещин/осколков */
+export const SmashFloor: React.FC<{ frame: number; crack: number; glow: number; shards: number }> = ({ frame, crack, glow, shards }) => {
+  const fl = 0.85 + 0.15 * Math.sin(frame / 3);
+  return (
+    <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+      <defs><radialGradient id="shG"><stop offset="0" stopColor="#DDEBFF" stopOpacity={0.9} /><stop offset="1" stopColor="#9CC2FF" stopOpacity={0} /></radialGradient></defs>
+      <rect x={0} y={0} width={1080} height={1920} fill="#14110E" />
+      {Array.from({ length: 8 }, (_, i) => <rect key={i} x={i * 140 - 20} y={0} width={136} height={1920} fill={i % 2 ? "#17140F" : "#1A1611"} stroke="#0B0A08" strokeWidth={6} />)}
+      <circle cx={540} cy={820} r={300 + 300 * glow} fill="url(#shG)" opacity={0.5 * glow * fl} />
+      <g transform="translate(540 820) rotate(-14)">
+        <rect x={-180} y={-330} width={360} height={660} rx={46} fill="#0B0D12" stroke="#1E222B" strokeWidth={14} />
+        <rect x={-160} y={-310} width={320} height={620} rx={32} fill="#9CC2FF" opacity={0.15 + 0.6 * glow * fl} />
+        {crack > 0 && [[-10, -40, -150, -300], [-10, -40, 150, -280], [-10, -40, -160, 120], [-10, -40, 140, 290], [-10, -40, 30, 310], [-10, -40, -160, -60],
+          [-80, -170, -160, -200], [70, -160, 160, -120], [-90, 40, -160, 30], [60, 130, 160, 140]].map(([x1, y1, x2, y2], i) => (
+          <line key={i} x1={x1} y1={y1} x2={x1 + (x2 - x1) * Math.min(1, crack * 1.4 - i * 0.04)} y2={y1 + (y2 - y1) * Math.min(1, crack * 1.4 - i * 0.04)} stroke="#F4F8FF" strokeWidth={5} opacity={0.9} />
+        ))}
+        {crack > 0 && [60, 120, 190].map((r) => <circle key={r} cx={-10} cy={-40} r={r * crack} fill="none" stroke="#F4F8FF" strokeWidth={3} opacity={0.6} />)}
+      </g>
+      {/* осколки по полу светятся, каждый как маленький экран */}
+      {Array.from({ length: 22 }, (_, i) => {
+        const a = (i * 137.5 * Math.PI) / 180, r = 360 + ((i * 53) % 420);
+        const x = 540 + Math.cos(a) * r, y = 820 + Math.sin(a) * r * 1.2, k = Math.min(1, Math.max(0, shards * 1.6 - (i % 7) * 0.1));
+        return <g key={i} transform={`translate(${x} ${y}) rotate(${i * 47})`}>
+          <path d="M -18 -10 L 14 -16 L 20 8 L -8 16 Z" fill="#9CC2FF" opacity={0.15 + 0.85 * k * (0.75 + 0.25 * Math.sin(frame / 2 + i))} style={{ filter: k > 0.3 ? "drop-shadow(0 0 10px #CFE3FF)" : "none" }} />
+        </g>;
+      })}
+    </svg>
+  );
+};
+
+/* Площадка: фонарик в пол, мокрые следы ведут вниз по лестнице */
+export const LandingFloor: React.FC<{ frame: number; on: number; follow: number }> = ({ frame, on, follow }) => {
+  const steps = Array.from({ length: 9 }, (_, i) => ({ x: 300 + i * 70 + (i % 2) * 40, y: 1700 - i * 110, r: -30 + (i % 2) * 8 }));
+  const spot = steps[Math.min(8, Math.floor(follow * 8.99))];
+  const sx = spot.x, sy = spot.y;
+  return (
+    <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+      <defs><radialGradient id="lfS"><stop offset="0" stopColor="#FFF1CF" stopOpacity={0.75} /><stop offset="1" stopColor="#FFF1CF" stopOpacity={0} /></radialGradient></defs>
+      <rect x={0} y={0} width={1080} height={1920} fill="#0A0B0E" />
+      <path d="M 0 900 L 1080 760 L 1080 1920 L 0 1920 Z" fill="#1A1C20" />
+      {Array.from({ length: 7 }, (_, i) => <path key={i} d={`M ${640 + i * 60} ${780 - i * 9} L 1080 ${760 - i * 8 + 40}`} stroke="#121317" strokeWidth={0} />)}
+      {/* лестница вниз справа сверху */}
+      {Array.from({ length: 6 }, (_, i) => <rect key={i} x={780 + i * 34} y={560 + i * 46} width={300} height={16} fill="#24262B" />)}
+      <path d="M 780 560 L 980 820" stroke="#3A3E46" strokeWidth={10} />
+      <ellipse cx={sx} cy={sy} rx={280} ry={150} fill="url(#lfS)" opacity={on * (0.92 + 0.08 * Math.sin(frame / 3))} />
+      {steps.map((p, i) => (
+        <g key={i} transform={`translate(${p.x} ${p.y}) rotate(${p.r})`}>
+          <ellipse cx={0} cy={0} rx={22} ry={44} fill="#06070A" opacity={0.85} />
+          <ellipse cx={-6} cy={-12} rx={6} ry={10} fill="#C9D2E0" opacity={0.25 * on} />
+        </g>
+      ))}
+      <PovArm x={980} y={1960} angle={-28} side="R" pose="grip" light={0.3 + 0.4 * on} />
+    </svg>
+  );
+};
+
+/* Лаз на чердак снизу (open 0..1) и тёплый свет керосинки */
+export const HatchBelow: React.FC<{ frame: number; open: number; glow: number }> = ({ frame, open, glow }) => (
+  <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+    <defs><radialGradient id="hbG"><stop offset="0" stopColor="#FFB45A" stopOpacity={0.85} /><stop offset="1" stopColor="#FF8A2A" stopOpacity={0} /></radialGradient></defs>
+    <rect x={0} y={0} width={1080} height={1920} fill="#0C0D10" />
+    <path d="M 0 0 L 1080 0 L 1080 640 L 0 760 Z" fill="#15171B" />
+    <rect x={330} y={260} width={420} height={300} fill="#050506" />
+    <rect x={330} y={260} width={420} height={300} fill="#FFB45A" opacity={0.3 * glow * (0.85 + 0.15 * Math.sin(frame / 2.5))} />
+    <circle cx={540} cy={420} r={420} fill="url(#hbG)" opacity={glow * (0.8 + 0.2 * Math.sin(frame / 2.5))} />
+    <g transform={`translate(330 260) rotate(${-80 * open}) `}><rect x={0} y={0} width={420} height={36} fill="#3A2E22" stroke="#120E0A" strokeWidth={6} /></g>
+    {/* стремянка */}
+    <path d="M 470 560 L 380 1920 M 630 560 L 720 1920" stroke="#5A6058" strokeWidth={20} />
+    {Array.from({ length: 9 }, (_, i) => { const y = 680 + i * 150, k = (y - 560) / 1360; return <line key={i} x1={470 - 90 * k} y1={y} x2={630 + 90 * k} y2={y} stroke="#6E7A8E" strokeWidth={16} />; })}
+  </svg>
+);
+
+/* Чердак: балки, керосинка, дядя Коля в ушанке, кот в переноске */
+const KOLYA: Look = { skin: "#E3A988", skinShade: "#C48A6C", cap: "#3B3D24", capBrim: "#2C2E1B", hoodie: "#4E5A3A", hoodieShade: "#3E482D", tee: "#4E5A3A",
+  jeans: "#3A3F48", jeansShade: "#2E333B", joggers: "#3A3F48", boots: "#3A2A20", sneakers: "#3A2A20", sole: "#1A1A1A", sneakerAccent: "#3A2A20",
+  band: "#4E5A3A", line: "#2A1E16", stubble: "#C9C9C9", head: "bald", beard: "#D8D8D8" };
+export const Attic: React.FC<{ frame: number; talk: number; lamp?: number; zoom?: number; jack?: number }> = ({ frame, talk, lamp = 1, zoom = 1, jack = -1 }) => {
+  const fl = 0.85 + 0.15 * Math.sin(frame / 2.3) + 0.05 * Math.sin(frame * 1.7);
+  const mouth = talk > 0 && Math.floor(frame / 4) % 2 ? "open" : "flat";
+  const pose: HeroPose = { ...NEUTRAL, y: NEUTRAL.y + 70, torso: 12, head: -4 + Math.sin(frame / 17) * 2,
+    legL: { hip: -80, knee: 90, foot: 0 }, legR: { hip: -70, knee: 86, foot: 0 },
+    armL: { sh: -40, el: -60, wr: 0 }, armR: { sh: talk > 0 ? -70 + Math.sin(frame / 5) * 12 : -20, el: -70, wr: 0 },
+    expr: { brow: -0.2, browTilt: 0.6, mouth, blink: frame % 80 < 3 ? 1 : 0 } };
+  return (
+    <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+      <defs><radialGradient id="atL"><stop offset="0" stopColor="#FFC97A" stopOpacity={0.9} /><stop offset="1" stopColor="#FF8A2A" stopOpacity={0} /></radialGradient></defs>
+      <g transform={`translate(540 760) scale(${1.3 * zoom}) translate(-660 -1150)`}>
+        <rect x={-600} y={-400} width={2400} height={2800} fill="#08070A" />
+        <circle cx={700} cy={1050} r={760} fill="url(#atL)" opacity={0.55 * lamp * fl} />
+        {/* скаты крыши и балки */}
+        <path d="M -100 900 L 540 260 L 1180 900" stroke="#2A2018" strokeWidth={40} fill="none" />
+        {[0, 1, 2, 3].map((i) => <line key={i} x1={540 - 160 * i} y1={260 + 160 * i} x2={540 + 160 * i} y2={260 + 160 * i} stroke="#21190F" strokeWidth={18} />)}
+        <rect x={-100} y={1420} width={1280} height={600} fill="#1A140E" />
+        {Array.from({ length: 9 }, (_, i) => <line key={i} x1={-100} y1={1440 + i * 60} x2={1180} y2={1440 + i * 60} stroke="#120E0A" strokeWidth={4} />)}
+        {jack >= 0 && <g transform={`translate(${720 - 420 * jack} 1440) scale(-1.6 1.6)`}>
+          <Dog pose={{ ...dogLie(frame, 3), earL: -24, earR: -24, head: 12, tail: -20 }} />
+        </g>}
+        {/* переноска с котом */}
+        <g transform="translate(180 1420)">
+          <rect x={0} y={-200} width={260} height={200} rx={24} fill="#5A6058" stroke="#2A2D2A" strokeWidth={6} />
+          <rect x={30} y={-170} width={150} height={140} rx={12} fill="#0E0F10" />
+          {Array.from({ length: 6 }, (_, i) => <line key={i} x1={45 + i * 25} y1={-170} x2={45 + i * 25} y2={-30} stroke="#8A929E" strokeWidth={5} />)}
+          <g transform="translate(105 -60) scale(0.9)" opacity={0.85}><Cat frame={frame} /></g>
+        </g>
+        {/* дядя Коля сидит на ящике */}
+        <rect x={560} y={1260} width={220} height={160} fill="#3A2E22" stroke="#120E0A" strokeWidth={6} />
+        <g transform="translate(660 1300) scale(1.45)">
+          <Hero pose={pose} look={KOLYA} />
+          <g transform={`translate(${16} ${pose.y - 92 - 108}) rotate(${pose.torso + pose.head})`}>
+            <path d="M -70 -10 Q -70 -80 0 -88 Q 70 -80 70 -10 Z" fill="#5A4636" stroke="#2A1E16" strokeWidth={5} />
+            <rect x={-74} y={-22} width={148} height={26} rx={12} fill="#7A6450" stroke="#2A1E16" strokeWidth={5} />
+            <path d="M -74 -6 L -84 60 L -56 64 L -50 0 Z M 74 -6 L 84 60 L 56 64 L 50 0 Z" fill="#7A6450" stroke="#2A1E16" strokeWidth={5} />
+          </g>
+        </g>
+        {/* керосиновая лампа */}
+        <g transform="translate(880 1420)">
+          <rect x={-40} y={-30} width={80} height={30} rx={8} fill="#6E5A3A" />
+          <ellipse cx={0} cy={-90} rx={46} ry={62} fill="#FFE3A8" opacity={0.25 * lamp} stroke="#8A7A5A" strokeWidth={4} />
+          <path d={`M 0 -60 Q ${-12 + Math.sin(frame / 2) * 4} -100 0 ${-128 - 6 * Math.sin(frame / 3)} Q 12 -100 0 -60`} fill="#FFB45A" opacity={lamp} />
+          <rect x={-30} y={-160} width={60} height={14} rx={6} fill="#6E5A3A" />
+        </g>
+      </g>
+    </svg>
+  );
+};
+
+/* Кнопочный телефон Коли в руке: экранчик с сообщением */
+export const ButtonPhone: React.FC<{ frame: number; k: number; buzz: number; lines: string[]; play?: number }> = ({ frame, k, buzz, lines, play = 0 }) => {
+  const sh = buzz > 0 ? Math.sin(frame * 2.7) * 8 : 0;
+  return (
+    <div style={{ position: "absolute", left: 260 + sh, top: 260, width: 560, height: 980, opacity: k, borderRadius: 70, background: "#1E2126", border: "10px solid #2E333B", boxShadow: "0 30px 80px rgba(0,0,0,.8)" }}>
+      <div style={{ position: "absolute", left: 50, right: 50, top: 70, height: 420, borderRadius: 10, background: "#9FBF7A", boxShadow: "inset 0 0 30px rgba(0,0,0,.35)", padding: 24,
+        fontFamily: "JetBrains Mono", fontWeight: 700, color: "#1E2A12" }}>
+        <div style={{ fontSize: 28, borderBottom: "3px solid #1E2A12", paddingBottom: 8 }}>ВХОДЯЩЕЕ · 2 МИН НАЗАД</div>
+        {lines.map((l, i) => <div key={i} style={{ fontSize: i === 0 ? 34 : 38, marginTop: 14, lineHeight: 1.1 }}>{l}</div>)}
+        {play > 0 && <div style={{ display: "flex", gap: 6, marginTop: 16, alignItems: "center", height: 60 }}>
+          {Array.from({ length: 14 }, (_, i) => <div key={i} style={{ width: 12, background: "#1E2A12", height: 10 + 44 * Math.abs(Math.sin(frame / 3 + i * 1.3)) }} />)}</div>}
+      </div>
+      {Array.from({ length: 12 }, (_, i) => (
+        <div key={i} style={{ position: "absolute", left: 70 + (i % 3) * 150, top: 560 + Math.floor(i / 3) * 95, width: 120, height: 70, borderRadius: 20, background: "#3A404A",
+          fontFamily: "JetBrains Mono", fontWeight: 700, fontSize: 34, color: "#C9D2E0", display: "flex", alignItems: "center", justifyContent: "center" }}>{"123456789*0#"[i]}</div>
+      ))}
+    </div>
+  );
+};
+
+/* Крышка лаза сверху (с чердака): вздрагивает от стука */
+export const HatchAbove: React.FC<{ frame: number; knock: number; lamp?: number }> = ({ frame, knock, lamp = 1 }) => {
+  const j = knock > 0 ? Math.sin(frame * 3.1) * 6 * knock : 0;
+  const fl = 0.85 + 0.15 * Math.sin(frame / 2.3);
+  return (
+    <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+      <defs><radialGradient id="haL"><stop offset="0" stopColor="#FFC97A" stopOpacity={0.6} /><stop offset="1" stopColor="#FF8A2A" stopOpacity={0} /></radialGradient></defs>
+      <rect x={0} y={0} width={1080} height={1920} fill="#120E0A" />
+      {Array.from({ length: 12 }, (_, i) => <rect key={i} x={0} y={i * 170} width={1080} height={166} fill={i % 2 ? "#1A140E" : "#1D1610"} />)}
+      <circle cx={900} cy={300} r={900} fill="url(#haL)" opacity={lamp * fl} />
+      <g transform={`translate(${540 + j} ${900 + j * 0.5})`}>
+        <rect x={-260} y={-200} width={520} height={400} fill="#3A2E22" stroke="#0A0806" strokeWidth={10} />
+        {[-130, 0, 130].map((x) => <line key={x} x1={x} y1={-200} x2={x} y2={200} stroke="#2A2018" strokeWidth={6} />)}
+        <rect x={150} y={-30} width={70} height={60} rx={10} fill="#6E7A8E" />
+      </g>
+      {knock > 0 && Array.from({ length: 14 }, (_, i) => <circle key={i} cx={300 + ((i * 71) % 480)} cy={700 + ((frame * 4 + i * 37) % 420)} r={3} fill="#D8CFB8" opacity={0.6 * knock} />)}
+    </svg>
+  );
+};

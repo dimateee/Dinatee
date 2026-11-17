@@ -59,7 +59,7 @@ const Item: React.FC<{ label: string; hi: number; children: React.ReactNode }> =
   </div>
 );
 /* HUD: часы, «до рассвета», фонарик (3 ячейки), заряд, свеча. */
-export const SvetHud: React.FC<{ time: string; dawn?: string; cells: number[]; battery: number; candle?: number; hi?: number[] }> = ({ time, dawn, cells, battery, candle = 1, hi = [0, 0, 0] }) => (
+export const SvetHud: React.FC<{ time: string; dawn?: string; cells: number[]; battery: number | string; candle?: number; hi?: number[] }> = ({ time, dawn, cells, battery, candle = 1, hi = [0, 0, 0] }) => (
   <div style={{ position: "absolute", left: 0, right: 0, top: 70, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
     <div style={{ display: "flex", alignItems: "baseline", gap: 22 }}>
       <div style={{ fontFamily: "JetBrains Mono", fontWeight: 700, fontSize: 72, lineHeight: 1, color: "#FF6B5E", textShadow: "0 0 20px rgba(229,57,53,.6)" }}>{time}</div>
@@ -71,7 +71,7 @@ export const SvetHud: React.FC<{ time: string; dawn?: string; cells: number[]; b
           <div key={i} style={{ width: 22, height: 40, borderRadius: 5, border: "3px solid #E8C547", display: "flex", alignItems: "flex-end" }}>
             <div style={{ width: "100%", height: `${Math.round(100 * c)}%`, background: "#E8C547" }} /></div>))}</div>
       </Item>
-      <Item label={`${battery}%`} hi={hi[1]}><div style={{ width: 24, height: 40, borderRadius: 6, border: "3px solid #C9D2E0" }} /></Item>
+      <Item label={typeof battery === "number" ? `${battery}%` : battery} hi={hi[1]}><div style={{ width: 24, height: 40, borderRadius: 6, border: "3px solid #C9D2E0" }} /></Item>
       <Item label={`×${candle}`} hi={hi[2]}><div style={{ width: 12, height: 34, borderRadius: 3, background: "#EDE6D6" }} /></Item>
     </div>
   </div>

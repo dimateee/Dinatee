@@ -30,6 +30,7 @@ CFG = {
     "podval-3": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "svet-1": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "svet-2": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
+    "svet-3": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "cam-1": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
 }[EP]
 if EP == "podval-2":  # времена — из слов текущего голоса (голос может смениться)
@@ -68,6 +69,12 @@ if EP.startswith("svet-") or EP.startswith("cam-"):
                 c += 1
                 if c == k: return x["start"]
         raise KeyError(word)
+if EP == "svet-3":
+    CFG.update(end=_w[-1]["end"], beat=(_ts("снизу"), _ts("что")), tick=(0, 0), radio=(0, 0),
+        mood=[(0.0, "dread"), (_ts("удар"), "silence"), (_ts("а"), "dread"), (_ts("дядя"), "shelter"), (_ts("его"), "dread"),
+              (_ts("это", 2) - 0.2, "silence"), (_ts("джек", 2), "dread"), (_ts("что"), "end")],
+        sfx=[(_ts("пол") + 0.05, "glass"), (_ts("ручка", 2) + 0.2, "creak"), (_ts("осколки"), "whine:3"), (_ts("три", 2) - 0.1, "knock"),
+             (_ts("выходишь"), "steps:1.6"), (_ts("лаз") + 0.1, "creak"), (_ts("вздрагивает"), "buzz"), (_ts("стучат"), "knock")])
 if EP == "cam-1":
     end = _w[-1]["end"]
     CFG.update(end=end, beat=(_ts("тридцать"), end), tick=(_ts("шестьдесят"), end), radio=(0, 0),
@@ -200,6 +207,11 @@ def sfx(kind):
         n = int(1.1 * SR); x = np.arange(n) / SR
         gate = (((x % 0.36) < 0.24)).astype(float)
         return np.sin(2 * np.pi * 150 * x) * lp(gate, 60) * 0.5
+    if kind == "glass":  # телефон разбивается об пол
+        n = int(1.0 * SR); x = np.arange(n) / SR; w = rng.standard_normal(n)
+        hit = (lp(w, 6000) - lp(w, 1500)) * np.exp(-x * 9) * 0.9 + np.sin(2 * np.pi * 90 * x) * np.exp(-x * 25) * 0.8
+        tinkle = sum(np.sin(2 * np.pi * (3000 + 2500 * rng.random()) * (x - d)) * np.exp(-np.clip(x - d, 0, None) * 30) * (x > d) * 0.15 for d in rng.random(10) * 0.7)
+        return hit + tinkle
     if kind == "bonk":  # кастрюля на голове бьётся о дверь
         n = int(1.2 * SR); x = np.arange(n) / SR
         return sum(np.sin(2 * np.pi * f * x) * a for f, a in ((523, 1), (1290, .6), (2210, .4), (3100, .25))) * np.exp(-x * 5) * 0.25

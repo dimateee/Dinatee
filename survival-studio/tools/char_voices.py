@@ -1,5 +1,5 @@
 """Разные голоса персонажей из одного дикторского дубля: участок по словам → свой фильтр ffmpeg, длина сохраняется.
-.venv/bin/python tools/char_voices.py <эпизод> 'первое_слово|последнее_слово|фильтр' ...
+.venv/bin/python tools/char_voices.py <эпизод> 'первое_слово[#n]|последнее_слово|фильтр' ...
 Исходник сохраняется рядом как voice_narrator.wav; результат перезаписывает voice_final.wav."""
 import json, os, shutil, subprocess, sys, tempfile
 import wave
@@ -20,7 +20,8 @@ def wr(p, x, sr):
 a, sr = rd(src); out = a.copy()
 for spec in sys.argv[2:]:
     w0, w1, flt = spec.split("|", 2)
-    i0 = next(i for i, x in enumerate(words) if n(x["word"]) == w0)
+    w0, k0 = (w0.split("#") + ["1"])[:2]
+    i0 = [i for i, x in enumerate(words) if n(x["word"]) == w0][int(k0) - 1]
     i1 = next(i for i, x in enumerate(words) if i >= i0 and n(x["word"]) == w1)
     t0, t1 = words[i0]["start"] - 0.06, words[i1]["end"] + 0.12
     s0, s1 = int(t0 * sr), int(t1 * sr)
