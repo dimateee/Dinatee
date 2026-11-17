@@ -155,7 +155,7 @@ export const Db1: React.FC<{ withAudio?: boolean }> = ({ withAudio = true }) => 
           {s === "cold" && t < tSound - 0.1 && (<>
             <rect x={0} y={0} width={1080} height={1920} fill="#020203" />
             <Rings x={540} y={760} db={86} age={t} />
-            <Creature x={80} y={3150 - 300 * t} s={2.5 + 0.9 * t} frame={frame} turn={0} flare={1} mouth={1} />
+            {(() => { const sc = 2.2 + 1.0 * Math.min(1, t / 1.2); return <Creature x={500 - 180 * sc} y={860 + 830 * sc} s={sc} frame={frame} turn={0} flare={1} mouth={1} />; })()}
           </>)}
           {s === "cold" && t >= tSound - 0.1 && t < tNever - 0.1 && (<>
             <rect x={0} y={0} width={1080} height={1920} fill="#020203" />
