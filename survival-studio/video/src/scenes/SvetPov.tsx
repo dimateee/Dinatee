@@ -457,7 +457,7 @@ export const HatchBelow: React.FC<{ frame: number; open: number; glow: number }>
 /* Чердак: балки, керосинка, дядя Коля в ушанке, кот в переноске */
 const KOLYA: Look = { skin: "#E3A988", skinShade: "#C48A6C", cap: "#3B3D24", capBrim: "#2C2E1B", hoodie: "#4E5A3A", hoodieShade: "#3E482D", tee: "#4E5A3A",
   jeans: "#3A3F48", jeansShade: "#2E333B", joggers: "#3A3F48", boots: "#3A2A20", sneakers: "#3A2A20", sole: "#1A1A1A", sneakerAccent: "#3A2A20",
-  band: "#4E5A3A", line: "#2A1E16", stubble: "#C9C9C9", head: "bald", beard: "#D8D8D8" };
+  band: "#4E5A3A", line: "#2A1E16", stubble: "#C9C9C9", head: "ushanka", furColor: "#8A6E54", beard: "#D8D8D8" };
 export const Attic: React.FC<{ frame: number; talk: number; lamp?: number; zoom?: number; jack?: number }> = ({ frame, talk, lamp = 1, zoom = 1, jack = -1 }) => {
   const fl = 0.85 + 0.15 * Math.sin(frame / 2.3) + 0.05 * Math.sin(frame * 1.7);
   const mouth = talk > 0 && Math.floor(frame / 4) % 2 ? "open" : "flat";
@@ -490,11 +490,6 @@ export const Attic: React.FC<{ frame: number; talk: number; lamp?: number; zoom?
         <rect x={560} y={1260} width={220} height={160} fill="#3A2E22" stroke="#120E0A" strokeWidth={6} />
         <g transform="translate(660 1300) scale(1.45)">
           <Hero pose={pose} look={KOLYA} />
-          <g transform={`translate(${16} ${pose.y - 92 - 108}) rotate(${pose.torso + pose.head})`}>
-            <path d="M -70 -10 Q -70 -80 0 -88 Q 70 -80 70 -10 Z" fill="#5A4636" stroke="#2A1E16" strokeWidth={5} />
-            <rect x={-74} y={-22} width={148} height={26} rx={12} fill="#7A6450" stroke="#2A1E16" strokeWidth={5} />
-            <path d="M -74 -6 L -84 60 L -56 64 L -50 0 Z M 74 -6 L 84 60 L 56 64 L 50 0 Z" fill="#7A6450" stroke="#2A1E16" strokeWidth={5} />
-          </g>
         </g>
         {/* керосиновая лампа */}
         <g transform="translate(880 1420)">

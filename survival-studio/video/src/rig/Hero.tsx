@@ -52,7 +52,7 @@ type Outfit = "casual" | "sport";
 
 /* ---------- Внешность: Артём по умолчанию; другие персонажи — через look ---------- */
 export type Look = { [K in keyof typeof HERO]: string } & {
-  head: "cap" | "scarf" | "hair" | "bald";
+  head: "cap" | "scarf" | "hair" | "bald" | "ushanka"; furColor?: string;
   hairColor?: string; longHair?: boolean; scarfColor?: string;
   glasses?: boolean; beard?: string; bristle?: boolean; bracelet?: boolean; facemask?: string; gloves?: string; hood?: boolean; strings?: boolean; skirt?: string;
 };
@@ -197,6 +197,27 @@ export const HeroHead: React.FC<{ expr: Expr; glow?: number }> = ({ expr, glow =
         <path d={`M ${R - 14} -16 Q ${R + 16} -20 ${R + 30} -10 Q ${R + 12} -6 ${R - 10} -8 Z`} fill={L.capBrim} />
         <circle cx={2} cy={-R - 4} r={4} fill="#E8833A" />
       </>)}
+      {L.head === "ushanka" && (() => {
+        const fur = L.furColor ?? "#8A6E54", dark = shade(fur, -0.35), edge = shade(fur, -0.55), light = shade(fur, 0.25);
+        const tufts = (pts: number[][]) => pts.map(([x, y], i) => <path key={i} d={`M ${x} ${y} l 3 -6 l 3 6`} stroke={light} strokeWidth={2} fill="none" strokeLinecap="round" />);
+        return (
+          <g strokeLinejoin="round">
+            {/* задний клапан */}
+            <path d={`M ${-R - 4} -14 Q ${-R - 12} 20 ${-R + 2} 40 Q ${-R + 18} 46 ${-R + 22} 30 L ${-R + 18} -8 Z`} fill={fur} stroke={edge} strokeWidth={2} />
+            {/* верх — кожаная/суконная тулья */}
+            <path d={`M ${-R - 6} -10 Q ${-R - 4} ${-R - 14} 2 ${-R - 16} Q ${R - 2} ${-R - 14} ${R - 6} -22 L ${-R - 6} -10 Z`} fill={dark} stroke={edge} strokeWidth={2} />
+            <path d={`M -10 ${-R - 15} Q -6 -40 -8 -20`} stroke={edge} strokeWidth={1.6} fill="none" opacity={0.7} />
+            {/* мех: отворот надо лбом и по кругу */}
+            <path d={`M ${-R - 8} -6 Q ${-R - 10} -34 ${-R + 6} -40 Q 0 -30 ${R - 10} -36 Q ${R + 10} -38 ${R + 8} -20 Q ${R + 4} -10 ${R - 8} -14 Q 0 -8 ${-R + 4} -2 Z`}
+              fill={fur} stroke={edge} strokeWidth={2} />
+            {tufts([[-R - 2, -30], [-40, -34], [-22, -32], [-4, -30], [14, -32], [32, -34], [R - 6, -32]])}
+            {/* ушной клапан опущен, с завязкой */}
+            <path d={`M -36 -12 Q -46 18 -36 50 Q -18 60 -8 46 Q -2 18 -8 -10 Z`} fill={fur} stroke={edge} strokeWidth={2} />
+            {tufts([[-36, 46], [-26, 52], [-16, 48]])}
+            <path d="M -22 54 Q -20 70 -26 82 M -22 54 Q -14 70 -12 80" stroke={dark} strokeWidth={2.4} fill="none" strokeLinecap="round" />
+          </g>
+        );
+      })()}
       {L.head === "scarf" && (
         <g>
           <path d={`M ${-R - 6} 20 Q ${-R - 10} ${-R - 4} 6 ${-R - 8} Q ${R + 4} ${-R - 4} ${R - 2} -18 Q 30 -26 10 -22 Q -10 -14 -16 30 Q -30 46 ${-R - 6} 20 Z`}
