@@ -49,8 +49,8 @@ const lerpCam = (a: Cam, b: Cam, k: number): Cam => { const q = sm(Math.min(1, M
 const camT = (c: Cam) => `translate(540 900) scale(${c.z}) translate(${-c.x} ${-c.y})`;
 
 /* Позиции в библиотеке */
-const MEX = 250, ANX = 400, STX = 1000, GY = 1450, S = 1.5;
-const POCKET = { x: STX - 120 * S, y: GY - 20 };
+const MEX = 250, ANX = 400, STX = 1150, GY = 1450, S = 1.5;
+const POCKET = { x: STX - 160 * S, y: GY - 20 };
 const WIDE: Cam = { x: 620, y: 1080, z: 0.92 };
 
 /* Уровень шума */
@@ -85,22 +85,22 @@ export const Db1: React.FC<{ withAudio?: boolean }> = ({ withAudio = true }) => 
 
   /* ---- камера в библиотеке ---- */
   const libCam = (): Cam => {
-    if (s === "cold") return lerpCam({ x: MEX + 52, y: GY - 250 * S + 92, z: 4.4 }, { x: MEX + 52, y: GY - 250 * S + 92, z: 3.6 }, (t - tNever) / 1.6);
+    if (s === "cold") return lerpCam({ x: MEX + 91, y: GY - 250 * S - 36, z: 4.4 }, { x: MEX + 91, y: GY - 250 * S - 36, z: 3.6 }, (t - tNever) / 1.6);
     if (s === "hook") return lerpCam({ x: MEX + 60, y: 1150, z: 2.6 }, { x: MEX + 60, y: 1150, z: 3.0 }, t / tThey);
     if (s === "lib") return lerpCam({ x: 540, y: 1000, z: 0.8 }, WIDE, f / 3);
     if (s === "chars") {
       if (t < tAnya - 0.1) return lerpCam(WIDE, { x: MEX + 40, y: 1200, z: 2.0 }, (t - tMe + 0.3) / 0.8);
       if (t < tMan - 0.1) return lerpCam({ x: MEX + 40, y: 1200, z: 2.0 }, { x: ANX + 30, y: 1250, z: 2.2 }, (t - tAnya + 0.2) / 0.8);
       if (t < tEars - 0.1) return lerpCam({ x: ANX + 30, y: 1250, z: 2.2 }, { x: STX - 80, y: 1150, z: 1.6 }, (t - tMan + 0.2) / 0.9);
-      if (t < tPhone - 0.1) return lerpCam({ x: STX - 80, y: 1150, z: 1.6 }, { x: STX - 110, y: 1135, z: 3.4 }, (t - tEars + 0.1) / 0.9);
-      return lerpCam({ x: STX - 110, y: 1135, z: 3.4 }, { x: STX - 120, y: 1250, z: 1.5 }, (t - tPhone) / 1.0);
+      if (t < tPhone - 0.1) return lerpCam({ x: STX - 80, y: 1150, z: 1.6 }, { x: STX - 169, y: 1135, z: 3.4 }, (t - tEars + 0.1) / 0.9);
+      return lerpCam({ x: STX - 169, y: 1135, z: 3.4 }, { x: STX - 120, y: 1250, z: 1.5 }, (t - tPhone) / 1.0);
     }
     if (s === "rule1") { const wx = interpolate(t, [tWalk, tR2], [150, 900], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }); return { x: wx, y: 1250, z: 1.4 }; }
     if (s === "rule3") return { x: ANX + 30, y: 1220, z: 2.8 };
     if (s === "rule4") return { x: (MEX + ANX) / 2 + 20, y: 1200, z: 2.0 };
     if (s === "alarm") {
       if (t < tExcept - 0.1) return lerpCam({ x: POCKET.x, y: 1300, z: 1.8 }, WIDE, (t - tAlarm) / 1.2);
-      return lerpCam(WIDE, { x: STX - 395, y: 1400, z: 3.2 }, (t - tExcept + 0.2) / 0.9);
+      return lerpCam(WIDE, { x: STX - 451, y: 1400, z: 3.2 }, (t - tExcept + 0.2) / 0.9);
     }
     return WIDE;
   };
@@ -119,7 +119,7 @@ export const Db1: React.FC<{ withAudio?: boolean }> = ({ withAudio = true }) => 
             <g transform={camT(cam)}>
               <Library frame={frame} candle={s === "alarm" ? 0.7 : 1} shadows={<>
                 <Person x={MEX} y={GY} s={S} look={ME} pose={sitPose(frame)} />
-                <Person x={ANX} y={GY} s={S * 0.72} look={ANYA} pose={sitPose(frame + 30)} />
+                <Person x={ANX} y={GY} s={S * 0.95} look={ANYA} pose={sitPose(frame + 30)} />
               </>}>
                 {/* я */}
                 {s !== "rule1" && <Person x={MEX} y={GY} s={S} look={ME} pose={sitPose(frame, {
@@ -128,11 +128,11 @@ export const Db1: React.FC<{ withAudio?: boolean }> = ({ withAudio = true }) => 
                   ...(woke ? { torso: 4, head: -6 } : {}) })} />}
                 {s === "rule1" && <Person x={interpolate(t, [tWalk, tR2], [150, 900], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })} y={GY + 40} s={S} look={ME} pose={walkPose(frame)} />}
                 {/* Аня */}
-                <Person x={ANX} y={GY} s={S * 0.72} look={ANYA} frame={frame} tremble={woke || (s === "hook" && t > tInhale) ? 1 : 0} pose={sitPose(frame + 30, {
+                <Person x={ANX} y={GY} s={S * 0.95} look={ANYA} frame={frame} tremble={woke || (s === "hook" && t > tInhale) ? 1 : 0} pose={sitPose(frame + 30, {
                   expr: woke ? { brow: 1, browTilt: 1, mouth: "o", blink: 0 } : s === "rule3" && t >= tCough && t < tPillow + 1 ? { brow: -0.3, browTilt: 1, mouth: "open", blink: 1 } : { brow: 0.4, browTilt: 1, mouth: "sad", blink: frame % 95 < 3 ? 1 : 0 },
                   ...(s === "rule3" && t >= tPillow - 0.3 ? { armL: { sh: -130, el: -80, wr: 0 }, armR: { sh: -125, el: -85, wr: 0 } } : {}),
                   ...(s === "rule4" ? { armL: { sh: -140 + 25 * Math.sin(frame / 5 + 1), el: -50, wr: 0 }, armR: { sh: -110 + 25 * Math.cos(frame / 4), el: -80, wr: 0 } } : {}) })} />
-                {s === "rule3" && t >= tPillow - 0.3 && <rect x={ANX + 20} y={GY - 300 * S * 0.72} width={110} height={80} rx={30} fill="#C9C2B0" stroke="#6E6A60" strokeWidth={5} />}
+                {s === "rule3" && t >= tPillow - 0.3 && <rect x={ANX + 20} y={GY - 285} width={110} height={80} rx={30} fill="#C9C2B0" stroke="#6E6A60" strokeWidth={5} />}
                 {/* чужак */}
                 {strangerLie
                   ? <Person x={STX} y={GY - 8} s={S} look={STRANGER} lie pose={{ ...NEUTRAL, expr: { brow: 0, browTilt: 0, mouth: "flat", blink: 1 }, armL: { sh: 20, el: -10, wr: 0 }, armR: { sh: 10, el: -20, wr: 0 } }} />
@@ -145,8 +145,8 @@ export const Db1: React.FC<{ withAudio?: boolean }> = ({ withAudio = true }) => 
                   const x = interpolate(ts, [tWalk, tR2], [150, 900], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
                   return t >= ts && t < ts + 1.2 ? <Rings key={i} x={x} y={GY + 40} db={20} age={t - ts} scale={0.5} /> : null;
                 })}
-                {s === "rule3" && t >= tCough && t < tPillow && <Rings x={ANX + 50} y={GY - 260 * S * 0.72} db={70} age={t - tCough} scale={0.6} />}
-                {s === "rule3" && t >= tPillow && <Rings x={ANX + 70} y={GY - 270 * S * 0.72} db={39.9} age={t - tPillow} scale={0.6} />}
+                {s === "rule3" && t >= tCough && t < tPillow && <Rings x={ANX + 50} y={GY - 235} db={70} age={t - tCough} scale={0.6} />}
+                {s === "rule3" && t >= tPillow && <Rings x={ANX + 70} y={GY - 245} db={39.9} age={t - tPillow} scale={0.6} />}
                 {s === "alarm" && <Rings x={POCKET.x} y={POCKET.y} db={75} age={(t - tAlarm) % 1.6} />}
               </Library>
             </g>

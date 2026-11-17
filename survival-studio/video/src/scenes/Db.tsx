@@ -1,8 +1,8 @@
 import React from "react";
-import { random } from "remotion";
-import { ARTYOM, Hero, HeroPose, Look, NEUTRAL } from "../rig/Hero";
+import { random, useCurrentFrame } from "remotion";
+import { HeroPose, NEUTRAL } from "../rig/Hero";
+import { Figure, FigureLook, F_ANYA, F_ME, F_STRANGER } from "../rig/Figure";
 import { heroGait, WALK } from "../rig/gait";
-import { LOOKS } from "./Podval";
 
 /*
  * «40 дБ» v2 (LESSONS Б26): объём, фактура, живой свет, слои глубины, микродвижения.
@@ -274,9 +274,9 @@ export const Library: React.FC<{ frame: number; candle?: number; children?: Reac
 };
 
 /* ---------- Люди ---------- */
-export const STRANGER: Look = { ...LOOKS.petrov, earBandage: true };
-export const ANYA: Look = LOOKS.kidB;
-export const ME: Look = ARTYOM;
+export const STRANGER: FigureLook = F_STRANGER;
+export const ANYA: FigureLook = F_ANYA;
+export const ME: FigureLook = F_ME;
 export const sitPose = (frame: number, ex: Partial<HeroPose> = {}): HeroPose => ({
   ...NEUTRAL, y: NEUTRAL.y + 70, torso: 14 + Math.sin(frame / 22) * 2, head: 4 + Math.sin(frame / 37) * 3,
   legL: { hip: -95, knee: 120, foot: 0 }, legR: { hip: -85, knee: 115, foot: 0 },
@@ -284,12 +284,13 @@ export const sitPose = (frame: number, ex: Partial<HeroPose> = {}): HeroPose => 
   expr: { brow: 0.3, browTilt: 0.8, mouth: "flat", blink: frame % 110 < 3 ? 1 : 0 }, ...ex,
 });
 export const walkPose = (frame: number): HeroPose => ({ ...heroGait(frame, WALK, { expr: { brow: 0.3, browTilt: 0.8, mouth: "flat", blink: 0 } }), x: 0, torso: 10 });
-export const Person: React.FC<{ x: number; y: number; s: number; look: Look; pose: HeroPose; flip?: boolean; lie?: boolean; tremble?: number; frame?: number }> = ({ x, y, s, look, pose, flip, lie, tremble = 0, frame = 0 }) => {
+export const Person: React.FC<{ x: number; y: number; s: number; look: FigureLook; pose: HeroPose; flip?: boolean; lie?: boolean; tremble?: number; frame?: number }> = ({ x, y, s, look, pose, flip, lie, tremble = 0 }) => {
+  const frame = useCurrentFrame();
   const tr = tremble ? Math.sin(frame * 2.3) * 2.5 * tremble : 0;
   return (
     <g transform={`translate(${x + tr} ${y}) ${lie ? "rotate(-90)" : ""} scale(${flip ? -s : s} ${s})`}>
       {!lie && <ellipse cx={0} cy={2} rx={50} ry={9} fill="#000" opacity={0.5} />}
-      <Hero pose={pose} look={look} />
+      <Figure pose={pose} look={look} frame={frame} />
     </g>
   );
 };
