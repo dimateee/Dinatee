@@ -31,6 +31,7 @@ CFG = {
     "svet-1": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "svet-2": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "svet-3": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
+    "db-1": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "cam-1": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
 }[EP]
 if EP == "podval-2":  # времена — из слов текущего голоса (голос может смениться)
@@ -59,7 +60,7 @@ if EP == "podval-3":
     t30 = _t3("тридцать"); CFG.update(end=_w[-1]["end"], beat=(0, 0), tick=(t30, _t3("пленка") + 0.6), radio=(0, 0),
         mood=[(0.0, "calm"), (t30, "run"), (_t3("правило", 3), "shelter"), (_t3("стука"), "dread"), (_t3("белая"), "shelter"), (_t3("идем"), "end")],
         sfx=[(_t3("открыта"), "creak"), (_t3("скотч"), "tape"), (_t3("стука") - 0.5, "knock")])
-if EP.startswith("svet-") or EP.startswith("cam-"):
+if EP.startswith("svet-") or EP.startswith("cam-") or EP.startswith("db-"):
     _w = json.load(open(os.path.join(ROOT, "episodes", EP, "words.json")))["words"]
     _n = lambda s: s.lower().replace("ё", "е").strip(".,:;!?—«»\" ")
     def _ts(word, k=1):
@@ -69,6 +70,12 @@ if EP.startswith("svet-") or EP.startswith("cam-"):
                 c += 1
                 if c == k: return x["start"]
         raise KeyError(word)
+if EP == "db-1":
+    end = _w[-1]["end"]
+    CFG.update(end=end, beat=(_ts("шесть"), end), tick=(0, 0), radio=(0, 0),
+        mood=[(0.0, "dread"), (_ts("правило"), "silence"), (_ts("бумаге") - 0.3, "dread"), (_ts("пять"), "silence"), (_ts("шесть"), "alarm"), (_ts("что", 2), "end")],
+        sfx=[(_ts("вдох") , "inhale"), (_ts("они", 2), "clicks"), (_ts("ходим"), "steps:3.0"), (_ts("труба"), "hum:1.8"),
+             (_ts("кашель"), "cough"), (_ts("подушку"), "cough_m"), (_ts("шесть") + 0.2, "alarm:9.5"), (_ts("стеной"), "clicks")])
 if EP == "svet-3":
     CFG.update(end=_w[-1]["end"], beat=(_ts("снизу"), _ts("что")), tick=(0, 0), radio=(0, 0),
         mood=[(0.0, "dread"), (_ts("удар"), "silence"), (_ts("а"), "dread"), (_ts("дядя"), "shelter"), (_ts("его"), "dread"),
@@ -207,6 +214,30 @@ def sfx(kind):
         n = int(1.1 * SR); x = np.arange(n) / SR
         gate = (((x % 0.36) < 0.24)).astype(float)
         return np.sin(2 * np.pi * 150 * x) * lp(gate, 60) * 0.5
+    if kind == "inhale":  # резкий вдох после задержки дыхания
+        n = int(0.7 * SR); x = np.arange(n) / SR; w = rng.standard_normal(n)
+        return (lp(w, 4500) - lp(w, 700)) * np.sin(np.pi * np.clip(x / 0.55, 0, 1)) ** 0.6 * 0.5
+    if kind == "clicks":  # щелчки твари: эхолокация
+        n = int(1.6 * SR); out = np.zeros(n)
+        for j in range(11):
+            i0 = int((0.05 + j * 0.13 + 0.03 * rng.random()) * SR); m = int(0.012 * SR)
+            out[i0:i0 + m] += rng.standard_normal(m) * np.exp(-np.arange(m) / (0.003 * SR)) * 0.8
+        return lp(out, 3000)
+    if kind == "cough":  # кашель
+        n = int(0.6 * SR); x = np.arange(n) / SR; w = rng.standard_normal(n)
+        env = np.exp(-((x - 0.08) / 0.05) ** 2) + 0.7 * np.exp(-((x - 0.3) / 0.06) ** 2)
+        return lp(w, 2500) * env * 0.8
+    if kind == "cough_m":  # кашель в подушку
+        n = int(0.6 * SR); x = np.arange(n) / SR; w = rng.standard_normal(n)
+        env = np.exp(-((x - 0.08) / 0.05) ** 2) + 0.7 * np.exp(-((x - 0.3) / 0.06) ** 2)
+        return lp(w, 500) * env * 0.35
+    if kind.startswith("hum:"):  # труба гудит
+        dur = float(kind.split(":")[1]); n = int(dur * SR); x = np.arange(n) / SR
+        return (np.sin(2 * np.pi * 110 * x) + 0.5 * np.sin(2 * np.pi * 220 * x)) * 0.15 * ramp(n, 4000, 8000)
+    if kind.startswith("alarm:"):  # будильник телефона: пищит пачками
+        dur = float(kind.split(":")[1]); n = int(dur * SR); x = np.arange(n) / SR
+        gate = ((x % 1.0) < 0.6) & (((x % 0.15) < 0.09))
+        return np.sin(2 * np.pi * 2093 * x) * np.sin(2 * np.pi * 2637 * x + 1) * gate * 0.22 * np.minimum(1, 0.5 + x / dur)
     if kind == "glass":  # телефон разбивается об пол
         n = int(1.0 * SR); x = np.arange(n) / SR; w = rng.standard_normal(n)
         hit = (lp(w, 6000) - lp(w, 1500)) * np.exp(-x * 9) * 0.9 + np.sin(2 * np.pi * 90 * x) * np.exp(-x * 25) * 0.8

@@ -52,7 +52,7 @@ type Outfit = "casual" | "sport";
 
 /* ---------- Внешность: Артём по умолчанию; другие персонажи — через look ---------- */
 export type Look = { [K in keyof typeof HERO]: string } & {
-  head: "cap" | "scarf" | "hair" | "bald" | "ushanka"; furColor?: string;
+  head: "cap" | "scarf" | "hair" | "bald" | "ushanka"; furColor?: string; earBandage?: boolean;
   hairColor?: string; longHair?: boolean; scarfColor?: string;
   glasses?: boolean; beard?: string; bristle?: boolean; bracelet?: boolean; facemask?: string; gloves?: string; hood?: boolean; strings?: boolean; skirt?: string;
 };
@@ -230,6 +230,15 @@ export const HeroHead: React.FC<{ expr: Expr; glow?: number }> = ({ expr, glow =
         <g fill={L.hairColor} stroke={shade(L.hairColor ?? "#3A2A20", -0.4)} strokeWidth={1.6} strokeLinejoin="round">
           <path d={`M ${-R - 3} 4 Q ${-R - 8} ${-R - 2} 0 ${-R - 6} Q ${R} ${-R - 6} ${R + 2} -18 Q ${R - 10} -30 ${R - 24} -28 Q 34 -40 20 -30 Q 10 -40 -4 -30 Q -14 -26 -18 -6 Q -30 8 ${-R - 3} 4 Z`} />
           {L.longHair && <path d={`M ${-R - 2} 0 Q ${-R - 14} 50 ${-R + 4} 92 Q -24 96 -16 60 Q -20 30 -18 -2 Z`} />}
+        </g>
+      )}
+      {L.earBandage && (
+        <g>
+          {/* бинт через макушку и ухо, под подбородок; пятно крови на ухе */}
+          <path d={`M -28 ${-R - 2} Q -8 ${-R - 8} 8 ${-R + 2} L 4 -30 Q -2 10 4 40 Q 10 52 18 50 L 6 58 Q -16 56 -24 30 Q -32 -10 -28 ${-R - 2} Z`}
+            fill="#E8E4DA" stroke="#9A958A" strokeWidth={1.8} strokeLinejoin="round" />
+          <path d="M -26 -40 Q -10 -44 4 -38 M -27 -20 Q -12 -24 4 -18 M -26 22 Q -12 20 2 26" stroke="#B9B4A8" strokeWidth={1.4} fill="none" />
+          <ellipse cx={-10} cy={6} rx={10} ry={12} fill="#8E2A22" opacity={0.55} />
         </g>
       )}
       {glow > 0 && <ellipse cx={30} cy={14} rx={30} ry={30} fill="#5AA9FF" opacity={0.2 * glow} style={{ mixBlendMode: "screen" }} />}
