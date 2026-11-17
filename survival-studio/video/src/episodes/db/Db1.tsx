@@ -5,7 +5,7 @@ import data from "../../captions/db1.words.json";
 import { Grain } from "../../ui/Grain";
 import { useFonts } from "../../useFonts";
 import { NEUTRAL } from "../../rig/Hero";
-import { ANYA, Creature, DbMeter, Faucet, Fortress, Library, ME, Person, Pocket, Rings, sitPose, STRANGER, walkPose } from "../../scenes/Db";
+import { ANYA, Creature, DbDefs, DbMeter, Faucet, Foreground, Fortress, Library, ME, Person, Pocket, Rings, sitPose, STRANGER, walkPose } from "../../scenes/Db";
 import { idxIn, merge, ramp, sm, Stamp, wordAt } from "../svet/shared";
 
 /*
@@ -107,9 +107,13 @@ export const Db1: React.FC<{ withAudio?: boolean }> = ({ withAudio = true }) => 
     <AbsoluteFill style={{ backgroundColor: "#05070B", overflow: "hidden" }}>
       <AbsoluteFill style={{ transform: `translate(${shake}px, 0)`, filter: "saturate(0.55)" }}>
         <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+          <DbDefs frame={frame} />
           {inLib && (
             <g transform={camT(cam)}>
-              <Library frame={frame} candle={s === "alarm" ? 0.7 : 1}>
+              <Library frame={frame} candle={s === "alarm" ? 0.7 : 1} shadows={<>
+                <Person x={MEX} y={GY} s={S} look={ME} pose={sitPose(frame)} />
+                <Person x={ANX} y={GY} s={S * 0.72} look={ANYA} pose={sitPose(frame + 30)} />
+              </>}>
                 {/* я */}
                 {s !== "rule1" && <Person x={MEX} y={GY} s={S} look={ME} pose={sitPose(frame, {
                   expr: breathHold ? { brow: 0.6, browTilt: 1, mouth: "flat", blink: 0 } : woke ? { brow: 1, browTilt: 1, mouth: "o", blink: 0 } : { brow: 0.3, browTilt: 0.8, mouth: t >= tInhale && t < tInhale + 0.8 ? "o" : "flat", blink: frame % 110 < 3 ? 1 : 0 },
@@ -117,7 +121,7 @@ export const Db1: React.FC<{ withAudio?: boolean }> = ({ withAudio = true }) => 
                   ...(woke ? { torso: 4, head: -6 } : {}) })} />}
                 {s === "rule1" && <Person x={interpolate(t, [tWalk, tR2], [150, 900], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })} y={GY + 40} s={S} look={ME} pose={walkPose(frame)} />}
                 {/* Аня */}
-                <Person x={ANX} y={GY} s={S * 0.72} look={ANYA} pose={sitPose(frame + 30, {
+                <Person x={ANX} y={GY} s={S * 0.72} look={ANYA} frame={frame} tremble={woke || (s === "hook" && t > tInhale) ? 1 : 0} pose={sitPose(frame + 30, {
                   expr: woke ? { brow: 1, browTilt: 1, mouth: "o", blink: 0 } : s === "rule3" && t >= tCough && t < tPillow + 1 ? { brow: -0.3, browTilt: 1, mouth: "open", blink: 1 } : { brow: 0.4, browTilt: 1, mouth: "sad", blink: frame % 95 < 3 ? 1 : 0 },
                   ...(s === "rule3" && t >= tPillow - 0.3 ? { armL: { sh: -130, el: -80, wr: 0 }, armR: { sh: -125, el: -85, wr: 0 } } : {}),
                   ...(s === "rule4" ? { armL: { sh: -140 + 25 * Math.sin(frame / 5 + 1), el: -50, wr: 0 }, armR: { sh: -110 + 25 * Math.cos(frame / 4), el: -80, wr: 0 } } : {}) })} />
@@ -140,10 +144,11 @@ export const Db1: React.FC<{ withAudio?: boolean }> = ({ withAudio = true }) => 
               </Library>
             </g>
           )}
+          {inLib && <Foreground frame={frame} />}
           {/* ухом твари: темнота, видно только звук */}
           {s === "ear" && (<>
             <rect x={0} y={0} width={1080} height={1920} fill="#010102" />
-            <Creature x={560} y={1900} s={1.9} frame={frame} turn={-0.4} flare={sm(ramp(t, tThey, 0.6))} />
+            <Creature x={380} y={2050} s={1.75} frame={frame} turn={0.2} flare={sm(ramp(t, tThey, 0.6))} mouth={0.15 + 0.15 * Math.sin(frame / 9)} />
             <Rings x={120} y={700} db={50} age={(t - tThey) % 1.6} />
             <Rings x={900} y={500} db={30} age={((t - tThey) * 0.8) % 1.6} label={false} />
           </>)}
@@ -156,8 +161,9 @@ export const Db1: React.FC<{ withAudio?: boolean }> = ({ withAudio = true }) => 
             <rect x={0} y={1500} width={1080} height={420} fill="#0C0F14" />
             <rect x={0} y={300} width={260} height={1300} fill="#1E232C" stroke="#2E3440" strokeWidth={8} />
             <Rings x={130} y={1100} db={75} age={(t - tAlarm) % 1.6} />
-            <Creature x={720} y={1600} s={1.45} frame={frame} turn={-sm(ramp(t, tTurn - 0.3, 1.6))} flare={sm(ramp(t, tWall, 1.2))} />
+            <Creature x={880} y={1640} s={1.35} frame={frame} flip turn={-0.6 + 1.2 * sm(ramp(t, tTurn - 0.3, 1.6))} lean={sm(ramp(t, tTurn, 2))} mouth={sm(ramp(t, W("голову.") - 0.2, 0.6))} flare={sm(ramp(t, tWall, 1.2))} />
           </>)}
+          <rect x={0} y={0} width={1080} height={1920} fill="url(#dbVig)" />
         </svg>
       </AbsoluteFill>
       <div style={{ position: "absolute", inset: 0, background: "#000", opacity: dip }} />
