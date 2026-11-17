@@ -74,7 +74,7 @@ if EP == "db-1":
     end = _w[-1]["end"]
     CFG.update(end=end, beat=(_ts("шесть"), end), tick=(0, 0), radio=(0, 0),
         mood=[(0.0, "dread"), (_ts("правило"), "silence"), (_ts("бумаге") - 0.3, "dread"), (_ts("пять"), "silence"), (_ts("шесть"), "alarm"), (_ts("что", 2), "end")],
-        sfx=[(_ts("вдох") , "inhale"), (_ts("они", 2), "clicks"), (_ts("ходим"), "steps:3.0"), (_ts("труба"), "hum:1.8"),
+        sfx=[(0.0, "boom"), (0.05, "clicks"), (_ts("звук") - 0.1, "rumble"), (_ts("вдох") , "inhale"), (_ts("они", 2), "clicks"), (_ts("ходим"), "steps:3.0"), (_ts("труба"), "hum:1.8"),
              (_ts("кашель"), "cough"), (_ts("подушку"), "cough_m"), (_ts("шесть") + 0.2, "alarm:9.5"), (_ts("стеной"), "clicks")])
 if EP == "svet-3":
     CFG.update(end=_w[-1]["end"], beat=(_ts("снизу"), _ts("что")), tick=(0, 0), radio=(0, 0),

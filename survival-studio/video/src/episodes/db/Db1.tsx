@@ -30,19 +30,19 @@ const ACC: [string, number, "yellow" | "red"][] = [
 const ACCENTS = Object.fromEntries(ACC.map(([w, n, c]) => [idxIn(CW, w, n), c]).filter(([i]) => (i as number) >= 0)) as Record<number, "yellow" | "red">;
 
 /* ---------- Ключевые моменты ---------- */
-const tInhale = W("вдох."), tThey = W("они", 2), tSafe = W("сами"), tMistake = W("ошибку."), tMe = W("я"), tAnya = W("аня"), tMan = W("мужчина,"),
+const tSound = W("звук"), tNever = W("никогда"), tInhale = W("вдох."), tThey = W("они", 2), tSafe = W("сами"), tMistake = W("ошибку."), tMe = W("я"), tAnya = W("аня"), tMan = W("мужчина,"),
   tEars = W("перевязаны"), tPhone = W("он"), tSleep = W("засыпает."), tR1 = W("правило"), tWalk = W("ходим"), tR2 = W("второе."), tPipe = W("труба"),
   tDrink = W("пьём"), tR3 = W("третье."), tCough = W("кашель"), tPillow = W("подушку:"), tR4 = W("четвёртое."), tPaper = W("бумаге"), tFort = W("крепость."),
   tProblem = W("была"), t559 = W("пять"), tGlow = W("у", 2), tAlarm = W("шесть"), tWake = W("все"), tExcept = W("кроме"), tWall = W("стеной"),
   tTurn = W("поворачивает"), tChoice = W("что", 2), tA = W("накрыл"), tB = W("или"), tWrite = W("пиши."), tNext = W("следующая");
 
-type Scene = "hook" | "ear" | "lib" | "chars" | "rule1" | "rule2" | "rule3" | "rule4" | "fort" | "problem" | "pocket" | "alarm" | "wall" | "choice";
+type Scene = "cold" | "hook" | "ear" | "lib" | "chars" | "rule1" | "rule2" | "rule3" | "rule4" | "fort" | "problem" | "pocket" | "alarm" | "wall" | "choice";
 const SCENES: [number, Scene][] = [
-  [0, "hook"], [tThey - 0.1, "ear"], [tSafe - 0.1, "lib"], [W("нас") - 0.1, "chars"], [tR1 - 0.1, "rule1"], [tR2 - 0.1, "rule2"], [tR3 - 0.1, "rule3"],
+  [0, "cold"], [W("потом") - 0.1, "hook"], [tThey - 0.1, "ear"], [tSafe - 0.1, "lib"], [W("нас") - 0.1, "chars"], [tR1 - 0.1, "rule1"], [tR2 - 0.1, "rule2"], [tR3 - 0.1, "rule3"],
   [tR4 - 0.1, "rule4"], [tPaper - 0.3, "fort"], [tProblem - 0.1, "problem"], [t559 - 0.1, "pocket"], [tAlarm - 0.1, "alarm"], [W("а", 2) - 0.1, "wall"],
   [tChoice - 0.1, "choice"],
 ];
-const sceneAt = (t: number) => { let cur: Scene = "hook", start = 0; for (const [a, s] of SCENES) if (t >= a) { cur = s; start = a; } return { s: cur, f: t - start }; };
+const sceneAt = (t: number) => { let cur: Scene = "cold", start = 0; for (const [a, s] of SCENES) if (t >= a) { cur = s; start = a; } return { s: cur, f: t - start }; };
 
 type Cam = { x: number; y: number; z: number };
 const lerpCam = (a: Cam, b: Cam, k: number): Cam => { const q = sm(Math.min(1, Math.max(0, k))); return { x: a.x + (b.x - a.x) * q, y: a.y + (b.y - a.y) * q, z: a.z + (b.z - a.z) * q }; };
@@ -55,6 +55,9 @@ const WIDE: Cam = { x: 620, y: 1080, z: 0.92 };
 
 /* Уровень шума */
 const dbAt = (t: number) => {
+  if (t < tSound - 0.1) return 86 - 6 * t + 3 * Math.sin(t * 40);
+  if (t < tNever - 0.1) return 46 + 6 * Math.sin(t * 9);
+  if (t < W("потом")) return 9 + Math.sin(t * 5);
   let v = 16 + 2 * Math.sin(t * 3);
   if (t >= tInhale && t < tInhale + 0.8) v = 50;
   if (t >= tWalk && t < tR2) v = 20 + 2 * Math.abs(Math.sin(t * 5));
@@ -73,32 +76,36 @@ export const Db1: React.FC<{ withAudio?: boolean }> = ({ withAudio = true }) => 
   const t = frame / FPS;
   const { s, f } = sceneAt(t);
   const db = dbAt(t);
-  const dip = Math.max(0, 1 - f / 0.15) * (s === "hook" ? 0 : 0.85);
-  const shake = db >= 70 ? Math.sin(frame * 3.1) * 4 : 0;
+  const dip = Math.max(0, 1 - f / 0.15) * (s === "hook" || s === "cold" ? 0 : 0.85);
+  const cuts = [0, tSound - 0.1, tNever - 0.1, W("потом") - 0.1];
+  const flash = cuts.reduce((m, c) => Math.max(m, t >= c && t < c + 0.1 ? 1 - (t - c) / 0.1 : 0), 0);
+  const punch = cuts.reduce((m, c) => Math.max(m, t >= c && t < c + 0.35 ? 1 - (t - c) / 0.35 : 0), 0);
+  const shake = (db >= 70 ? Math.sin(frame * 3.1) * 4 : 0) + (t < W("потом") ? Math.sin(frame * 2.7) * 14 * (t < tSound ? 1 : 0.5) : 0);
   const breathHold = t < tInhale ? 1 : 0;
 
   /* ---- камера в библиотеке ---- */
   const libCam = (): Cam => {
+    if (s === "cold") return lerpCam({ x: MEX + 52, y: GY - 250 * S + 92, z: 4.4 }, { x: MEX + 52, y: GY - 250 * S + 92, z: 3.6 }, (t - tNever) / 1.6);
     if (s === "hook") return lerpCam({ x: MEX + 60, y: 1150, z: 2.6 }, { x: MEX + 60, y: 1150, z: 3.0 }, t / tThey);
     if (s === "lib") return lerpCam({ x: 540, y: 1000, z: 0.8 }, WIDE, f / 3);
     if (s === "chars") {
       if (t < tAnya - 0.1) return lerpCam(WIDE, { x: MEX + 40, y: 1200, z: 2.0 }, (t - tMe + 0.3) / 0.8);
       if (t < tMan - 0.1) return lerpCam({ x: MEX + 40, y: 1200, z: 2.0 }, { x: ANX + 30, y: 1250, z: 2.2 }, (t - tAnya + 0.2) / 0.8);
       if (t < tEars - 0.1) return lerpCam({ x: ANX + 30, y: 1250, z: 2.2 }, { x: STX - 80, y: 1150, z: 1.6 }, (t - tMan + 0.2) / 0.9);
-      if (t < tPhone - 0.1) return lerpCam({ x: STX - 80, y: 1150, z: 1.6 }, { x: STX + 10, y: 1110, z: 3.4 }, (t - tEars + 0.1) / 0.9);
-      return lerpCam({ x: STX + 10, y: 1110, z: 3.4 }, { x: STX - 120, y: 1250, z: 1.5 }, (t - tPhone) / 1.0);
+      if (t < tPhone - 0.1) return lerpCam({ x: STX - 80, y: 1150, z: 1.6 }, { x: STX - 110, y: 1135, z: 3.4 }, (t - tEars + 0.1) / 0.9);
+      return lerpCam({ x: STX - 110, y: 1135, z: 3.4 }, { x: STX - 120, y: 1250, z: 1.5 }, (t - tPhone) / 1.0);
     }
     if (s === "rule1") { const wx = interpolate(t, [tWalk, tR2], [150, 900], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }); return { x: wx, y: 1250, z: 1.4 }; }
     if (s === "rule3") return { x: ANX + 30, y: 1220, z: 2.8 };
     if (s === "rule4") return { x: (MEX + ANX) / 2 + 20, y: 1200, z: 2.0 };
     if (s === "alarm") {
       if (t < tExcept - 0.1) return lerpCam({ x: POCKET.x, y: 1300, z: 1.8 }, WIDE, (t - tAlarm) / 1.2);
-      return lerpCam(WIDE, { x: STX - 330, y: 1400, z: 3.2 }, (t - tExcept + 0.2) / 0.9);
+      return lerpCam(WIDE, { x: STX - 395, y: 1400, z: 3.2 }, (t - tExcept + 0.2) / 0.9);
     }
     return WIDE;
   };
   const cam = libCam();
-  const inLib = ["hook", "lib", "chars", "rule1", "rule3", "rule4", "alarm"].includes(s);
+  const inLib = (s === "cold" && t >= tNever - 0.1) || ["hook", "lib", "chars", "rule1", "rule3", "rule4", "alarm"].includes(s);
   const strangerLie = t >= tSleep || s === "alarm" || s === "rule1" || s === "rule3" || s === "rule4";
   const woke = s === "alarm" && t >= tWake;
   const mouthHead = { x: MEX + 70, y: GY - 205 * S };
@@ -145,6 +152,17 @@ export const Db1: React.FC<{ withAudio?: boolean }> = ({ withAudio = true }) => 
             </g>
           )}
           {inLib && <Foreground frame={frame} />}
+          {s === "cold" && t < tSound - 0.1 && (<>
+            <rect x={0} y={0} width={1080} height={1920} fill="#020203" />
+            <Rings x={540} y={760} db={86} age={t} />
+            <Creature x={80} y={3150 - 300 * t} s={2.5 + 0.9 * t} frame={frame} turn={0} flare={1} mouth={1} />
+          </>)}
+          {s === "cold" && t >= tSound - 0.1 && t < tNever - 0.1 && (<>
+            <rect x={0} y={0} width={1080} height={1920} fill="#020203" />
+            <Creature x={360} y={1820} s={1.55} frame={frame} turn={0.3} flare={0.9} mouth={0.35} step={(t * 0.8) % 1} />
+            <Rings x={980} y={700} db={46} age={(t * 1.2) % 1.6} />
+            <Rings x={120} y={1150} db={46} age={((t + 0.7) * 1.2) % 1.6} label={false} />
+          </>)}
           {/* ухом твари: темнота, видно только звук */}
           {s === "ear" && (<>
             <rect x={0} y={0} width={1080} height={1920} fill="#010102" />
@@ -168,13 +186,15 @@ export const Db1: React.FC<{ withAudio?: boolean }> = ({ withAudio = true }) => 
       </AbsoluteFill>
       <div style={{ position: "absolute", inset: 0, background: "#000", opacity: dip }} />
 
-      {/* TikTok: хук текстом с первого кадра */}
-      {s === "hook" && t < tInhale - 0.2 && (
-        <div style={{ position: "absolute", left: 60, right: 150, top: 420, fontFamily: "Inter Display", fontWeight: 900, lineHeight: 1.02, textShadow: "0 0 24px #000" }}>
-          <div style={{ fontSize: 50, color: "#C9D2E0" }}>ЕСЛИ ОНИ ОХОТЯТСЯ НА ЗВУК —</div>
-          <div style={{ fontSize: 92, color: "#FF3B30", marginTop: 10 }}>НЕ ЗАДЕРЖИВАЙ ДЫХАНИЕ</div>
+      {/* TikTok: хук — удар текстом за первые 3 с */}
+      {s === "cold" && (
+        <div style={{ position: "absolute", left: 50, right: 150, top: 430, fontFamily: "Inter Display", fontWeight: 900, lineHeight: 1.0, textShadow: "0 0 24px #000, 0 4px 0 #000",
+          transform: `scale(${1 + 0.25 * punch}) rotate(${-2 * punch}deg)`, transformOrigin: "30% 50%" }}>
+          {t >= tSound - 0.1 && <div style={{ fontSize: 66, color: "#FFFFFF" }}>ЕСЛИ ОНИ ОХОТЯТСЯ<br />НА ЗВУК —</div>}
+          {t >= tNever - 0.1 && <div style={{ fontSize: 104, color: "#FF3B30", marginTop: 14, textShadow: "0 0 30px rgba(255,59,48,.8), 0 4px 0 #000" }}>НЕ ЗАДЕРЖИВАЙ<br />ДЫХАНИЕ</div>}
         </div>
       )}
+      <div style={{ position: "absolute", inset: 0, background: "#FFFFFF", opacity: 0.8 * flash, pointerEvents: "none" }} />
       {s === "ear" && <Stamp k={ramp(t, W("громче") - 0.2, 0.25)} top={420} size={52}>СЛЫШАТ ВСЁ, ЧТО ГРОМЧЕ 40</Stamp>}
       {s === "lib" && <Stamp k={ramp(t, tMistake - 0.2, 0.25)} top={420} size={52}>…ЕСЛИ НЕ ОДНА ОШИБКА</Stamp>}
       {s === "rule1" && <Stamp k={ramp(t, tR1, 0.25)} color="#F2C94C" top={420} size={44}>1 · БОСИКОМ ПО КОВРУ −20 дБ</Stamp>}
@@ -205,7 +225,7 @@ export const Db1: React.FC<{ withAudio?: boolean }> = ({ withAudio = true }) => 
         </div>
       )}
       <DbMeter db={db} frame={frame} dist={distAt(t)} time={timeAt(t)} />
-      <Karaoke words={CW} accents={ACCENTS} pendingColor="#C3C8D2" />
+      {s !== "cold" && <Karaoke words={CW} accents={ACCENTS} pendingColor="#C3C8D2" />}
       <Grain />
       {withAudio && <Audio src={staticFile("audio/db1_mix.wav")} />}
     </AbsoluteFill>
