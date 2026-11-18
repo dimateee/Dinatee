@@ -31,14 +31,14 @@ export const Db2Cover: React.FC<{ wide?: boolean }> = ({ wide }) => {
       {!wide && (<>
         <div style={{ ...T, position: "absolute", left: 0, right: 0, top: 90, textAlign: "center", fontSize: 220, color: "#FF3B30" }}>40 дБ</div>
         <div style={{ ...T, position: "absolute", left: 0, right: 0, top: 330, textAlign: "center", fontSize: 46, color: "#F2C94C", fontFamily: "JetBrains Mono" }}>СЕРИЯ 2 · КАПЛЯ</div>
-        <div style={{ ...T, position: "absolute", left: 60, right: 60, top: 1620, textAlign: "center", fontSize: 92, color: "#FFFFFF" }}>ОДНА КАПЛЯ —</div>
-        <div style={{ ...T, position: "absolute", left: 60, right: 60, top: 1730, textAlign: "center", fontSize: 92, color: "#FF3B30" }}>И ОНА СЛЫШИТ</div>
+        <div style={{ ...T, position: "absolute", left: 60, right: 60, top: 1590, textAlign: "center", fontSize: 84, color: "#FFFFFF" }}>МОНСТР, КОТОРЫЙ</div>
+        <div style={{ ...T, position: "absolute", left: 60, right: 60, top: 1690, textAlign: "center", fontSize: 92, color: "#FF3B30" }}>ИДЁТ НА ЗВУК</div>
       </>)}
       {wide && (<>
         <div style={{ ...T, position: "absolute", left: 660, top: 60, fontSize: 170, color: "#FF3B30" }}>40 дБ</div>
         <div style={{ ...T, position: "absolute", left: 670, top: 250, fontSize: 36, color: "#F2C94C", fontFamily: "JetBrains Mono" }}>СЕРИЯ 2 · КАПЛЯ</div>
-        <div style={{ ...T, position: "absolute", left: 670, top: 340, fontSize: 70, color: "#FFFFFF" }}>Одна капля —</div>
-        <div style={{ ...T, position: "absolute", left: 670, top: 420, fontSize: 70, color: "#FF3B30" }}>и она слышит</div>
+        <div style={{ ...T, position: "absolute", left: 670, top: 340, fontSize: 64, color: "#FFFFFF" }}>Монстр, который</div>
+        <div style={{ ...T, position: "absolute", left: 670, top: 420, fontSize: 64, color: "#FF3B30" }}>идёт на звук</div>
         <div style={{ ...T, position: "absolute", left: 670, top: 540, fontSize: 54, color: "#F2C94C" }}>41 дБ</div>
       </>)}
     </AbsoluteFill>
