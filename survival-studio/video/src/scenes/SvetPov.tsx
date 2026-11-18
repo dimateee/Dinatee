@@ -2,6 +2,10 @@ import React from "react";
 import { Dog, dogLie, dogSit } from "../rig/Dog";
 import { RimDefs } from "../rig/shared";
 import { Hero, HeroPose, Look, NEUTRAL } from "../rig/Hero";
+import { random } from "remotion";
+import { LOOKS } from "./Podval";
+const LENA_LOOK: Look = LOOKS.guest;
+const KID_LOOK: Look = LOOKS.kidA;
 import { Cat } from "./Podval";
 import { HERO } from "../style/palette";
 
@@ -542,3 +546,99 @@ export const HatchAbove: React.FC<{ frame: number; knock: number; lamp?: number 
     </svg>
   );
 };
+
+/* ================= Серия 4 (финал) ================= */
+
+/* Подвал: бетон, трубы, генератор, щит с рубильником; Лена с малышом; Джек */
+export const Basement: React.FC<{ frame: number; lena?: number; jackWag?: number; lever?: number; marker?: number; hum?: number; sun?: number; lights?: number }> = ({
+  frame, lena = 1, jackWag = 0, lever = 0, marker = 0, hum = 1, sun = 0, lights = 0,
+}) => {
+  const vib = hum ? Math.sin(frame * 3.1) * 1.5 : 0;
+  const words = ["НЕ ВЫКЛЮЧАЙ.", "ОНО НЕ ИДЁТ", "НА СВЕТ.", "ОНО ЕГО ГАСИТ."];
+  return (
+    <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+      <defs>
+        <linearGradient id="bsW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#14161A" /><stop offset="1" stopColor="#1E2126" /></linearGradient>
+        <linearGradient id="bsSun" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FFE3A8" stopOpacity={0.7} /><stop offset="1" stopColor="#FFB45A" stopOpacity={0} /></linearGradient>
+        <radialGradient id="bsLamp"><stop offset="0" stopColor="#FFE9B0" stopOpacity={0.8} /><stop offset="1" stopColor="#FFE9B0" stopOpacity={0} /></radialGradient>
+      </defs>
+      <rect x={0} y={0} width={1080} height={1920} fill="url(#bsW)" />
+      {Array.from({ length: 14 }, (_, r) => <line key={r} x1={0} y1={140 + r * 100} x2={1080} y2={140 + r * 100} stroke="#101215" strokeWidth={3} />)}
+      {/* трубы */}
+      <rect x={0} y={180} width={1080} height={36} fill="#3A3E46" /><rect x={0} y={240} width={1080} height={20} fill="#2E3238" />
+      {/* окно под потолком */}
+      <rect x={120} y={300} width={260} height={130} fill={sun > 0 ? "#FFE3A8" : "#0A0C10"} opacity={0.4 + 0.6 * sun} stroke="#2E3238" strokeWidth={10} />
+      <line x1={250} y1={300} x2={250} y2={430} stroke="#2E3238" strokeWidth={8} />
+      {sun > 0 && <path d={`M 120 300 L 380 300 L ${380 + 500 * sun} 1500 L ${120 + 300 * sun} 1500 Z`} fill="url(#bsSun)" opacity={sun} />}
+      {/* лампа под потолком */}
+      <line x1={760} y1={260} x2={760} y2={330} stroke="#2E3238" strokeWidth={4} />
+      <circle cx={760} cy={345} r={18} fill={lights > 0 ? "#FFF3C2" : "#FFE9B0"} opacity={0.5 + 0.5 * Math.max(lights, hum ? 0.6 : 0)} />
+      <circle cx={760} cy={345} r={360 + 300 * lights} fill="url(#bsLamp)" opacity={0.35 + 0.5 * lights} />
+      {/* генератор */}
+      <g transform={`translate(${620 + vib} 1080)`}>
+        <rect x={0} y={0} width={380} height={300} rx={20} fill="#3E5A3A" stroke="#1A2418" strokeWidth={8} />
+        {Array.from({ length: 6 }, (_, i) => <rect key={i} x={30} y={40 + i * 36} width={160} height={14} rx={6} fill="#22301E" />)}
+        <circle cx={290} cy={120} r={50} fill="#1A2418" /><circle cx={290} cy={120} r={36} fill="none" stroke="#5A7A52" strokeWidth={8} strokeDasharray="20 12" transform={`rotate(${frame * 20} 290 120)`} />
+        <circle cx={330} cy={250} r={10} fill={hum ? "#3DDC84" : "#2A2A2A"} />
+      </g>
+      {/* щит с рубильником и надписью маркером */}
+      <g transform="translate(560 560)">
+        <rect x={0} y={0} width={440} height={420} rx={14} fill="#5A6068" stroke="#2A2E34" strokeWidth={8} />
+        <rect x={150} y={180} width={140} height={180} rx={10} fill="#2A2E34" />
+        <g transform={`translate(220 330) rotate(${-30 + 50 * lever})`}><rect x={-10} y={-140} width={20} height={140} rx={8} fill="#B9C1CB" /><circle cx={0} cy={-150} r={26} fill="#E53935" stroke="#7A1B1B" strokeWidth={5} /></g>
+        {words.map((w, i) => (
+          <text key={i} x={20} y={50 + i * 34} fontFamily="Caveat" fontWeight={700} fontSize={36} fill="#E53935" opacity={Math.min(1, Math.max(0, marker * 4 - i))}>{w}</text>
+        ))}
+      </g>
+      {/* Лена с малышом в углу */}
+      {lena > 0 && <g transform="translate(250 1500) scale(1.5)" opacity={lena}>
+        <Hero pose={{ ...NEUTRAL, y: NEUTRAL.y + 70, torso: 18, head: 8, legL: { hip: -95, knee: 120, foot: 0 }, legR: { hip: -85, knee: 115, foot: 0 },
+          armL: { sh: -40, el: -90, wr: 0 }, armR: { sh: -30, el: -95, wr: 0 }, expr: { brow: 0.6, browTilt: 1, mouth: "sad", blink: frame % 90 < 3 ? 1 : 0 } }} look={LENA_LOOK} />
+      </g>}
+      {lena > 0 && <g transform="translate(330 1490) scale(0.9)" opacity={lena}>
+        <Hero pose={{ ...NEUTRAL, y: NEUTRAL.y + 70, torso: 10, head: -4 + Math.sin(frame / 6) * 3, legL: { hip: -95, knee: 120, foot: 0 }, legR: { hip: -85, knee: 115, foot: 0 },
+          armL: { sh: -120, el: -40, wr: 0 }, armR: { sh: -110, el: -50, wr: 0 }, expr: { brow: -0.4, browTilt: 1, mouth: "open", blink: 1 } }} look={KID_LOOK} />
+      </g>}
+      {/* Джек */}
+      <g transform="translate(560 1520) scale(-2 2)">
+        <Dog pose={{ ...dogSit(frame, 3, false), tail: jackWag * 35 * Math.sin(frame / 2) }} />
+      </g>
+      <rect x={0} y={1500} width={1080} height={420} fill="#121316" />
+    </svg>
+  );
+};
+
+/* Стена с проводами: скрежет изнутри, искры, мигание */
+export const WallWires: React.FC<{ frame: number; scrape: number }> = ({ frame, scrape }) => {
+  const flick = scrape > 0 && random(`wf${Math.floor(frame / 2)}`) > 0.75 ? 0.4 : 1;
+  return (
+    <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+      <rect x={0} y={0} width={1080} height={1920} fill="#16181C" />
+      <rect x={0} y={0} width={1080} height={1920} fill="#000" opacity={1 - flick} />
+      {[220, 420, 640, 860].map((x, i) => (
+        <g key={i}>
+          <rect x={x - 22} y={0} width={44} height={1920} fill="#2A2E34" />
+          <rect x={x - 6} y={0} width={12} height={1920} fill="#E53935" opacity={0.25 + 0.5 * scrape * Math.abs(Math.sin(frame / 3 + i))} />
+          {scrape > 0 && [0, 1].map((j) => { const y = ((frame * 14 + i * 300 + j * 700) % 1920);
+            return <g key={j}><line x1={x - 30} y1={y} x2={x + 30} y2={y + 40} stroke="#C9D2E0" strokeWidth={4} opacity={0.7} /><line x1={x - 30} y1={y + 18} x2={x + 30} y2={y + 58} stroke="#C9D2E0" strokeWidth={3} opacity={0.5} /></g>; })}
+          {scrape > 0 && random(`sp${i}${Math.floor(frame / 4)}`) > 0.6 && <circle cx={x} cy={(frame * 31 + i * 400) % 1920} r={10} fill="#FFE3A8" style={{ filter: "drop-shadow(0 0 12px #FFB45A)" }} />}
+        </g>
+      ))}
+    </svg>
+  );
+};
+
+/* Джек спит на ногах героя (вид от первого лица), тёплый утренний свет */
+export const JackSleeps: React.FC<{ frame: number; warm: number }> = ({ frame, warm }) => (
+  <svg viewBox="0 0 1080 1920" width={1080} height={1920} style={{ position: "absolute", inset: 0 }}>
+    <defs><radialGradient id="jsW"><stop offset="0" stopColor="#FFE3A8" stopOpacity={0.6} /><stop offset="1" stopColor="#FFB45A" stopOpacity={0} /></radialGradient></defs>
+    <rect x={0} y={0} width={1080} height={1920} fill="#2A2420" />
+    <circle cx={300} cy={300} r={1100} fill="url(#jsW)" opacity={warm} />
+    {/* ноги героя */}
+    <path d="M 120 1920 L 380 1100 L 560 1120 L 420 1920 Z" fill="#3E4A36" /><path d="M 560 1920 L 600 1120 L 780 1120 L 900 1920 Z" fill="#3E4A36" />
+    <g transform={`translate(560 1240) scale(-2.6 2.6)`}>
+      <Dog pose={{ ...dogLie(frame, 3), earL: 4, earR: 4, head: 14 + Math.sin(frame / 30) * 2, blink: 1 }} />
+    </g>
+    {[0, 1, 2].map((i) => { const p = ((frame / 50 + i / 3) % 1); return <text key={i} x={760 + p * 60} y={980 - p * 140} fontFamily="Inter Display" fontWeight={900} fontSize={44} fill="#F6F2E7" opacity={(1 - p) * 0.8}>z</text>; })}
+  </svg>
+);

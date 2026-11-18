@@ -24,6 +24,7 @@ import { Podval3, PODVAL3_FRAMES } from "./episodes/podval/Podval3";
 import { Svet1, SVET1_FRAMES } from "./episodes/svet/Svet1";
 import { Svet2, SVET2_FRAMES } from "./episodes/svet/Svet2";
 import { Svet3, SVET3_FRAMES } from "./episodes/svet/Svet3";
+import { Svet4, SVET4_FRAMES } from "./episodes/svet/Svet4";
 import { Db1, DB1_FRAMES } from "./episodes/db/Db1";
 import { Db2, DB2_FRAMES } from "./episodes/db/Db2";
 import { Db2Cover } from "./episodes/db/DbCover";
@@ -74,6 +75,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="Db2Thumb" component={Db2Cover} defaultProps={{ wide: true }} durationInFrames={1} fps={30} width={1280} height={720} />
       <Composition id="Db2" component={Db2} defaultProps={{ withAudio: false }} durationInFrames={DB2_FRAMES} fps={30} width={1080} height={1920} />
       <Composition id="Db1" component={Db1} defaultProps={{ withAudio: false }} durationInFrames={DB1_FRAMES} fps={30} width={1080} height={1920} />
+      <Composition id="Svet4" component={Svet4} defaultProps={{ withAudio: false }} durationInFrames={SVET4_FRAMES} fps={30} width={1080} height={1920} />
       <Composition id="Svet3" component={Svet3} defaultProps={{ withAudio: false }} durationInFrames={SVET3_FRAMES} fps={30} width={1080} height={1920} />
       <Composition id="Svet2" component={Svet2} defaultProps={{ withAudio: false }} durationInFrames={SVET2_FRAMES} fps={30} width={1080} height={1920} />
       <Composition id="Svet1" component={Svet1} defaultProps={{ withAudio: false }} durationInFrames={SVET1_FRAMES} fps={30} width={1080} height={1920} />

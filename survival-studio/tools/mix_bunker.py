@@ -30,6 +30,7 @@ CFG = {
     "podval-3": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "svet-1": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "svet-2": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
+    "svet-4": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "svet-3": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "db-2": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "db-1": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
@@ -86,6 +87,14 @@ if EP == "db-1":
         mood=[(0.0, "dread"), (_ts("правило"), "silence"), (_ts("бумаге") - 0.3, "dread"), (_ts("пять"), "silence"), (_ts("шесть"), "alarm"), (_ts("что", 2), "end")],
         sfx=[(0.0, "boom"), (0.05, "clicks"), (_ts("звук") - 0.1, "rumble"), (_ts("вдох") , "inhale"), (_ts("они", 2), "clicks"), (_ts("ходим"), "steps:3.0"), (_ts("труба"), "hum:1.8"),
              (_ts("кашель"), "cough"), (_ts("подушку"), "cough_m"), (_ts("шесть") + 0.2, "alarm:9.5"), (_ts("стеной"), "clicks")])
+if EP == "svet-4":
+    CFG.update(end=_w[-1]["end"], beat=(_ts("генератор", 2), _ts("семь", 2)), tick=(0, 0), radio=(0, 0),
+        mood=[(0.0, "dread"), (_ts("тишина"), "silence"), (_ts("шаги"), "dread"), (_ts("коля"), "shelter"), (_ts("пять"), "dread"),
+              (_ts("подвал"), "silence"), (_ts("джек", 2), "calm"), (_ts("генератор", 2), "dread"), (_ts("коля", 2), "alarm"),
+              (_ts("лампа"), "dread"), (_ts("семь", 2), "calm"), (_ts("это"), "end")],
+        sfx=[(0.0, "knock"), (_ts("шаги"), "steps:1.8"), (_ts("пять"), "steps:3.5"), (_ts("печатает"), "buzz"), (_ts("из-за") - 0.2, "knock"),
+             (_ts("плач"), "cry"), (_ts("генератор", 2), "hum:10"), (_ts("рычагу"), "creak"), (_ts("скрежет"), "scrape:3.2"),
+             (_ts("скрежет", 2) - 0.3, "scrape:1.0"), (_ts("лампочки"), "click"), (_ts("лампочки") + 0.3, "click"), (_ts("загорается"), "hum:3")])
 if EP == "svet-3":
     CFG.update(end=_w[-1]["end"], beat=(_ts("снизу"), _ts("что")), tick=(0, 0), radio=(0, 0),
         mood=[(0.0, "dread"), (_ts("удар"), "silence"), (_ts("а"), "dread"), (_ts("дядя"), "shelter"), (_ts("его"), "dread"),
@@ -265,6 +274,10 @@ def sfx(kind):
         hit = (lp(w, 6000) - lp(w, 1500)) * np.exp(-x * 9) * 0.9 + np.sin(2 * np.pi * 90 * x) * np.exp(-x * 25) * 0.8
         tinkle = sum(np.sin(2 * np.pi * (3000 + 2500 * rng.random()) * (x - d)) * np.exp(-np.clip(x - d, 0, None) * 30) * (x > d) * 0.15 for d in rng.random(10) * 0.7)
         return hit + tinkle
+    if kind.startswith("scrape:"):  # скрежет когтей по проводам в стене
+        dur = float(kind.split(":")[1]); n = int(dur * SR); w = rng.standard_normal(n); x = np.arange(n) / SR
+        env = np.clip(np.sin(2 * np.pi * 2.3 * x) * np.sin(2 * np.pi * 0.7 * x + 0.5), 0, 1)
+        return (lp(w, 6000) - lp(w, 1800)) * env * 0.5 + np.sin(2 * np.pi * (300 + 80 * np.sin(2 * np.pi * 9 * x)) * x) * env * 0.05
     if kind == "bonk":  # кастрюля на голове бьётся о дверь
         n = int(1.2 * SR); x = np.arange(n) / SR
         return sum(np.sin(2 * np.pi * f * x) * a for f, a in ((523, 1), (1290, .6), (2210, .4), (3100, .25))) * np.exp(-x * 5) * 0.25
