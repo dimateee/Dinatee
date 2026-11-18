@@ -26,6 +26,7 @@ import { Svet2, SVET2_FRAMES } from "./episodes/svet/Svet2";
 import { Svet3, SVET3_FRAMES } from "./episodes/svet/Svet3";
 import { Db1, DB1_FRAMES } from "./episodes/db/Db1";
 import { Db2, DB2_FRAMES } from "./episodes/db/Db2";
+import { Db2Cover } from "./episodes/db/DbCover";
 import { Bee1, BEE1_FRAMES } from "./episodes/bee/Bee1";
 import { DbCast } from "./episodes/db/DbCast";
 import { Cam1, CAM1_FRAMES } from "./episodes/cam/Cam1";
@@ -68,6 +69,8 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="Cam1" component={Cam1} defaultProps={{ withAudio: false }} durationInFrames={CAM1_FRAMES} fps={30} width={1080} height={1920} />
       <Composition id="DbCast" component={DbCast} durationInFrames={60} fps={30} width={1080} height={1920} />
       <Composition id="Bee1" component={Bee1} defaultProps={{ withAudio: false }} durationInFrames={BEE1_FRAMES} fps={30} width={1080} height={1920} />
+      <Composition id="Db2Cover" component={Db2Cover} durationInFrames={1} fps={30} width={1080} height={1920} />
+      <Composition id="Db2Thumb" component={Db2Cover} defaultProps={{ wide: true }} durationInFrames={1} fps={30} width={1280} height={720} />
       <Composition id="Db2" component={Db2} defaultProps={{ withAudio: false }} durationInFrames={DB2_FRAMES} fps={30} width={1080} height={1920} />
       <Composition id="Db1" component={Db1} defaultProps={{ withAudio: false }} durationInFrames={DB1_FRAMES} fps={30} width={1080} height={1920} />
       <Composition id="Svet3" component={Svet3} defaultProps={{ withAudio: false }} durationInFrames={SVET3_FRAMES} fps={30} width={1080} height={1920} />
