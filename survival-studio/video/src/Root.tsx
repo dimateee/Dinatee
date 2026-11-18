@@ -70,6 +70,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="DbCast" component={DbCast} durationInFrames={60} fps={30} width={1080} height={1920} />
       <Composition id="Bee1" component={Bee1} defaultProps={{ withAudio: false }} durationInFrames={BEE1_FRAMES} fps={30} width={1080} height={1920} />
       <Composition id="Db2Cover" component={Db2Cover} durationInFrames={1} fps={30} width={1080} height={1920} />
+      <Composition id="Db2CoverTT" component={Db2Cover} defaultProps={{ tiktok: true }} durationInFrames={1} fps={30} width={1080} height={1920} />
       <Composition id="Db2Thumb" component={Db2Cover} defaultProps={{ wide: true }} durationInFrames={1} fps={30} width={1280} height={720} />
       <Composition id="Db2" component={Db2} defaultProps={{ withAudio: false }} durationInFrames={DB2_FRAMES} fps={30} width={1080} height={1920} />
       <Composition id="Db1" component={Db1} defaultProps={{ withAudio: false }} durationInFrames={DB1_FRAMES} fps={30} width={1080} height={1920} />

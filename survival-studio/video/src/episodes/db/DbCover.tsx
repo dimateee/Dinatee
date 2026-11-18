@@ -18,21 +18,22 @@ const Scene2: React.FC = () => {
     </g>
   );
 };
-export const Db2Cover: React.FC<{ wide?: boolean }> = ({ wide }) => {
+export const Db2Cover: React.FC<{ wide?: boolean; tiktok?: boolean }> = ({ wide, tiktok }) => {
+  const o = tiktok ? { top: 280, sub: 500, b1: 1380, b2: 1480 } : { top: 90, sub: 330, b1: 1590, b2: 1690 };
   useFonts();
   const T: React.CSSProperties = { fontFamily: "Inter Display", fontWeight: 900, lineHeight: 1, textShadow: "0 0 30px #000, 0 6px 0 #000" };
   return (
     <AbsoluteFill style={{ background: "#05070B" }}>
       <svg viewBox="0 0 1080 1920" width={wide ? 640 : 1080} height={wide ? 1138 : 1920} style={{ position: "absolute", left: wide ? 0 : 0, top: wide ? -260 : 0, filter: "saturate(0.65)" }}>
         <DbDefs frame={40} />
-        <g transform={wide ? "translate(-60 -40) scale(1.05)" : "translate(-20 40) scale(1.0)"}><Scene2 /></g>
+        <g transform={wide ? "translate(-60 -40) scale(1.05)" : (tiktok ? "translate(-20 -40) scale(1.0)" : "translate(-20 40) scale(1.0)")}><Scene2 /></g>
         <rect x={0} y={0} width={1080} height={1920} fill="url(#dbVig)" />
       </svg>
       {!wide && (<>
-        <div style={{ ...T, position: "absolute", left: 0, right: 0, top: 90, textAlign: "center", fontSize: 220, color: "#FF3B30" }}>40 дБ</div>
-        <div style={{ ...T, position: "absolute", left: 0, right: 0, top: 330, textAlign: "center", fontSize: 46, color: "#F2C94C", fontFamily: "JetBrains Mono" }}>СЕРИЯ 2 · КАПЛЯ</div>
-        <div style={{ ...T, position: "absolute", left: 60, right: 60, top: 1590, textAlign: "center", fontSize: 84, color: "#FFFFFF" }}>МОНСТР, КОТОРЫЙ</div>
-        <div style={{ ...T, position: "absolute", left: 60, right: 60, top: 1690, textAlign: "center", fontSize: 92, color: "#FF3B30" }}>ИДЁТ НА ЗВУК</div>
+        <div style={{ ...T, position: "absolute", left: 0, right: 0, top: o.top, textAlign: "center", fontSize: 220, color: "#FF3B30" }}>40 дБ</div>
+        <div style={{ ...T, position: "absolute", left: 0, right: 0, top: o.sub, textAlign: "center", fontSize: 46, color: "#F2C94C", fontFamily: "JetBrains Mono" }}>СЕРИЯ 2 · КАПЛЯ</div>
+        <div style={{ ...T, position: "absolute", left: 60, right: 60, top: o.b1, textAlign: "center", fontSize: 84, color: "#FFFFFF" }}>МОНСТР, КОТОРЫЙ</div>
+        <div style={{ ...T, position: "absolute", left: 60, right: 60, top: o.b2, textAlign: "center", fontSize: 92, color: "#FF3B30" }}>ИДЁТ НА ЗВУК</div>
       </>)}
       {wide && (<>
         <div style={{ ...T, position: "absolute", left: 660, top: 60, fontSize: 170, color: "#FF3B30" }}>40 дБ</div>
