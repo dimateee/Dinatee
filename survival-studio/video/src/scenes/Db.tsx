@@ -384,3 +384,39 @@ export const Foreground: React.FC<{ frame: number }> = ({ frame }) => (
     <ellipse cx={1000 + Math.sin(frame / 50) * 4} cy={1560} rx={120} ry={40} fill="#060708" />
   </g>
 );
+
+/* ---------- Серия 2: вентиляция, выход, кран с ведром (в мировых координатах библиотеки) ---------- */
+export const Vent: React.FC<{ x: number; y: number; open: number; frame: number }> = ({ x, y, open, frame }) => (
+  <g>
+    <rect x={x - 70} y={y - 45} width={140} height={90} fill="#050607" stroke="#2E3440" strokeWidth={6} />
+    {open < 1 && <g transform={`translate(${x} ${y + 45 + open * 1050}) rotate(${open * 160})`}>
+      <rect x={-66} y={-90} width={132} height={86} fill="#3A404A" stroke="#1A1D22" strokeWidth={4} />
+      {Array.from({ length: 6 }, (_, i) => <rect key={i} x={-60} y={-82 + i * 13} width={120} height={6} fill="#14171B" />)}
+    </g>}
+    {open < 0.05 && <path d={`M ${x - 40} ${y - 30} l ${8 + Math.sin(frame) * 3} 12`} stroke="#9AA6BA" strokeWidth={3} opacity={0.6} />}
+  </g>
+);
+export const ExitSign: React.FC<{ x: number; y: number; glow: number }> = ({ x, y, glow }) => (
+  <g>
+    <rect x={x - 130} y={y} width={260} height={520} fill="#0A0C10" stroke="#2E3440" strokeWidth={8} />
+    <rect x={x - 90} y={y - 90} width={180} height={60} rx={6} fill="#0E3A1E" stroke="#3DDC84" strokeWidth={3} />
+    <text x={x} y={y - 48} textAnchor="middle" fontFamily="Inter Display" fontWeight={900} fontSize={38} fill="#3DDC84" opacity={0.6 + 0.4 * glow} filter="url(#dbGlow)">ВЫХОД</text>
+  </g>
+);
+export const TapBucket: React.FC<{ x: number; y: number; frame: number; t: number; rate: number; stream: number }> = ({ x, y, frame, t, rate, stream }) => {
+  const period = rate > 0 ? 1 / rate : 999, ph = (t % period) / period;
+  return (
+    <g>
+      <rect x={x - 6} y={y - 700} width={14} height={520} fill="#4A525C" />
+      <path d={`M ${x} ${y - 190} L ${x} ${y - 160} Q ${x} ${y - 140} ${x + 22} ${y - 140} L ${x + 40} ${y - 140}`} stroke="#7E8896" strokeWidth={16} fill="none" strokeLinecap="round" />
+      <rect x={x - 20} y={y - 214} width={40} height={20} rx={6} fill="#9AA3AE" />
+      {stream > 0 && <rect x={x + 36} y={y - 132} width={5 + 6 * stream} height={110} fill="#9CC2FF" opacity={0.55} />}
+      {stream <= 0 && rate > 0 && <ellipse cx={x + 40} cy={y - 132 + ph * 110} rx={4} ry={7} fill="#9CC2FF" opacity={0.8} />}
+      {/* ведро */}
+      <path d={`M ${x + 2} ${y - 30} L ${x + 78} ${y - 30} L ${x + 70} ${y} L ${x + 10} ${y} Z`} fill="#6E7A8E" stroke="#2E3440" strokeWidth={3} />
+      <ellipse cx={x + 40} cy={y - 30} rx={38} ry={7} fill="#2E3440" />
+      <ellipse cx={x + 40} cy={y - 28} rx={30 + 4 * Math.sin(frame / 3) * stream} ry={5} fill="#5AA9FF" opacity={0.35} />
+      <path d={`M ${x + 6} ${y - 30} Q ${x + 40} ${y - 70} ${x + 74} ${y - 30}`} stroke="#8A929E" strokeWidth={3} fill="none" />
+    </g>
+  );
+};

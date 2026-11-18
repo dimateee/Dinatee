@@ -31,6 +31,7 @@ CFG = {
     "svet-1": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "svet-2": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "svet-3": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
+    "db-2": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "db-1": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
     "cam-1": dict(end=0, tail=1.6, beat=(0, 0), tick=(0, 0), radio=(0, 0), mood=[], sfx=[]),
 }[EP]
@@ -70,6 +71,15 @@ if EP.startswith("svet-") or EP.startswith("cam-") or EP.startswith("db-"):
                 c += 1
                 if c == k: return x["start"]
         raise KeyError(word)
+if EP == "db-2":
+    end = _w[-1]["end"]
+    land, step = _ts("удар"), _ts("наступает")
+    CFG.update(end=end, beat=(_ts("была"), end), tick=(0, 0), radio=(0, 0),
+        mood=[(0.0, "dread"), (_ts("тишина"), "silence"), (_ts("правило"), "dread"), (_ts("была") - 0.2, "silence"), (_ts("тот"), "dread"), (_ts("что"), "end")],
+        sfx=[(0.0, "boom"), (0.05, "clicks"), (_ts("шесть"), f"alarm:{step - _ts('шесть'):.1f}"), (land + 0.6, "glass"),
+             (_ts("скребется"), "creak"), (_ts("падает") - 0.1, "bonk"), (_ts("спускается"), "rumble"), (step + 0.4, "glass"),
+             (_ts("капает"), "drip:7.5:3.0:3.0"), (_ts("двигается"), "steps:3.2"), (_ts("замирает", 2), "clicks"),
+             (_ts("кап"), "drip:3.0:1.4:0.5"), (_ts("вода"), "stream:9"), (_ts("поворачивает"), "clicks")])
 if EP == "db-1":
     end = _w[-1]["end"]
     CFG.update(end=end, beat=(_ts("шесть"), end), tick=(0, 0), radio=(0, 0),
@@ -214,6 +224,18 @@ def sfx(kind):
         n = int(1.1 * SR); x = np.arange(n) / SR
         gate = (((x % 0.36) < 0.24)).astype(float)
         return np.sin(2 * np.pi * 150 * x) * lp(gate, 60) * 0.5
+    if kind.startswith("drip:"):  # капли: длительность, интервал в начале, интервал в конце
+        _, dur, i0, i1 = kind.split(":"); dur, i0, i1 = float(dur), float(i0), float(i1)
+        n = int((dur + 0.5) * SR); out = np.zeros(n); tt = 0.0
+        while tt < dur:
+            a0 = int(tt * SR); m = int(0.12 * SR); x = np.arange(m) / SR
+            f = 900 + 600 * rng.random()
+            out[a0:a0 + m] += np.sin(2 * np.pi * (f + 900 * x * 8) * x) * np.exp(-x * 45) * 0.35
+            tt += i0 + (i1 - i0) * (tt / dur)
+        return out
+    if kind.startswith("stream:"):  # струйка воды в ведро
+        dur = float(kind.split(":")[1]); n = int(dur * SR); w = rng.standard_normal(n); x = np.arange(n) / SR
+        return (lp(w, 5000) - lp(w, 1200)) * 0.18 * np.minimum(1, x / 2.5) * ramp(n, 2000, 6000)
     if kind == "inhale":  # резкий вдох после задержки дыхания
         n = int(0.7 * SR); x = np.arange(n) / SR; w = rng.standard_normal(n)
         return (lp(w, 4500) - lp(w, 700)) * np.sin(np.pi * np.clip(x / 0.55, 0, 1)) ** 0.6 * 0.5
