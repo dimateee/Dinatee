@@ -54,12 +54,12 @@ export const Bee1: React.FC<{ withAudio?: boolean }> = ({ withAudio = true }) =>
           {/* 1. Хук: улей, 6:00, будильник */}
           {s === "hook" && (<>
             <Honeycomb frame={frame} />
-            <g transform={`translate(540 640) rotate(${Math.sin(frame * 1.5) * 6})`}>
+            <g transform={`translate(540 800) rotate(${Math.sin(frame * 1.5) * 6})`}>
               <circle r={190} fill="#FFFFFF" stroke="#E5484D" strokeWidth={22} />
               <text x={0} y={40} textAnchor="middle" fontFamily="Inter Display" fontWeight={900} fontSize={130} fill="#2A1E14">6:00</text>
               <circle cx={-130} cy={-170} r={50} fill="#E5484D" /><circle cx={130} cy={-170} r={50} fill="#E5484D" />
             </g>
-            <Bee x={540} y={1020} s={1.5} look={ZHUZH} frame={frame} expr={t < 1.5 ? "sleep" : "wow"} wings={t < 1.5 ? 0 : 1} />
+            <Bee x={540} y={1500} s={1.5} look={ZHUZH} frame={frame} expr={t < 1.5 ? "sleep" : "wow"} wings={t < 1.5 ? 0 : 1} />
           </>)}
           {/* 2. Королева с рупором; пустые банки */}
           {s === "queen" && (<>
@@ -182,7 +182,7 @@ export const Bee1: React.FC<{ withAudio?: boolean }> = ({ withAudio = true }) =>
         </g>
       </svg>
       {/* надписи */}
-      {s === "hook" && <Title k={ramp(t, 0.1, 0.3)} top={240} size={84}>ЧТО ТВОРИТСЯ<br />В УЛЬЕ В 6:00?</Title>}
+      {s === "hook" && <Title k={ramp(t, 0, 0.2)} top={200} size={92} color="#FFE066">ОДИН ДЕНЬ<br />ИЗ ЖИЗНИ ПЧЁЛОК</Title>}
       {s === "queen" && t < tEmpty - 0.3 && <Title k={ramp(t, W("через") - 0.1, 0.3)} top={300} size={60}>«МЕДОВЫЙ ПРАЗДНИК<br />ЧЕРЕЗ НЕДЕЛЮ!»</Title>}
       {s === "crowd" && <Title k={ramp(t, tSixty, 0.3)} top={280} size={120} color="#FFE066">60 000</Title>}
       {s === "zhuzh" && <Title k={ramp(t, W("жужик"), 0.3)} top={300} size={80} color="#FFE066">ЖУЖИК</Title>}

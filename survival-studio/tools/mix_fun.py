@@ -6,7 +6,7 @@ import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SR = 48000
-ap = argparse.ArgumentParser(); ap.add_argument("ep"); ap.add_argument("--music"); ap.add_argument("--music-db", type=float, default=-15.0)
+ap = argparse.ArgumentParser(); ap.add_argument("ep"); ap.add_argument("--music"); ap.add_argument("--music-db", type=float, default=-15.0); ap.add_argument("--no-music", action="store_true")
 A = ap.parse_args()
 d = os.path.join(ROOT, "episodes", A.ep)
 words = json.load(open(os.path.join(d, "words.json")))["words"]
@@ -65,6 +65,7 @@ else:
         t += 4 * beat; bar += 1
     music += np.sin(2 * np.pi * 220 * x + 3 * np.sin(2 * np.pi * 6 * x)) * 0.008  # лёгкое жужжание
 music = music / (np.max(np.abs(music)) + 1e-9) * 10 ** (A.music_db / 20) * 3.2
+if A.no_music: music = np.zeros(L)
 
 # приглушение музыки под голос
 env = np.sqrt(np.convolve(np.pad(voice, (0, L - len(voice))) ** 2, np.ones(2400) / 2400, mode="same"))
